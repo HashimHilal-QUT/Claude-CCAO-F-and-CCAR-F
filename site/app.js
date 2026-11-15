@@ -146,7 +146,19 @@ function renderTraining() {
       <details><summary>Listen to chapter podcast <span>(${chapter.audio.length} episodes)</span></summary>
       <div class="audio-list">${chapter.audio.map((episode) => `<div class="audio-row"><span>${escapeHtml(episode.title)}</span><audio controls preload="none" src="${encodeURI(episode.file)}"></audio></div>`).join("")}</div></details></div>
     </article>`).join("");
-  if ($("#material-links")) $("#material-links").innerHTML = training.chapters.map((chapter) => `<a href="${encodeURI(chapter.material)}" target="_blank" rel="noopener"><span>Chapter ${chapter.number}</span>${escapeHtml(chapter.title)} <b>↗</b></a>`).join("");
+  if ($("#material-links")) {
+    const samePage = $("#notes-viewer");
+    $("#material-links").innerHTML = training.chapters.map((chapter) => `<a href="${encodeURI(chapter.material)}"${samePage ? ` data-note="${encodeURI(chapter.material)}"` : ' target="_blank" rel="noopener"'}><span>Chapter ${chapter.number}</span>${escapeHtml(chapter.title)} <b>↗</b></a>`).join("");
+    if (samePage) {
+      const links = document.querySelectorAll("[data-note]");
+      links.forEach((link) => link.addEventListener("click", (event) => {
+        event.preventDefault();
+        samePage.src = link.dataset.note;
+        links.forEach((item) => item.classList.toggle("selected", item === link));
+      }));
+      links[0]?.click();
+    }
+  }
   if ($("#training-quiz-intro")) $("#training-quiz-intro").textContent = `Practice with all ${training.quiz.length} scenario-based questions from the five training domains.`;
   if ($("#training-quiz-start")) $("#training-quiz-start").addEventListener("click", startTrainingQuiz);
 }
