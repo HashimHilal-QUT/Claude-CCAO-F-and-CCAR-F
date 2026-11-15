@@ -1,6 +1,10 @@
-# Exam Preparation Questions for Claude Certified Associate - Foundations (CCAO-F) and Claude Certified Architect – Foundations (CCAR-F)
-<img width="340" height="340" alt="claude-certified-architect-foundations" src="https://github.com/user-attachments/assets/3ca4653e-04d6-4504-ab4f-c81d65a71587" />
+# Exam Preparation Questions 
+
+### Claude Certified Associate - Foundations (CCAO-F) 
 <img width="340" height="340" alt="badge-ccao-f" src="https://github.com/user-attachments/assets/ba6d1501-89b1-4b7c-b9f8-a960825a52af" />
+
+### Claude Certified Architect – Foundations (CCAR-F)
+<img width="340" height="340" alt="claude-certified-architect-foundations" src="https://github.com/user-attachments/assets/3ca4653e-04d6-4504-ab4f-c81d65a71587" />
 
 ## Live website
 
