@@ -27,7 +27,7 @@ async function init() {
   if ($("#random-quiz")) $("#random-quiz").addEventListener("click", () => startQuiz(true));
   if ($("#hero-quiz")) $("#hero-quiz").addEventListener("click", () => { document.querySelector("#study").scrollIntoView(); startQuiz(); });
   if ($("#nav-quiz")) $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
-  if ($("#quiz-mode")?.classList.contains("active")) startQuiz();
+  if (document.body.dataset.page === "quiz") startQuiz();
 }
 
 function currentBank() { return state.banks.find((bank) => bank.id === state.bank); }
@@ -124,7 +124,7 @@ function answerQuiz(choice) {
   const quiz = state.quiz; if (quiz.answered) return; quiz.answered = true;
   const question = quiz.questions[quiz.index]; if (choice === question.correct_answer) quiz.score++;
   document.querySelectorAll("[data-choice]").forEach((button) => { button.disabled = true; if (button.dataset.choice === question.correct_answer) button.classList.add("correct"); else if (button.dataset.choice === choice) button.classList.add("incorrect"); });
-  $("#quiz-feedback").innerHTML = `<div class="quiz-feedback"><strong>${choice === question.correct_answer ? "Correct." : `Not quite — the answer is ${question.correct_answer}.`}</strong><br>${escapeHtml(question.explanation)}<br><button class="quiz-next" type="button">${quiz.index + 1 === quiz.questions.length ? "See results" : "Next question →"}</button></div>`;
+  $("#quiz-feedback").innerHTML = `<div class="quiz-feedback"><strong>${choice === question.correct_answer ? "Correct." : `Incorrect — the correct answer is ${question.correct_answer}.`}</strong><br>${escapeHtml(question.explanation)}<br><button class="quiz-next" type="button">${quiz.index + 1 === quiz.questions.length ? "See results" : "Next question →"}</button></div>`;
   $(".quiz-next").addEventListener("click", () => { if (quiz.index + 1 === quiz.questions.length) showQuizResult(); else { quiz.index++; quiz.answered = false; renderQuiz(); } });
 }
 function showQuizResult(timeExpired = false) {
