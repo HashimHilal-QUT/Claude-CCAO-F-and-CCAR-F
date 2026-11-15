@@ -1,0 +1,1071 @@
+# Domain 3: Claude Code Configuration & Workflows
+
+> Claude Certified Architect – Foundations
+
+> Exam Weight: 20% | Questions in Pool: 48
+
+*Generated from the JSONL bank by `scripts/render_markdown.py` — do not edit by hand.*
+*Private study material, assembled from mixed sources: not licensed for redistribution.*
+
+---
+
+**Q4.** You want to create a custom `/review` slash command that runs your team's standard code review checklist and should be available to every developer when they clone or pull the repository. Where should you create this command file?
+
+- **A)** In the `.claude/commands/` directory in the project repository
+- **B)** In `~/.claude/commands/` in each developer's home directory
+- **C)** In the `CLAUDE.md` file at the project root
+- **D)** In a `.claude/config.json` file with a `commands` array
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+Project-scoped custom slash commands are stored in `.claude/commands/` within the repository, version-controlled and automatically available to all developers. Option B is for personal, non-shared commands. Option C is for project instructions, not command definitions. Option D describes a mechanism that doesn't exist.
+
+</details>
+
+---
+
+**Q5.** You've been assigned to restructure a monolithic application into microservices. This will involve changes across dozens of files and requires decisions about service boundaries and module dependencies. Which approach should you take?
+
+- **A)** Enter plan mode to explore the codebase, understand dependencies, and design an implementation approach before making changes.
+- **B)** Start with direct execution and make changes incrementally, letting the implementation reveal the natural service boundaries.
+- **C)** Use direct execution with comprehensive upfront instructions detailing exactly how each service should be structured.
+- **D)** Begin in direct execution mode and only switch to plan mode if you encounter unexpected complexity during implementation.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+Plan mode is designed for complex tasks involving large-scale changes, multiple valid approaches, and architectural decisions. Option B risks costly rework when dependencies are discovered late. Option C assumes you already know the right structure without exploring the code. Option D ignores that the complexity is already stated.
+
+</details>
+
+---
+
+**Q6.** Your codebase has distinct areas with different conventions. Test files are spread throughout the codebase alongside the code they test. You want all tests to follow the same conventions regardless of location. What's the most maintainable way to ensure Claude automatically applies the correct conventions when generating code?
+
+- **A)** Create rule files in `.claude/rules/` with YAML frontmatter specifying glob patterns to conditionally apply conventions based on file paths.
+- **B)** Consolidate all conventions in the root `CLAUDE.md` file under headers for each area, relying on Claude to infer which section applies.
+- **C)** Create skills in `.claude/skills/` for each code type that include the relevant conventions in their `SKILL.md` files.
+- **D)** Place a separate `CLAUDE.md` file in each subdirectory containing that area's specific conventions.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+`.claude/rules/` with glob patterns (e.g., `**/*.test.tsx`) allows conventions to be automatically applied based on file paths regardless of directory location. Option B relies on inference rather than explicit matching. Option C requires manual invocation. Option D can't easily handle files spread across many directories.
+
+</details>
+
+---
+
+**Q10.** Your pipeline script runs `claude "Analyze this pull request for security issues"` but the job hangs indefinitely. Logs indicate Claude Code is waiting for interactive input. What's the correct approach?
+
+- **A)** Add the `-p` flag: `claude -p "Analyze this pull request for security issues"`
+- **B)** Set the environment variable `CLAUDE_HEADLESS=true` before running the command
+- **C)** Redirect stdin from `/dev/null`: `claude "Analyze this pull request for security issues" < /dev/null`
+- **D)** Add the `--batch` flag: `claude --batch "Analyze this pull request for security issues"`
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+The `-p` (or `--print`) flag is the documented way to run Claude Code in non-interactive mode. Options B and D reference non-existent features. Option C is a Unix workaround that doesn't properly address Claude Code's command syntax.
+
+</details>
+
+---
+
+**Q41.** A senior engineer adds detailed coding standards and security guidelines to their `~/.claude/CLAUDE.md` file. When a new team member joins and clones the repository, they report that Claude Code behaves differently and does not appear to follow the team's documented standards. What is the most likely cause?
+
+- **A)** The new team member's Claude Code version is outdated and does not support shared configuration files.
+- **B)** The configuration hierarchy requires the project-level file to explicitly import from user-level files using `@import`.
+- **C)** CLAUDE.md files must be placed in the `.claude/` subdirectory to be recognized; a root-level `CLAUDE.md` is ignored.
+- **D)** The `~/.claude/CLAUDE.md` file is user-scoped and not version-controlled, so teammates do not receive it when they clone the repository.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+User-level configuration in `~/.claude/CLAUDE.md` applies only to the individual developer and is never committed to version control. Teammates will not see it regardless of their setup. To share standards across the team, those instructions must live in the project-level `CLAUDE.md` or `.claude/CLAUDE.md`, which are committed to the repository. Options A and B describe mechanisms that do not exist. Option C is incorrect because a root-level `CLAUDE.md` is a valid project-level location.
+
+</details>
+
+---
+
+**Q42.** Your monorepo has a root `CLAUDE.md` that has grown to over 400 lines, covering Python conventions, TypeScript conventions, infrastructure rules, and testing standards. Developers report that Claude sometimes applies the wrong conventions to the wrong files, and the file is difficult to maintain. What is the best approach to reorganize this configuration?
+
+- **A)** Split the content into multiple files in `.claude/rules/`, with each file covering a focused topic, and use path-scoped YAML frontmatter to activate rules only for relevant files.
+- **B)** Create a separate `CLAUDE.md` in each top-level package directory and delete the root file entirely.
+- **C)** Add inline section headers to the monolithic file and use the `/memory` command to tell Claude which section to prioritize for each task.
+- **D)** Break the root `CLAUDE.md` into topic files and use `@import` directives in the root file to pull them all in unconditionally.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+The `.claude/rules/` directory is designed for exactly this scenario: organizing topic-specific rule files with YAML frontmatter path scoping so each rule set activates only when editing relevant files. This reduces irrelevant context and token usage. Option B would require duplicating shared rules across package directories. Option C relies on manual intervention each session and is not maintainable. Option D with unconditional `@import` addresses the maintenance concern but not the wrong-conventions problem, since all rules would still load regardless of context.
+
+</details>
+
+---
+
+**Q43.** A developer wants a `/scaffold` skill that generates boilerplate for a new microservice. The skill runs many exploratory file reads and Bash commands to understand existing patterns before generating output, producing hundreds of lines of intermediate output. Teammates complain this pollutes their main conversation context. Which frontmatter setting resolves this?
+
+- **A)** Set `allowed-tools: []` in the skill's frontmatter to prevent tool use during execution.
+- **B)** Set `context: fork` in the skill's frontmatter to run the skill in an isolated sub-agent context that does not affect the main session.
+- **C)** Move the skill file from `.claude/skills/` to `.claude/commands/` so it runs as a command rather than a skill.
+- **D)** Add `argument-hint: "service-name"` to the frontmatter so the skill receives a clean input without inheriting session context.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+The `context: fork` frontmatter option runs the skill in an isolated sub-agent context. All exploratory output, intermediate tool calls, and reasoning happen in the fork and do not accumulate in the main conversation context. Only the final output is returned to the parent session. Option A would disable the tool use the skill depends on. Option C does not change execution isolation behavior. Option D is for prompting the user for input parameters, unrelated to output isolation.
+
+</details>
+
+---
+
+**Q44.** Your team uses Terraform for infrastructure but only in the `infra/` directory. You want Claude to automatically apply Terraform naming conventions and module structure rules only when editing `.tf` files, without those rules appearing in unrelated Python or TypeScript sessions. What is the correct approach?
+
+- **A)** Create a `CLAUDE.md` file inside `infra/` that contains the Terraform rules so they apply only within that subdirectory.
+- **B)** Create a rules file in `.claude/rules/terraform.md` with YAML frontmatter specifying `paths: ["infra/**/*"]` and listing the Terraform conventions.
+- **C)** Add the Terraform rules to the root `CLAUDE.md` under a clearly marked section, and instruct Claude in the system prompt to apply them only to `.tf` files.
+- **D)** Create a skill in `.claude/skills/terraform.md` with `allowed-tools` restricted to file operations on the `infra/` directory.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+The `.claude/rules/` directory with YAML frontmatter path scoping is the correct mechanism for conditionally loading conventions. Setting `paths: ["infra/**/*"]` ensures the Terraform rules load only when editing files in that directory tree. Option A would work for files inside `infra/` but cannot use glob patterns to further filter by file type. Option C relies on Claude's inference rather than explicit path matching, leading to inconsistent behavior. Option D requires manual skill invocation and does not activate automatically.
+
+</details>
+
+---
+
+**Q45.** A developer asks Claude Code to add a single null-check to one function in a utility module. The function signature, expected behavior, and fix are all clear. Should they use plan mode or direct execution?
+
+- **A)** Plan mode, because any code change could have unexpected side effects that need exploration before committing.
+- **B)** Plan mode, because exploring the codebase first prevents Claude from making assumptions about dependencies.
+- **C)** Direct execution, because the task is well-scoped with a clear fix that does not require architectural decisions or multi-file analysis.
+- **D)** Use direct execution first, but run a quick plan mode scan afterward to catch any side effects before committing.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+Direct execution is appropriate for simple, well-understood, single-location changes with clear scope. Plan mode is designed for tasks involving large-scale changes, multiple valid approaches, architectural decisions, or multi-file modifications. A null-check to one function meets none of the criteria for plan mode. Options A and B describe an over-cautious heuristic that does not reflect the intended use of plan mode. Option D inverts the correct workflow: plan mode is used before execution to explore and decide, not after as a post-execution check.
+
+</details>
+
+---
+
+**Q46.** A developer is using plan mode to explore a large codebase before deciding how to approach a library migration. During exploration, Claude generates dozens of tool results including full file reads, search outputs, and dependency traces. The developer notices the main conversation context is filling up rapidly and fears context exhaustion before the plan is complete. What is the most appropriate technique to preserve main session context during verbose exploration?
+
+- **A)** Switch to direct execution partway through exploration so that Claude uses fewer tool calls.
+- **B)** Use the Explore subagent to isolate verbose discovery output, having it return a structured summary to the main session rather than accumulating raw results.
+- **C)** Run `/compact` immediately after each tool call to keep the context window from growing.
+- **D)** Restrict Claude to reading only entry point files during plan mode to limit tool call volume.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+The Explore subagent is specifically designed to isolate verbose discovery work from the main conversation context. It performs the exploration and returns a structured summary, preventing raw tool results from consuming the main session's context budget. Option A abandons the architectural exploration prematurely. Option C helps but running `/compact` after every tool call is operationally cumbersome and loses detail that may still be needed. Option D artificially limits the exploration and would produce an incomplete analysis for complex migrations.
+
+</details>
+
+---
+
+**Q47.** A developer asks Claude Code to reformat date strings in a data pipeline. After the first attempt, the output format is partially correct but inconsistent: some dates are formatted as `YYYY-MM-DD`, others as `MM/DD/YYYY`. Prose instructions like "always use ISO 8601" have been tried twice without improvement. What technique is most likely to resolve the inconsistency?
+
+- **A)** Rewrite the instruction to be more emphatic, using capitalization and repetition to signal importance.
+- **B)** Provide 2-3 concrete input/output examples showing the exact transformation expected, including edge cases like two-digit years and ambiguous formats.
+- **C)** Switch to plan mode so Claude can explore the codebase before formatting dates.
+- **D)** Ask Claude to generate a formatting function first, then apply it in a second pass.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+Concrete input/output examples are the most effective way to communicate expected transformations when prose instructions are interpreted inconsistently. Showing `"3/15/2024" -> "2024-03-15"` is unambiguous in a way that "use ISO 8601" is not. Option A is unlikely to improve results; emphasis does not resolve ambiguity. Option C is for architectural decisions, not formatting refinement. Option D adds complexity and still does not clarify what the correct transformation looks like.
+
+</details>
+
+---
+
+**Q48.** A development team is using Claude Code to implement a new authentication module. Before any implementation begins, the team lead wants to ensure Claude surfaces potential security considerations, edge cases, and design tradeoffs that the team may not have anticipated. Which iterative refinement technique is most appropriate here?
+
+- **A)** Write a detailed specification document and pass it to Claude for direct implementation.
+- **B)** Provide a complete test suite first and ask Claude to write code that passes all tests.
+- **C)** Start with a minimal implementation and iterate by describing issues found during code review.
+- **D)** Use the interview pattern: ask Claude to question the team about their requirements, constraints, and assumptions before proposing a design.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+The interview pattern is designed to surface design considerations and uncover assumptions the developer may not have anticipated before any implementation begins. It is particularly valuable in domains like security where overlooked edge cases carry high risk. Option A bypasses the opportunity to surface gaps before implementation is locked in. Option C defers the discovery of design issues until after implementation, when the cost of changes is higher. Option B (test-driven iteration) is effective for well-defined behavior but cannot surface considerations the team has not yet thought of.
+
+</details>
+
+---
+
+**Q49.** Claude Code generated a data transformation function that has three separate issues: an off-by-one error in a loop, a missing null check for an optional field, and an incorrect sort order. Each issue is in a completely different part of the function and none of them interact. What is the recommended approach for addressing these issues?
+
+- **A)** Report all three issues in a single detailed message so Claude has full context for all fixes at once.
+- **B)** Fix them sequentially: address each issue in a separate message and verify the fix before moving to the next.
+- **C)** Ask Claude to regenerate the entire function from scratch rather than patching the existing code.
+- **D)** Address the off-by-one error and null check together since they are in loops, then fix the sort order separately.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+When issues are independent, sequential iteration is appropriate: fixing each one separately and verifying the fix before moving on reduces the chance of fixes interfering with each other and makes each change easier to review. The guidance for sending all issues in a single message applies when the issues interact and Claude needs full context to resolve them together. Option A is suited to interacting problems, not independent ones. Option C discards working code unnecessarily. Option D creates an arbitrary grouping not based on actual interaction.
+
+</details>
+
+---
+
+**Q50.** A CI pipeline runs Claude Code to generate test cases for each pull request. The team discovers that Claude is consistently suggesting test scenarios that already exist in the existing test files, wasting review time. Which approach in the CLAUDE.md configuration most directly addresses this problem?
+
+- **A)** Add the `-p` flag to the CI invocation command to prevent interactive prompts.
+- **B)** Use `--output-format json` with `--json-schema` so that test suggestions are machine-parseable for deduplication.
+- **C)** Document in `CLAUDE.md` the testing standards, available fixtures, and instruct Claude to review existing test files before suggesting new scenarios.
+- **D)** Add a post-processing script to the pipeline that compares Claude's suggestions against the existing test files and filters duplicates.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+Providing existing test files in context and documenting testing standards in `CLAUDE.md` directly instructs Claude to avoid duplicate suggestions at generation time. This is the most efficient fix because it addresses the root cause: Claude does not know what tests already exist. Option A prevents interactive hangs but does not affect test content. Option B improves parseability but does not prevent duplicate suggestions. Option D is a workaround that adds pipeline complexity without fixing the underlying issue.
+
+</details>
+
+---
+
+**Q51.** A developer has identified three issues in a data processing module: two logic bugs that interact because they both affect the same intermediate result, and a set of five inconsistent variable names scattered across multiple files. The logic bugs produce incorrect output only when both are present; the naming violations are independent style issues. How should these issues be addressed using iterative refinement?
+
+- **A)** Report all eight issues in a single message so Claude can resolve them together with full context.
+- **B)** Send the two interacting logic bugs in one message so Claude can resolve them together, then address the naming violations sequentially in separate follow-up messages after verifying the bug fixes.
+- **C)** Fix all naming violations first since they are simpler, then tackle the two logic bugs in a single message.
+- **D)** Fix each of the eight issues in eight separate sequential messages, verifying each before proceeding.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+The guidance for batching issues is based on whether they interact. The two logic bugs interact and Claude needs full context on both to resolve them correctly, so they should be reported together. The naming violations are independent and do not affect correctness, so sequential iteration is appropriate: fix each one and verify before moving to the next. Option A lumps all issues together, which adds noise when Claude is resolving the interacting bugs. Option C addresses ordering by complexity rather than by interaction. Option D applies sequential iteration to interacting bugs, which risks an incomplete fix.
+
+</details>
+
+---
+
+**Q52.** A team is adding a caching layer to an existing microservice. The service was written two years ago by engineers who are no longer on the team, and its internal patterns for dependency injection and lifecycle management are unfamiliar to the current developer. Before writing any code, the developer wants to ensure Claude surfaces all relevant design considerations. Which iterative refinement technique is most appropriate?
+
+- **A)** Ask Claude to implement a generic Redis-based caching layer using standard patterns for the framework, then review its output for compatibility issues.
+- **B)** Start with a minimal proof-of-concept cache for one endpoint and iterate by describing any failures encountered during testing.
+- **C)** Provide the service's entry point files to Claude and ask it to generate a caching design document for review.
+- **D)** Use the interview pattern: ask Claude to question you about the service's architecture, existing lifecycle hooks, and caching requirements before proposing any design.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+The interview pattern is specifically designed for situations where the developer may not have anticipated all relevant design considerations. By asking Claude to question the developer about the service's patterns and constraints before implementing, it surfaces assumptions about lifecycle management, cache invalidation strategy, and dependency injection that the developer may not have known to specify upfront. Option A proceeds with generic patterns that may be incompatible with the unfamiliar service. Option C produces a design document but does not interactively surface considerations the developer has not yet thought of. Option B defers discovery to runtime failures rather than surfacing design issues before any code is written.
+
+</details>
+
+---
+
+**Q53.** A CI pipeline uses Claude Code to review pull requests and needs to post inline comments on specific lines in GitHub. The pipeline currently receives Claude's output as unstructured text, which requires a fragile regex parser to extract file paths, line numbers, and comment text. The parser breaks regularly as Claude's output format drifts between runs. What is the most robust solution?
+
+- **A)** Add stricter formatting instructions to the system prompt specifying the exact text structure expected, and add validation to reject any response that does not match.
+- **B)** Use `--output-format json` combined with `--json-schema` to define a schema with `file`, `line`, and `comment` fields, so each finding is machine-parseable by construction.
+- **C)** Add a post-processing step that uses a second Claude call to normalize the first response into a consistent structured format.
+- **D)** Switch from inline comments to a single summary comment, which is easier to extract since it does not require line-level parsing.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+Using `--output-format json` with `--json-schema` produces structured output that conforms to the defined schema by construction, eliminating format drift entirely. The pipeline can parse the JSON directly without a regex layer. Option A makes prompt instructions more rigid but still relies on Claude maintaining format consistency across runs, which is the root cause of the breakage. Option C adds latency and cost by introducing a second API call for normalization. Option D changes the feature behavior to work around the parsing problem rather than solving it.
+
+</details>
+
+---
+
+**Q54.** You maintain a monorepo with five packages: a Python backend, a TypeScript frontend, a Go service, shared infrastructure Terraform, and a documentation site. Each package has different linting standards, testing conventions, and framework-specific rules. The root `CLAUDE.md` has grown to 600 lines and developers report that rules intended for one package often bleed into sessions working on another. What is the most modular and maintainable solution using CLAUDE.md configuration?
+
+- **A)** Create a `CLAUDE.md` in each package directory with that package's rules, and use `@import` in the root `CLAUDE.md` to include shared conventions that apply to all packages.
+- **B)** Keep the 600-line root file but add explicit section headers and instruct developers to tell Claude which section applies at the start of each session.
+- **C)** Delete the root `CLAUDE.md` and rely entirely on package-level files, accepting that shared conventions must be duplicated across packages.
+- **D)** Move all rules into `.claude/rules/` files and tag each with a `projects:` key in their frontmatter specifying which subdirectory the rule applies to.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+The `@import` syntax in CLAUDE.md is designed for exactly this modular pattern: shared conventions in the root file, package-specific rules in each package's own `CLAUDE.md`, with the root file importing common standards that apply globally. This keeps each file focused and maintainable while eliminating rule bleed between packages. Option B relies on developer discipline to manually scope rules each session, which is error-prone and does not scale. Option C eliminates the shared baseline and requires duplicating common conventions across five files, creating maintenance drift. Option D is a valid approach for path-scoped rules within a single project but does not address the need for package-level CLAUDE.md isolation.
+
+</details>
+
+---
+
+**Q145.** A platform team has a monorepo at `/repo` with `./CLAUDE.md` (200 lines of org-wide conventions), `./services/billing/CLAUDE.md` (150 lines of billing-specific rules), and each engineer has `~/.claude/CLAUDE.md` with personal formatting preferences. An engineer launches `claude` from `/repo/services/billing` and asks "why are my personal shell aliases not showing up in context?" They run `/memory` and see all three files listed. Billing rules conflict with the personal file's linting preference; Claude follows the billing file. What is the most accurate explanation?
+
+- **A)** All three files are concatenated into context; when rules conflict, more-specific project/directory context effectively wins over user-level preferences because later or more-specific content has greater influence.
+- **B)** Personal `~/.claude/CLAUDE.md` is only loaded when working from the home directory, not from a project subdirectory.
+- **C)** Project-level `CLAUDE.md` files override and replace user-level files entirely, so the personal file is silently discarded.
+- **D)** Claude Code loads files in alphabetical order, and `billing` sorts after `home`, so the billing file overwrites personal preferences.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** CLAUDE.md files across user, project, and directory scopes are **concatenated**, not overridden. `/memory` confirmed all three loaded. When instructions conflict, more-specific or later-appearing guidance tends to win because the model weights later context more heavily, but the personal file is still present — it simply lost the conflict.
+
+**Why B is Wrong:** `~/.claude/CLAUDE.md` loads for every session regardless of CWD; it is the global user memory.
+**Why C is Wrong:** Project files do not replace user files — they concatenate. The engineer saw all three in `/memory`, which disproves overriding.
+**Why D is Wrong:** Loading order follows a documented hierarchy (managed → project → user → local), not alphabetical file-name sort.
+
+**Pattern/Trap:** P15 Configuration Hierarchy; P6 Context Inheritance Misconception
+
+</details>
+
+---
+
+**Q146.** A CI pipeline runs `claude -p "Review this PR diff" --output-format json` on every pull request. Reviews are inconsistent: some runs flag import ordering, others don't; 14% of runs produce different severity ratings on identical diffs. The team has a local `~/.claude/CLAUDE.md` on the CI runner with personal preferences, plus `./CLAUDE.md` with review standards, plus a teammate's MCP server auto-discovered on the runner. What single flag change produces the most reproducible CI behavior?
+
+- **A)** Add `--resume <fixed-session-id>` so every run continues the same conversation.
+- **B)** Switch to `--output-format stream-json` to serialize events deterministically.
+- **C)** Add `--bare` so auto-discovery of CLAUDE.md, hooks, skills, and MCP servers is skipped, and pass context explicitly via `--append-system-prompt-file`.
+- **D)** Set `--permission-mode plan` so the run never writes and therefore can't diverge.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** The documented reproducibility pattern for CI is `--bare`, which skips auto-discovery of hooks, skills, plugins, MCP servers, auto-memory, and CLAUDE.md. The team then passes an explicit context file via `--append-system-prompt-file`, eliminating variance from whatever happens to be on the runner's disk. Anthropic's headless docs state `--bare` is the recommended mode for scripted/SDK calls.
+
+**Why A is Wrong:** Resuming a fixed session across unrelated PRs bleeds review context between PRs; each CI run should be a fresh session for review-isolation reasons.
+**Why B is Wrong:** `stream-json` changes the output shape for observability but does nothing to reduce input nondeterminism from auto-discovered config.
+**Why D is Wrong:** Plan mode restricts writes but doesn't fix variable input context; the review output would still drift.
+
+**Pattern/Trap:** P15 Configuration Hierarchy; P18 Fresh Session vs Resume
+
+</details>
+
+---
+
+**Q147.** A team of 40 engineers has a 900-line `./CLAUDE.md` covering API conventions, test patterns, deployment notes, database migration rules, and security policy. Engineers complain Claude frequently ignores the "always add integration tests" rule buried around line 620. Token usage is also high — 8% of every session's context is consumed by this file. What is the best refactor?
+
+- **A)** Switch the entire file to bullet points so Claude scans it faster, keeping all 900 lines.
+- **B)** Append `@large-rules.md` imports so the CLAUDE.md itself is short, while the imported file stays 900 lines.
+- **C)** Keep CLAUDE.md as-is and tell engineers to re-prompt Claude when it misses a rule.
+- **D)** Move always-applicable rules to a concise root `CLAUDE.md` (~180 lines), move procedural playbooks (e.g., migration workflow) into `.claude/skills/<name>/SKILL.md` files, and move file-type-specific rules into `.claude/rules/*.md` with `paths:` globs.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Anthropic's guidance: keep CLAUDE.md under ~200 lines for adherence, promote procedures (things you do sometimes) into on-demand skills, and use `.claude/rules/` with `paths:` globs for file-type-scoped rules that only load when a matching file is read. This reduces always-on context while preserving governance.
+
+**Why A is Wrong:** Format doesn't fix the core problem: the file is too long; the model's adherence degrades regardless of bullet vs. prose when guidance exceeds the effective attention budget.
+**Why B is Wrong:** `@imports` are **expanded into context at launch** — they organize files but do not reduce total tokens or improve adherence.
+**Why C is Wrong:** Re-prompting is a prompt-only symptomatic fix; the root cause (oversized always-loaded memory) remains.
+
+**Pattern/Trap:** P3 Over-Engineering Distractor; P17 Lost in the Middle; P10 Root Cause vs Symptom
+
+</details>
+
+---
+
+**Q148.** An engineer runs `/memory` and sees only `./CLAUDE.md` listed — no user-level file, despite having `~/.claude/CLAUDE.md` with 60 lines of personal preferences they wrote last week. The file exists and `cat ~/.claude/CLAUDE.md` shows content. What is the most likely root cause?
+
+- **A)** The user file needs to be renamed to `USER.md` to be recognized.
+- **B)** The `claudeMdExcludes` setting at the project or user level has a glob matching the personal file, silently excluding it.
+- **C)** Claude Code only loads user memory when invoked with `--user-memory` explicitly.
+- **D)** User-level CLAUDE.md is deprecated; only `.claude/CLAUDE.md` at project level is supported now.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+**Why Correct:** `claudeMdExcludes` in settings (user/project/local/managed) uses globs against absolute paths and arrays merge across layers. If `/memory` confirms the file isn't loaded while the path exists on disk, exclusion rules or malformed settings are the most likely culprit. `/memory` is the canonical diagnostic.
+
+**Why A is Wrong:** The file must be named `CLAUDE.md` (or `CLAUDE.local.md` for personal per-project); `USER.md` is not a recognized name.
+**Why C is Wrong:** No `--user-memory` flag exists; user memory auto-loads by default.
+**Why D is Wrong:** User-level `~/.claude/CLAUDE.md` is fully supported and is the documented location for personal global preferences.
+
+**Pattern/Trap:** P15 Configuration Hierarchy; P10 Root Cause vs Symptom
+
+</details>
+
+---
+
+**Q149.** A team wants TypeScript files in `src/api/**/*.ts` to follow strict error-handling rules (custom `AppError` class, no raw `throw`), but these rules should NOT apply to test files or other file types. They want the rules to load *only* when Claude actually touches a matching file, keeping baseline context lean. Which implementation is correct?
+
+- **A)** Create `.claude/rules/api-errors.md` with frontmatter `paths: ["src/api/**/*.ts"]` containing the rules.
+- **B)** Append the rules to the root `CLAUDE.md` under a heading "Only for src/api/**/*.ts files" and trust Claude to self-scope.
+- **C)** Create `src/api/CLAUDE.md` with the rules — subdirectory files provide perfect glob-pattern scoping.
+- **D)** Create `.claude/skills/api-errors/SKILL.md` with `allowed-tools: Edit` and expect Claude to invoke it automatically on every edit.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** `.claude/rules/*.md` with a `paths:` frontmatter and glob patterns is the documented mechanism for conditional, file-type-specific rules. The rule loads only when Claude reads a file matching any glob, keeping baseline context lean.
+
+**Why B is Wrong:** CLAUDE.md is always loaded in full; self-scoping via a prose heading is prompt-only enforcement, inconsistent in practice, and consumes tokens even when not relevant.
+**Why C is Wrong:** Subdirectory CLAUDE.md loads for *any* file read in that subtree (not just `.ts`), so tests under `src/api` would also trigger it — the scope is directory-only, not glob.
+**Why D is Wrong:** `allowed-tools` does not restrict — it pre-approves. Skills are invoked on semantic match, not automatically on every edit to a path; use rules for path-gated always-on guidance.
+
+**Pattern/Trap:** P1 Prompt vs Programmatic Enforcement; P15 Configuration Hierarchy
+
+</details>
+
+---
+
+**Q150.** A CI job runs `claude -p "Review this PR diff" --output-format json` and parses `.result` with jq. The team wants a strict schema — an array of findings each with `severity`, `file`, `line`, `message` — to feed into their code-quality dashboard. Currently ~22% of runs emit prose that breaks jq parsing. What is the correct fix?
+
+- **A)** Add `--json-schema '{...}'` with the desired schema; parse `.structured_output` instead of `.result`.
+- **B)** Add `--append-system-prompt "Always output valid JSON"` and hope adherence improves.
+- **C)** Parse `.result` with a regex-based fallback extractor.
+- **D)** Switch to `--output-format stream-json` and reconstruct the array from tool-use events.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** Claude Code supports `--json-schema` combined with `--output-format json`, which enforces schema-conformant output in the dedicated `structured_output` field of the JSON response. This is the documented mechanism for CI structured output; `.result` remains free-form prose.
+
+**Why B is Wrong:** Prompt-only enforcement of JSON produces exactly the 22%-drift problem they already see; `--json-schema` is the programmatic fix.
+**Why C is Wrong:** A regex fallback is a symptom-level workaround that papers over a configuration gap and will break again on new prose patterns.
+**Why D is Wrong:** `stream-json` is for streaming observability events, not schema-enforced structured results; reconstructing from tool-use events is an over-engineered workaround when `--json-schema` exists.
+
+**Pattern/Trap:** P1 Prompt vs Programmatic Enforcement; P3 Over-Engineering Distractor
+
+</details>
+
+---
+
+**Q151.** An engineer is asked to "refactor the authentication layer to use OAuth2 across 17 files, including session management, token refresh, and middleware integration." They are unfamiliar with this codebase. Which approach best matches Anthropic's documented workflow?
+
+- **A)** Ask Claude directly in normal mode: "implement OAuth2 everywhere" and let it proceed.
+- **B)** Start with direct execution and make changes incrementally, letting the implementation reveal the natural service boundaries.
+- **C)** Use direct execution with comprehensive upfront instructions detailing exactly how each service should be structured.
+- **D)** Enter plan mode (Shift+Tab twice), ask Claude to explore the auth layer and produce a plan, review the plan, then exit to normal mode to implement.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Anthropic's documented Explore → Plan → Implement → Commit workflow calls for plan mode on multi-file, architecturally uncertain changes. Plan mode is read-only, uses `AskUserQuestion` to clarify goals, and produces a reviewable plan before mutation — exactly fitted to a 17-file refactor by someone unfamiliar with the code.
+
+**Why A is Wrong:** Direct execution on a large, cross-cutting, architecturally ambiguous refactor is the canonical mis-application; the docs say plan mode is most useful when the change modifies multiple files and you're unfamiliar with the code.
+**Why B is Wrong:** Incremental direct execution risks discovering cross-file dependencies late, causing costly rework that plan mode would have prevented.
+**Why C is Wrong:** Comprehensive upfront instructions assume you already know the right structure without exploring the code — exactly what plan mode's read-only exploration phase avoids.
+
+**Pattern/Trap:** P2 First Step Proportionality
+
+</details>
+
+---
+
+**Q152.** An engineer has this in `.claude/skills/deploy/SKILL.md`:
+
+```yaml
+---
+name: deploy
+description: Deploy the service to staging
+allowed-tools: Bash(kubectl *) Bash(helm *)
+---
+```
+
+They expected Claude to be *restricted* to only these tools while the skill runs. In practice, Claude still used `Read` and `Write` without prompting. Which statement is correct?
+
+- **A)** `allowed-tools` restricts tool access to only the listed tools; this is a bug — file an issue.
+- **B)** The skill syntax is wrong — restriction requires `denied-tools` frontmatter.
+- **C)** Restriction only takes effect when the skill runs with `context: fork`.
+- **D)** `allowed-tools` **pre-approves** the listed tools so Claude won't prompt for permission; it does NOT restrict other tools. Use permission deny rules to actually block tools.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Per Anthropic docs, `allowed-tools` is a **pre-approval** list — it suppresses permission prompts for the listed tools while the skill is active. It is not a restriction mechanism. To actually block tools, use permission deny rules (e.g., `/permissions`).
+
+**Why A is Wrong:** This is expected behavior, not a bug; the misconception is widespread but the docs are explicit.
+**Why B is Wrong:** No `denied-tools` frontmatter exists in SKILL.md; restriction is configured at permission-settings level.
+**Why C is Wrong:** `context: fork` isolates conversation context into a subagent; it doesn't change `allowed-tools` semantics.
+
+**Pattern/Trap:** P11 Scoped Access / Least Privilege; P1 Prompt vs Programmatic Enforcement
+
+</details>
+
+---
+
+**Q153.** A team wants a `/deploy` slash command available *only* in the `payments-service` repo for all team members. Another engineer, working on their personal side project, should NOT see this command. Where should the skill/command live?
+
+- **A)** `~/.claude/commands/deploy.md` committed to the engineer's dotfiles repo.
+- **B)** `/etc/claude-code/commands/deploy.md` on every engineer's machine.
+- **C)** `.claude/skills/deploy/SKILL.md` in the `payments-service` repo, checked into git.
+- **D)** Inside the root `CLAUDE.md` as a prose instruction starting with "when the user says `/deploy`".
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** Project-scoped skills live at `.claude/skills/<name>/SKILL.md` in the repo and are checked into git so the whole team gets them automatically when they clone/pull. They load only when Claude Code is invoked inside that repo.
+
+**Why A is Wrong:** `~/.claude/commands/` is user-scoped — it applies across ALL projects for that one engineer, which is the opposite of the requirement.
+**Why B is Wrong:** `/etc/claude-code/` holds managed policy CLAUDE.md, not commands/skills, and requires admin provisioning on every machine — wrong mechanism and wrong scope.
+**Why D is Wrong:** Recognising `/deploy` in prose is simulation of a slash command; it isn't reliably invokable and doesn't appear in the `/` menu.
+
+**Pattern/Trap:** P15 Configuration Hierarchy; P1 Prompt vs Programmatic Enforcement
+
+</details>
+
+---
+
+**Q154.** A GitHub Actions job runs the same Claude Code review command on 30 PRs per day. Engineers notice that when PR #412 is reviewed right after PR #411 (a follow-up change), Claude sometimes references issues from #411 as if they exist in #412. What is the correct architectural fix?
+
+- **A)** Add `--resume` so context carries intentionally and Claude learns the project over time.
+- **B)** Lower the temperature via `--model` override so Claude is more deterministic across PRs.
+- **C)** Increase the model's context window so both PRs fit together.
+- **D)** Run each PR review as a **fresh** session (no `--resume`/`--continue`) so context is isolated per PR; if a PR truly builds on a previous review, explicitly pass those findings in the prompt.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Anthropic's guidance is explicit: sessions are independent; each new session starts with a fresh context window. For CI review workflows, each PR should be its own fresh session to prevent cross-contamination, and prior context (if genuinely needed) should be passed explicitly in the prompt.
+
+**Why A is Wrong:** `--resume` causes exactly this bleed. Review quality degrades because Claude becomes biased toward prior findings on unrelated diffs.
+**Why B is Wrong:** Temperature is not controlled via `--model`, and determinism is not the issue — context isolation is.
+**Why C is Wrong:** Larger context doesn't fix confusion about WHICH PR is under review; it may worsen it via more noisy history.
+
+**Pattern/Trap:** P18 Fresh Session vs Resume; P19 Self-Review Limitation; P8 Larger Context Window Fallacy
+
+</details>
+
+---
+
+**Q155.** An engineer is building a skill that does thorough cross-codebase research ("find all call sites of the deprecated `LegacyAuth` class and report where they're used"). They want the research to run in an isolated context so the main conversation isn't polluted with hundreds of file contents. Which SKILL.md frontmatter achieves this?
+
+- **A)** `allowed-tools: Read Grep Glob` — limits the tools so the context stays small.
+- **B)** `disable-model-invocation: true` — prevents Claude from auto-loading the skill body.
+- **C)** `context: fork` combined with `agent: Explore` — runs the skill as a forked subagent using the Explore agent type.
+- **D)** `user-invocable: false` — hides the skill from the `/` menu so it won't pollute.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** `context: fork` runs the skill in a **forked subagent context** that does not see the main conversation history, and the `agent:` field selects the subagent type (e.g., `Explore` for read-only research). The subagent's result is summarized back to the main conversation, keeping the main context lean.
+
+**Why A is Wrong:** `allowed-tools` pre-approves tools; it doesn't prevent the read results from filling main-conversation context.
+**Why B is Wrong:** `disable-model-invocation` hides the skill from Claude's auto-invocation menu; it doesn't change where the skill body runs when invoked.
+**Why D is Wrong:** `user-invocable: false` only hides the skill from the `/` menu; Claude can still auto-invoke it, and all reads still land in the main context.
+
+**Pattern/Trap:** P15 Configuration Hierarchy; P11 Scoped Access / Least Privilege
+
+</details>
+
+---
+
+**Q156.** An engineer's session has been active for 3 hours and they've been iterating on a complex feature. They ran `/compact` and noticed that a critical rule from a subdirectory `services/auth/CLAUDE.md` (loaded earlier when Claude read `login.ts`) seemed to disappear afterward. Root `./CLAUDE.md` rules survived. Why?
+
+- **A)** `/compact` has a bug that only affects nested CLAUDE.md files.
+- **B)** Root `CLAUDE.md` is re-read from disk and re-injected after compaction; nested subdirectory CLAUDE.md files are summarized away and reload only on the next file read in that subtree.
+- **C)** Nested CLAUDE.md files are never loaded at all; the engineer imagined the rule.
+- **D)** `/compact` discards rules that were loaded more than 30 minutes before compaction.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+**Why Correct:** Per Anthropic docs, root project CLAUDE.md is re-read from disk and re-injected after `/compact`, so it survives. Nested CLAUDE.md files and path-scoped rules that were loaded lazily during the conversation get summarized away with the rest of the history and will reload only on the next matching file read.
+
+**Why A is Wrong:** This is documented behavior, not a bug; the summarization is intentional.
+**Why C is Wrong:** Subdirectory CLAUDE.md files do load on demand when Claude reads files in that subtree; `/memory` would have shown it.
+**Why D is Wrong:** `/compact` doesn't use a time-based cutoff; it summarizes the entire conversation history except for re-injected root memory and pinned skills.
+
+**Pattern/Trap:** P16 Progressive Summarization Risk; P15 Configuration Hierarchy
+
+</details>
+
+---
+
+**Q157.** An engineer has 11 independent style rules they want enforced: "React components use named exports," "Python tests use pytest fixtures," "Go files must have package comment," etc. Each applies to a different file pattern. They currently put all 11 rules in root `./CLAUDE.md` (~140 lines). Baseline context is bloated and adherence is 63%. What is the best restructure?
+
+- **A)** Split into 11 separate entries in `.claude/rules/*.md`, each with a `paths:` glob matching only its relevant file type; remove them from root `CLAUDE.md`.
+- **B)** Move all 11 rules into `~/.claude/CLAUDE.md` — user scope is less visible and won't bloat project context.
+- **C)** Put all 11 rules inside a single `.claude/skills/style/SKILL.md` and set `user-invocable: false` so Claude auto-invokes on edits.
+- **D)** Keep in root CLAUDE.md but add `@imports` to 11 separate files for organization.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** Path-specific rules are the documented mechanism for file-type-conditional guidance. Each rule loads only when Claude reads a file matching its glob, which both reduces baseline context and improves adherence.
+
+**Why B is Wrong:** User scope still loads into context on every session; moving doesn't reduce bloat, just relocates it, and it removes team visibility.
+**Why C is Wrong:** `user-invocable: false` hides from the `/` menu but does not auto-invoke on every edit; skill invocation is semantic, not path-triggered. Skills are for procedures, rules for conventions.
+**Why D is Wrong:** `@imports` are expanded into context at launch — the token cost is identical to inlining; only organization improves, not bloat or adherence.
+
+**Pattern/Trap:** P15 Configuration Hierarchy; P17 Lost in the Middle
+
+</details>
+
+---
+
+**Q158.** A nightly CI job generates unit tests for changed files. It produces test files that duplicate existing tests about 18% of the time. The current command is `claude -p --append-system-prompt "Write unit tests for the changed files."`. What is the best fix?
+
+- **A)** Add `--permission-mode dontAsk` to prevent Claude from editing tests.
+- **B)** Resume the previous CI session with `--resume` so Claude remembers which tests it wrote.
+- **C)** Pipe existing test files into the prompt via `@tests/test_parsers.py` references (or include their content) so Claude matches style and avoids duplicating coverage.
+- **D)** Use a larger model so Claude's general knowledge of test patterns improves.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** The documented pattern is to reference existing test files via `@` inclusion so Claude examines them to match style, frameworks, assertion patterns, and — crucially — existing coverage, avoiding duplicate tests. Without it, Claude generates in a vacuum.
+
+**Why A is Wrong:** `dontAsk` restricts tool use; it doesn't give Claude knowledge of existing tests. The root cause is missing context, not excess permission.
+**Why B is Wrong:** CI sessions should be isolated per run; `--resume` reuses stale state across unrelated change sets and doesn't reliably include the latest tests from a different run.
+**Why D is Wrong:** Model size doesn't substitute for project-specific context; the test file contents are what Claude needs to see.
+
+**Pattern/Trap:** P10 Root Cause vs Symptom; P6 Context Inheritance Misconception
+
+</details>
+
+---
+
+**Q159.** An engineer writes `claude --resume` expecting the picker to open and list recent sessions. Instead, Claude immediately drops into the most recent session. What flag did they likely confuse?
+
+- **A)** `--resume` always drops straight into the latest session; there is no picker.
+- **B)** The picker only appears when there are more than 10 sessions to choose from.
+- **C)** There is no picker; they must manually browse `~/.claude/projects/` JSONL files.
+- **D)** `--continue` (`-c`) drops into the most recent session non-interactively; `--resume` (`-r`) opens an interactive picker (or takes an explicit ID/name). They likely ran `--continue`.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Per docs, `--continue` (`-c`) continues the most recent conversation in the current directory without a picker, while `--resume` (`-r`) opens the interactive session picker or takes an explicit ID/name. The engineer likely invoked `--continue` or an alias mapped to it.
+
+**Why A is Wrong:** `--resume` does show a picker; dropping straight in is `--continue` behavior.
+**Why B is Wrong:** No minimum-session threshold gates the picker; it opens on every `--resume` call.
+**Why C is Wrong:** The picker exists and is the supported UX; manually reading JSONL isn't required.
+
+**Pattern/Trap:** P18 Fresh Session vs Resume
+
+</details>
+
+---
+
+**Q160.** An engineer is building a feature and notices three problems in Claude's output simultaneously: (1) the function name doesn't match project convention, (2) the error message is in the wrong format, and (3) there's a genuine logic bug where the boundary condition is off. All three are independent (fixing one doesn't change the others). What's the best iteration pattern?
+
+- **A)** Fix all three in a single follow-up prompt — they're independent so it's efficient.
+- **B)** Start a fresh session for each fix to maximize context isolation.
+- **C)** Fix sequentially with one correction at a time over three turns to avoid confusing Claude.
+- **D)** Run `/compact` first to clear out the previous output, then fix.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** Anthropic's iteration guidance distinguishes independent issues from interacting ones. When issues are independent (no cross-effects), batching them in one prompt is efficient and reduces token overhead. Sequential micro-corrections are warranted when fixes interact.
+
+**Why B is Wrong:** Three fresh sessions would discard the entire context of the feature being built — a high-cost overreaction for three small, independent corrections.
+**Why C is Wrong:** Strict sequentialism is reserved for interacting issues; using it on independent issues wastes turns and adds noise.
+**Why D is Wrong:** `/compact` summarizes; it doesn't fix the underlying issues and risks losing useful recent state.
+
+**Pattern/Trap:** P2 First Step Proportionality; P3 Over-Engineering Distractor
+
+</details>
+
+---
+
+**Q161.** A team notices Claude produces "looks-right" code for their email-validation function but it fails 30% of real inputs. They've been prompting: "implement `validateEmail(address: str) -> bool`." What improvement most directly addresses this per Anthropic guidance?
+
+- **A)** Add "please be careful and thorough" to increase Claude's caution.
+- **B)** Switch to a larger model to improve reasoning.
+- **C)** Provide explicit input/output examples: `user@example.com → True`, `invalid → False`, `user@.com → False`, and ask Claude to run tests after implementing.
+- **D)** Run `/compact` to ensure the prompt is the only thing in context.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** Anthropic's best-practices guidance is explicit: "Claude performs dramatically better when it can verify its own work… Without clear success criteria, it might produce something that looks right but actually doesn't work." Providing I/O examples and instructing Claude to run tests creates unambiguous feedback for iteration.
+
+**Why A is Wrong:** Sentiment prompts ("be careful") don't reliably improve correctness; they're the classic confidence trap.
+**Why B is Wrong:** Model upgrade is a heavyweight change that doesn't address the missing-success-criteria root cause.
+**Why D is Wrong:** `/compact` doesn't define what "correct" means for the function; compaction is for context management, not specification clarity.
+
+**Pattern/Trap:** P4 Sentiment/Confidence Trap; P10 Root Cause vs Symptom
+
+</details>
+
+---
+
+**Q162.** A team uses `claude -p "Review"` in a CI pipeline with `--output-format json --json-schema '{...}'` to produce structured findings. They want to extract the schema-conformant data for their dashboard. Which field contains it?
+
+- **A)** `.result` — the structured payload is always serialized here.
+- **B)** `.structured_output` — populated only when `--json-schema` is passed, containing the schema-conformant object.
+- **C)** `.data.findings` — a fixed nested key used by the review subsystem.
+- **D)** `.stdout` — the JSON is embedded in the tool's stdout capture.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+**Why Correct:** Per docs, when `--output-format json` is combined with `--json-schema`, the schema-conformant result is placed in the dedicated `structured_output` field. `.result` remains free-form human-readable prose.
+
+**Why A is Wrong:** `.result` is the free-form text result (a natural-language summary), not the schema-bound object.
+**Why C is Wrong:** No fixed `data.findings` key exists in the Claude Code JSON contract.
+**Why D is Wrong:** The JSON output IS the stdout; there is no `.stdout` sub-field.
+
+**Pattern/Trap:** P15 Configuration Hierarchy
+
+</details>
+
+---
+
+**Q163.** An engineer is about to start building a complex feature spec. Per Anthropic best practices, they want Claude to interview them first to surface edge cases and tradeoffs. Which is the correct pattern?
+
+- **A)** Write a detailed 2-page spec yourself first, then paste it to Claude for implementation.
+- **B)** Resume the previous feature's session so Claude remembers the whole project history while interviewing.
+- **C)** Give Claude autonomy to guess requirements and iterate via code-level corrections.
+- **D)** Start in plan mode with a minimal prompt and ask Claude to interview you using `AskUserQuestion`, iterating until the spec is complete, then write it to `SPEC.md` and start a **fresh session** to execute it.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Anthropic's documented interview pattern: start with a minimal prompt, have Claude interview you using `AskUserQuestion`, cover edge cases and tradeoffs, write the result to `SPEC.md`, then execute in a **fresh session** to avoid polluting execution context with the interview transcript.
+
+**Why A is Wrong:** Pre-writing a 2-page spec skips the entire interview value — surfacing the hard parts the engineer hadn't considered.
+**Why C is Wrong:** Letting Claude guess is the anti-pattern the interview exists to prevent; corrections at code level are vastly more expensive than spec-level.
+**Why B is Wrong:** Resuming prior sessions carries bias and irrelevant context into a new feature's interview; fresh context is the explicit recommendation.
+
+**Pattern/Trap:** P18 Fresh Session vs Resume; P2 First Step Proportionality
+
+</details>
+
+---
+
+**Q164.** A CI script captures `session_id` from a first `-p` run and then calls `--resume "$session_id"` in a follow-up `-p` invocation to add categorization. The team wonders whether `--resume` works in headless (`-p`) CI mode. Which statement is accurate?
+
+- **A)** `-p` sessions can't be resumed; `--resume` requires an interactive session.
+- **B)** Sessions expire in headless mode after 60 seconds, making resume unreliable.
+- **C)** `-p` sessions don't appear in the `--resume` picker, but you can resume them by passing the session ID captured from JSON output; this is a documented CI pattern.
+- **D)** Resuming in `-p` only works if both commands omit `--output-format json`.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** Documented CI pattern: `-p` sessions don't appear in the interactive picker but can be resumed programmatically by capturing the `session_id` from the first call's JSON output and passing it explicitly to `--resume`. This is the canonical multi-step CI pattern.
+
+**Why A is Wrong:** Resume works fully in `-p`; this is explicitly supported.
+**Why B is Wrong:** No 60-second expiry exists; sessions persist on local disk.
+**Why D is Wrong:** `--output-format json` and `--resume` compose freely; there's no mutual exclusion.
+
+**Pattern/Trap:** P18 Fresh Session vs Resume
+
+</details>
+
+---
+
+**Q165.** A team has a `.claude/skills/migrate-db/SKILL.md` with the playbook for running database migrations. Over time the description grew and auto-invocation accuracy dropped: Claude sometimes invokes it when the user asked about migrations in general (not to run one). Which fix aligns with how skill discovery works?
+
+- **A)** Shorten and front-load the description with the precise use case ("Use ONLY when the user asks to execute a database migration"); consider `when_to_use` for trigger phrases.
+- **B)** Move the skill to `.claude/skills/_hidden/migrate-db/SKILL.md` so Claude doesn't find it.
+- **C)** Delete the description entirely so Claude can't match against it.
+- **D)** Set `allowed-tools: Bash(migrate *)` so the skill can only run in the right environment.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** Skill descriptions drive Claude's semantic discovery; front-loading the precise invocation criterion and using the optional `when_to_use` field (which is appended to the description) directly control auto-invocation accuracy.
+
+**Why B is Wrong:** Subdirectory name doesn't hide skills from discovery; Claude Code recursively discovers `.claude/skills/`.
+**Why C is Wrong:** If description is omitted, the first markdown paragraph is used — so Claude still has something to match on, often worse.
+**Why D is Wrong:** `allowed-tools` influences which tools are available when invoked; it doesn't influence *whether* Claude invokes the skill.
+
+**Pattern/Trap:** P5 Tool Description Primacy
+
+</details>
+
+---
+
+**Q166.** An engineer wants to create a custom Python helper that Claude can call during skill execution. They place `helper.py` next to `SKILL.md` in `.claude/skills/analyze/`. Inside SKILL.md they reference it. What's the correct way to reference the bundled file?
+
+- **A)** Use the substitution `${CLAUDE_SKILL_DIR}/helper.py` so the path resolves to the skill's directory regardless of where the repo is cloned.
+- **B)** Hard-code the absolute path `/Users/alice/proj/.claude/skills/analyze/helper.py` in the SKILL.md.
+- **C)** Put the file under `/tmp/claude-skills/` so any session can find it.
+- **D)** Move the helper into the root of the repo; skills can't access bundled files.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** `${CLAUDE_SKILL_DIR}` is the documented substitution variable that resolves to the directory containing the current skill's SKILL.md, specifically for referencing bundled scripts and files portably across machines and worktrees.
+
+**Why B is Wrong:** Hard-coded absolute paths break on every other developer's machine and in CI.
+**Why C is Wrong:** `/tmp/` is ephemeral and unrelated to skill discovery; not how skills bundle resources.
+**Why D is Wrong:** Skills can and do bundle scripts in their directory — this is the documented pattern.
+
+**Pattern/Trap:** P15 Configuration Hierarchy
+
+</details>
+
+---
+
+**Q167.** An engineer keeps asking Claude to "fix the failing login test." Over 4 turns, Claude has now altered the test file to make it pass instead of fixing the underlying bug, despite repeated instruction. What does Anthropic's guidance recommend?
+
+- **A)** Keep correcting Claude in the same session; eventually it will converge.
+- **B)** Increase the model size mid-session via `/model`.
+- **C)** Delete the test file and ask Claude to regenerate both test and implementation simultaneously.
+- **D)** Commit the failing test as a checkpoint first, then in a fresh session tell Claude "do not modify tests; iterate on implementation until tests pass."
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** This is the canonical TDD pattern plus the >2-corrections escalation rule. Commit failing tests as a checkpoint so diff review catches test mutation; then in a **fresh session** (the docs say "if you've corrected Claude more than twice on the same issue, run `/clear` and start fresh") explicitly instruct "do not modify tests; keep iterating on implementation."
+
+**Why A is Wrong:** Corrections past ~2 attempts indicate cluttered context; official guidance is to reset, not persist.
+**Why B is Wrong:** Model size doesn't address the behavioral pattern; instruction clarity and context freshness do.
+**Why C is Wrong:** Regenerating both simultaneously abandons the safety net that tests provide in TDD.
+
+**Pattern/Trap:** P18 Fresh Session vs Resume; P20 Explicit Escalation Criteria
+
+</details>
+
+---
+
+**Q168.** A CI review job posts comments on PRs. The team notices duplicate review comments across consecutive runs on the same PR (e.g., "use const instead of let" posted twice). They want Claude to suppress findings already posted in prior reviews. Which pattern is correct?
+
+- **A)** Resume the session used for the previous review so Claude remembers what it already said.
+- **B)** Lower the temperature so Claude produces identical output and a downstream dedup script becomes trivial.
+- **C)** Before the review call, fetch existing PR comments via `gh pr view --comments` and pass them into the prompt as "already-posted findings — do not repeat," keeping the session itself fresh.
+- **D)** Add `--permission-mode plan` so Claude can't post duplicates by writing.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** The documented pattern is to keep CI review sessions fresh (for isolation) and pass prior findings **explicitly in the prompt** — e.g., piping `gh pr view --comments` or a cached findings file — instructing Claude to avoid duplicates.
+
+**Why A is Wrong:** Cross-PR session reuse causes findings from other PRs to bleed in; the problem here is duplicate across runs on the same PR, solved by explicitly providing prior findings, not by session resume.
+**Why B is Wrong:** Determinism doesn't eliminate true duplicates; it just produces the same duplicate reliably.
+**Why D is Wrong:** Plan mode prevents writes but CI isn't posting from inside Claude — a separate step does. This doesn't address the deduplication requirement.
+
+**Pattern/Trap:** P18 Fresh Session vs Resume; P10 Root Cause vs Symptom
+
+</details>
+
+---
+
+**Q169.** A project has:
+```
+/repo/CLAUDE.md                    (root, 180 lines)
+/repo/.claude/rules/ts-api.md      (paths: ["src/api/**/*.ts"])
+/repo/.claude/rules/all-tests.md   (no paths frontmatter)
+/repo/services/auth/CLAUDE.md      (subdirectory, 90 lines)
+```
+The engineer launches `claude` from `/repo`. Which files are loaded into context at session start?
+
+- **A)** All four files are loaded at session start.
+- **B)** `/repo/CLAUDE.md` and `/repo/.claude/rules/all-tests.md` are loaded at start; the path-scoped rule and the subdirectory CLAUDE.md load on-demand when Claude reads a matching file.
+- **C)** Only `/repo/CLAUDE.md` is loaded at start; everything else requires `/memory` to activate.
+- **D)** Only the root CLAUDE.md and the two rules files load; subdirectory CLAUDE.md files are never loaded.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+**Why Correct:** Rules **without** `paths:` frontmatter load unconditionally at launch. Rules **with** `paths:` load only when Claude reads a matching file. Subdirectory CLAUDE.md files load lazily when Claude reads any file in that subtree. The root CLAUDE.md loads unconditionally at start.
+
+**Why A is Wrong:** Path-scoped rules and subdirectory CLAUDE.md are lazily loaded, not eager.
+**Why C is Wrong:** `/memory` is a diagnostic/viewer, not an activator; rules and subtree memory load automatically under their documented triggers.
+**Why D is Wrong:** Subdirectory CLAUDE.md files do load — just on-demand when their subtree is touched.
+
+**Pattern/Trap:** P15 Configuration Hierarchy; P6 Context Inheritance Misconception
+
+</details>
+
+---
+
+**Q170.** An engineer fixes a typo in a comment. They ask, "Should I use plan mode?" Per Anthropic best practices, what's the guidance?
+
+- **A)** Always use plan mode — safety first.
+- **B)** Use plan mode for all changes to files over 50 lines.
+- **C)** Use plan mode only when editing Python, not other languages.
+- **D)** Skip plan mode. The docs state plainly: "If you could describe the diff in one sentence, skip the plan." Plan mode adds overhead for small, clearly-scoped changes.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Anthropic's best-practices doc is explicit: plan mode is valuable but adds overhead; small, clearly-scoped changes (typo, rename, add a log line) should be executed directly. The one-sentence-diff heuristic is the documented test.
+
+**Why A is Wrong:** "Always" overfits overhead to trivial changes, wasting engineering time; the docs caution against this.
+**Why C is Wrong:** Language is not a criterion; task complexity and uncertainty are.
+**Why B is Wrong:** File length is not the documented heuristic; change scope and architectural uncertainty are.
+
+**Pattern/Trap:** P2 First Step Proportionality; P3 Over-Engineering Distractor
+
+</details>
+
+---
+
+**Q171.** A team wants team-shared procedures (e.g., "standard steps to deprecate an API endpoint") available to Claude, but **not** always loaded into context — they have 14 such procedures and loading them all would consume ~6% of the context window even when irrelevant. Where should these procedures live?
+
+- **A)** Inlined into root `CLAUDE.md` under section headers.
+- **B)** In `~/.claude/CLAUDE.md` so they're user-scoped and don't bloat project context.
+- **C)** In `.claude/rules/` with `paths: ["**/*"]` so they load everywhere.
+- **D)** As `.claude/skills/<name>/SKILL.md` files committed to the repo — descriptions are always in context (~1,536 chars max each) but full bodies load only on invocation.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Skills implement progressive disclosure: the short description is in context so Claude knows the skill exists, but the full body loads only when invoked. This is precisely the "procedures available on demand" use case the docs recommend skills for.
+
+**Why A is Wrong:** Inlining into CLAUDE.md loads all 14 procedures always, the exact problem to avoid.
+**Why B is Wrong:** User scope loads into every session's context just like project scope; relocation doesn't fix bloat.
+**Why C is Wrong:** `paths: ["**/*"]` matches every file, so the rule loads effectively always — identical bloat to option A.
+
+**Pattern/Trap:** P15 Configuration Hierarchy; P3 Over-Engineering Distractor
+
+</details>
+
+---
+
+**Q172.** A team uses `claude -p "Review"` in a self-hosted GitHub runner. Occasionally Claude uses their local MCP server configured in `~/.claude/` for staging database access — which is unsafe in CI. They also want CI to not pull personal CLAUDE.md from the runner's home directory. What's the correct mitigation?
+
+- **A)** Delete `~/.claude/` on the runner after every job.
+- **B)** Add `--permission-mode dontAsk` to block unsafe MCP usage.
+- **C)** Pass `--bare` on the CI invocation so auto-discovery of CLAUDE.md, hooks, skills, plugins, MCP servers, and auto-memory is skipped; provide explicit context via `--append-system-prompt-file` and `--mcp-config` if MCP is genuinely needed.
+- **D)** Use `--output-format json` so MCP server calls are suppressed.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** `--bare` is the documented reproducibility mode for CI: skips auto-discovery of hooks, skills, plugins, MCP servers, auto-memory, and CLAUDE.md. Any MCP needed is then passed explicitly via `--mcp-config`. This is both safer (no surprise MCP from runner state) and more reproducible.
+
+**Why A is Wrong:** Deleting state destructively on a shared runner is brittle and has side effects on other jobs.
+**Why B is Wrong:** `dontAsk` auto-approves nothing beyond explicit rules — it doesn't prevent auto-discovery of an MCP that's in the allow list.
+**Why D is Wrong:** Output format is unrelated to MCP auto-discovery; it only shapes the result payload.
+
+**Pattern/Trap:** P11 Scoped Access / Least Privilege; P15 Configuration Hierarchy
+
+</details>
+
+---
+
+**Q173.** An engineer made a complex multi-file change. They want to explore an alternative implementation branch from a specific point in the session **without losing the current session's history**. Which mechanism is correct?
+
+- **A)** Run `/clear` — this creates a parallel session automatically.
+- **B)** Use session forking via `/branch` in-session, or CLI `claude --resume <id> --fork-session`. The fork gets a new session ID; the original session's ID and history remain untouched.
+- **C)** Run `/compact` to snapshot the current state and then start a new session — the snapshot forks implicitly.
+- **D)** Copy `~/.claude/projects/<proj>/sessions/<id>.jsonl` manually, rename it, and resume — there is no forking feature.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+**Why Correct:** Claude Code supports session forking both in-session (`/branch` or `/fork <name>`) and via CLI (`--resume <id> --fork-session` or `--continue --fork-session`). The fork has its own session ID; the original's history is untouched. Filesystem changes are shared, but conversation branches.
+
+**Why A is Wrong:** `/clear` wipes context, it doesn't create a fork.
+**Why C is Wrong:** `/compact` summarizes the current session; it doesn't produce a separate branchable session.
+**Why D is Wrong:** Forking is a first-class feature; manual file copying isn't required and is fragile.
+
+**Pattern/Trap:** P18 Fresh Session vs Resume
+
+</details>
+
+---
+
+**Q174.** A CI pipeline wants to (1) provide project context to every review, (2) ensure the review command is reproducible across developer laptops and the runner, and (3) avoid letting any teammate's personal settings influence reviews. Which setup best satisfies all three?
+
+- **A)** Commit a `REVIEW.md` in the repo; invoke `claude --bare -p "Review the PR" --append-system-prompt-file REVIEW.md --output-format json --json-schema '{...}'` in CI.
+- **B)** Ship a `.claude/CLAUDE.md` with review rules and rely on default `claude -p` auto-discovery; trust that no one has personal CLAUDE.md.
+- **C)** Inline the entire review rules as a 4,000-line `--append-system-prompt "..."` string in the CI YAML.
+- **D)** Resume a fixed session ID that one senior engineer pre-seeded with review rules; this way rules "stick" across runs.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** This combination satisfies all three requirements: `--bare` skips auto-discovery (reproducibility + no personal-config leakage); `--append-system-prompt-file REVIEW.md` provides explicit, version-controlled project context; `--output-format json --json-schema` gives structured, parseable output for the dashboard.
+
+**Why B is Wrong:** Without `--bare`, `~/.claude/CLAUDE.md` on a developer laptop or runner is auto-discovered, defeating reproducibility and isolation.
+**Why C is Wrong:** Inline 4,000-line YAML strings are unmaintainable, break YAML escaping, and hurt readability — a committed `REVIEW.md` file is the documented pattern.
+**Why D is Wrong:** Reusing a single session across runs causes cross-PR contamination and makes review findings non-isolated.
+
+**Pattern/Trap:** P18 Fresh Session vs Resume; P15 Configuration Hierarchy; P1 Prompt vs Programmatic Enforcement
+
+</details>
+
+---

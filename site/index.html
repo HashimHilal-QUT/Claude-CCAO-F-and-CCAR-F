@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Focused preparation for the Claude Certified Associate and Architect Foundations exams.">
+  <title>Claude Foundations | Exam Preparation</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#" aria-label="Claude Foundations home">
+        <span class="brand-mark">C</span>
+        <span><strong>Claude</strong><small>Foundations prep</small></span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#study">Study bank</a>
+        <a href="#quiz">Practice quiz</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="eyebrow">Exam preparation, at your pace</p>
+          <h1>Build confidence with <em>deliberate</em> practice.</h1>
+          <p class="hero-copy">Work through the curated question banks for Claude certification. Search by concept, review the rationale, or switch to quiz mode when you are ready.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#study">Start studying <span aria-hidden="true">→</span></a>
+            <button class="button button-quiet" id="hero-quiz" type="button">Quick quiz</button>
+          </div>
+        </div>
+        <div class="hero-card" aria-label="Question bank summary">
+          <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+          <span class="hero-card-label">Your preparation dashboard</span>
+          <strong id="total-count">318</strong>
+          <span>practice questions</span>
+          <div class="hero-stats">
+            <span><b id="ccaf-count">227</b> CCAR-F</span>
+            <span><b id="ccao-count">91</b> CCAO-F</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="study" class="study-section">
+      <div class="wrap">
+        <div class="section-heading">
+          <div><p class="eyebrow">The study bank</p><h2>Choose your focus.</h2></div>
+          <p id="results-count" class="results-count"></p>
+        </div>
+        <div class="toolbar">
+          <div class="segmented" role="group" aria-label="Exam">
+            <button class="segment active" data-bank="ccaf" type="button">CCAR-F <span>Architect</span></button>
+            <button class="segment" data-bank="ccao" type="button">CCAO-F <span>Associate</span></button>
+          </div>
+          <label class="search">
+            <span class="sr-only">Search questions</span>
+            <span aria-hidden="true">⌕</span>
+            <input id="search" type="search" placeholder="Search concepts or questions">
+          </label>
+          <label class="select-label">
+            <span class="sr-only">Filter by domain</span>
+            <select id="domain-filter"></select>
+          </label>
+        </div>
+        <div class="mode-row">
+          <div class="mode-switch" role="group" aria-label="Study mode">
+            <button id="study-mode" class="mode active" type="button">Study cards</button>
+            <button id="quiz-mode" class="mode" type="button">Quiz mode</button>
+          </div>
+          <button id="random-quiz" class="text-button" type="button">Start a 10-question quiz <span aria-hidden="true">↗</span></button>
+        </div>
+        <div id="study-view"></div>
+        <div id="quiz-view" class="hidden"></div>
+        <div id="empty-state" class="empty-state hidden">
+          <span>◌</span><h3>No questions match that search.</h3><p>Try a different concept or clear the filters.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer><div class="wrap"><span>Claude Foundations prep</span><span>Study thoughtfully · Verify with official exam materials</span></div></footer>
+</body>
+</html>

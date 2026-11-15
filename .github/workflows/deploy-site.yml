@@ -1,0 +1,42 @@
+name: Deploy exam preparation site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "ccaf/jsonl/**"
+      - "ccao/jsonl/**"
+      - ".github/workflows/deploy-site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build question dataset
+        run: python3 site/build_questions.py
+
+      - name: Upload static site to Azure Blob Storage
+        uses: azure/cli@v2
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        with:
+          inlineScript: |
+            test -n "$AZURE_STORAGE_CONNECTION_STRING"
+            az storage blob service-properties update \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --static-website \
+              --index-document index.html \
+              --404-document index.html
+            az storage blob upload-batch \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --destination '$web' \
+              --source site \
+              --overwrite

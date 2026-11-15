@@ -1,0 +1,896 @@
+# Domain 2: Tool Design & MCP Integration
+
+> Claude Certified Architect – Foundations
+
+> Exam Weight: 18% | Questions in Pool: 39
+
+*Generated from the JSONL bank by `scripts/render_markdown.py` — do not edit by hand.*
+*Private study material, assembled from mixed sources: not licensed for redistribution.*
+
+---
+
+**Q2.** Production logs show the agent frequently calls `get_customer` when users ask about orders, instead of calling `lookup_order`. Both tools have minimal descriptions and accept similar identifier formats. What's the most effective first step to improve tool selection reliability?
+
+- **A)** Add few-shot examples to the system prompt demonstrating correct tool selection patterns, with 5-8 examples.
+- **B)** Expand each tool's description to include input formats it handles, example queries, edge cases, and boundaries explaining when to use it versus similar tools.
+- **C)** Implement a routing layer that parses user input before each turn and pre-selects the appropriate tool based on detected keywords.
+- **D)** Consolidate both tools into a single `lookup_entity` tool that accepts any identifier and internally determines which backend to query.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+Tool descriptions are the primary mechanism LLMs use for tool selection. Option B directly addresses the root cause. Few-shot examples (A) add token overhead without fixing the underlying issue. A routing layer (C) is over-engineered. Consolidating tools (D) requires more effort than a "first step" warrants.
+
+</details>
+
+---
+
+**Q30.** Your customer support agent has a `lookup_order` tool that is called at the right times, but frequently returns errors. Logs show the agent passes free-text descriptions like "order from last Tuesday" instead of the required ISO-8601 timestamp format. The tool description reads: "Retrieves order details given a date or identifier." No examples or format constraints are provided.
+
+What change to the tool definition would most directly reduce these input format errors?
+
+- **A)** Add input format constraints, accepted value formats, and example inputs to the tool description so the model knows exactly how to format its calls.
+- **B)** Add a system prompt instruction: "Always use ISO-8601 format when calling lookup_order."
+- **C)** Add input schema validation that rejects malformed inputs and returns an error to the agent.
+- **D)** Split `lookup_order` into two tools: `lookup_order_by_id` and `lookup_order_by_date` to reduce ambiguity.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+Tool descriptions are the primary mechanism the model uses to understand how to call a tool. Adding format constraints and examples directly to the description gives the model the information it needs at decision time. Option B adds token overhead in the system prompt but is more fragile than a tool-specific description. Option C adds validation but does not prevent the model from sending malformed inputs in the first place, creating unnecessary error cycles. Option D addresses a different problem (disambiguation) rather than the format guidance issue.
+
+</details>
+
+---
+
+**Q31.** Your customer support agent has three tools with overlapping names and descriptions: `get_account_info` ("Get information about the account"), `fetch_account_details` ("Fetch account details"), and `retrieve_customer_record` ("Retrieve customer information"). All three call different backend systems with different data. The agent frequently picks the wrong tool.
+
+Which approach most effectively resolves the misrouting?
+
+- **A)** Add a system prompt instruction listing all three tools and specifying exactly when each should be used based on the request type.
+- **B)** Consolidate all three tools into one tool with a `source` parameter that specifies which backend to query.
+- **C)** Rename the tools to reflect their distinct data sources and rewrite their descriptions to explain what data each returns, what backend it queries, and what use case it serves.
+- **D)** Keep the current tools but randomize which one the agent calls, then merge the responses in a post-processing step.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+Ambiguous or overlapping tool names and descriptions cause misrouting. Renaming tools to reflect their distinct backends and writing descriptions that explain what each one returns, where its data comes from, and when to use it are the right fixes. Option A may reduce misrouting but does not fix the root problem: the tool descriptions themselves are indistinguishable. Option B collapses three specialized tools into one generic tool with a parameter, which shifts the burden of correct routing back to the model in a less structured way. Option D is not a viable architecture.
+
+</details>
+
+---
+
+**Q32.** Your customer support MCP tool `process_refund` returns the same error response for all failures: `{"status": "error", "message": "Operation failed"}`. The agent currently handles all errors by apologizing to the customer and ending the conversation. Logs show this response is triggered by: network timeouts, invalid refund amounts, refunds blocked by fraud detection, and expired order IDs.
+
+What structured error response design would most improve the agent's ability to recover appropriately?
+
+- **A)** Return different HTTP status codes for each failure type and have the agent interpret the status code to determine recovery action.
+- **B)** Return structured error metadata including `errorCategory` (transient/validation/permission/business), `isRetryable` boolean, and a human-readable explanation specific to the failure reason.
+- **C)** Return a verbose error log with the full stack trace and system state so the agent has maximum information to reason from.
+- **D)** Return a numeric error code and have the system prompt map each code to a recovery action.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+Structured error metadata gives the agent the information it needs to choose the correct recovery path: retry a transient failure, ask the customer for corrected input on a validation failure, or explain a policy block on a business rule violation. Option A relies on HTTP semantics that may not map cleanly to all failure categories and are not as expressive as structured fields. Option C provides excessive detail that consumes context without improving decision quality. Option D encodes recovery logic in the system prompt rather than in a principled error structure, making it harder to maintain.
+
+</details>
+
+---
+
+**Q33.** A web search subagent in your research system calls `search_web` and receives the following response: `{"results": [], "status": "success"}`. The subagent reports to the coordinator: "Web search was successful but no relevant results were found." Later you discover the search API was actually down and returning empty results for all queries.
+
+What change to the MCP tool's error handling would prevent this confusion?
+
+- **A)** Always return a non-empty results array by including fallback content when the actual search returns nothing.
+- **B)** Distinguish between access failures (where the backend could not be reached or returned an error) and valid empty results (where the search succeeded but found no matches), using the `isError` flag for the former.
+- **C)** Add a `confidence` field to the response so the agent can infer whether the empty result is a real outcome or a failure.
+- **D)** Implement automatic retry in the MCP tool itself, so the agent never sees an empty result unless all retries were exhausted.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+Access failures and valid empty results are fundamentally different conditions that require different agent responses. Using the `isError` flag for access failures while returning `{"results": [], "status": "success"}` only for genuine empty-result queries gives the coordinator accurate information to make retry and recovery decisions. Option A masks failures by fabricating content. Option C introduces ambiguity; a confidence score on a genuinely empty result is meaningless. Option D handles retries locally but does not solve the agent's inability to distinguish the two conditions.
+
+</details>
+
+---
+
+**Q34.** Your MCP tool `check_fraud_risk` returns `{"isError": true, "message": "Refund blocked"}` when a refund is flagged by fraud detection. The agent interprets this as a transient failure and retries the refund three times before giving up. Each retry generates a separate fraud alert in your compliance system.
+
+What is the missing element in the error response design?
+
+- **A)** The response should include a `retry_after` timestamp so the agent knows when to retry.
+- **B)** The response should include `isRetryable: false` and a customer-appropriate explanation distinguishing this business rule block from a transient system error.
+- **C)** The tool should suppress the `isError` flag for fraud blocks and instead return the result as a successful response with a `blocked: true` field.
+- **D)** The response should include the fraud risk score so the agent can decide whether the score is high enough to justify blocking.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+A business rule block from fraud detection is a non-retryable error. Including `isRetryable: false` signals to the agent that retrying will not resolve the situation, preventing redundant attempts that trigger compliance alerts. A customer-appropriate explanation helps the agent communicate the block appropriately. Option A implies the block is temporary and retriable, which is the opposite of the intended behavior. Option C hides the error nature of the response and makes recovery logic less clear. Option D provides fraud risk data to the agent that it may not be authorized to act on directly.
+
+</details>
+
+---
+
+**Q35.** You are building a multi-agent research system with a synthesis agent whose sole job is combining findings from subagents and producing a structured report. You have given the synthesis agent access to all 18 tools in your system: web search, file reading, database queries, email sending, calendar access, and more, reasoning that more tools provide more flexibility.
+
+What problem does this configuration most likely introduce?
+
+- **A)** The synthesis agent will refuse to call any tools because it is overwhelmed by the number of choices.
+- **B)** The additional tools will slow down the synthesis agent because the model must read all tool descriptions before producing output.
+- **C)** 18 tools will exceed the context window limit for tool schemas, causing API errors on every request.
+- **D)** Having access to tools outside its specialization increases the likelihood the synthesis agent will misuse them, such as initiating new web searches instead of synthesizing the provided findings.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+Giving an agent access to tools outside its specialization degrades tool selection reliability. A synthesis agent with web search tools will sometimes initiate new searches rather than working with the findings already provided, breaking the intended workflow. Option A overstates the effect: the agent will still call tools, but may call the wrong ones. Option C is not a realistic failure mode for 18 tools with typical schema sizes. Option B mischaracterizes how tool descriptions affect latency.
+
+</details>
+
+---
+
+**Q36.** Your customer support system requires that every response from the `draft_response` agent includes a structured JSON summary before the agent returns its output. You want to guarantee the agent calls the `generate_summary` tool on every invocation, not optionally.
+
+Which `tool_choice` configuration achieves this?
+
+- **A)** Set `tool_choice: "auto"` so the model decides when the summary tool is needed.
+- **B)** Set `tool_choice: "any"` so the model must call at least one tool, though it may choose a different tool instead.
+- **C)** Set `tool_choice: {"type": "tool", "name": "generate_summary"}` to force the model to call `generate_summary` specifically.
+- **D)** Remove all other tools from the agent's tool list so `generate_summary` is the only option available.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+Forced tool selection via `tool_choice: {"type": "tool", "name": "generate_summary"}` guarantees the model calls that specific tool on every invocation. Option A (`"auto"`) allows the model to return text without calling any tool. Option B (`"any"`) guarantees a tool call but does not guarantee which tool, so the model might choose a different one. Option D achieves the same result indirectly but removes legitimate tools the agent may need for its other tasks.
+
+</details>
+
+---
+
+**Q37.** Your team is setting up a shared GitHub MCP server for all engineers on a project. The server requires a GitHub API token for authentication. You want every engineer who clones the repository to have the MCP server available without each person having to manually configure it, and you want to avoid committing the actual token to version control.
+
+What is the correct configuration approach?
+
+- **A)** Add the MCP server to `~/.claude.json` on each developer's machine with their personal token hardcoded.
+- **B)** Add the MCP server to the project-scoped `.mcp.json` file with the token specified using environment variable expansion (e.g., `${GITHUB_TOKEN}`), and commit `.mcp.json` to the repository.
+- **C)** Add the MCP server configuration to the root `CLAUDE.md` file under a `[mcp_servers]` section.
+- **D)** Create a setup script that each developer runs once to add the MCP server to their personal `~/.claude.json` with their token.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+Project-scoped `.mcp.json` with environment variable expansion is the correct pattern for shared MCP servers: it is committed to the repository so all team members get the configuration automatically, and tokens are injected via environment variables at runtime rather than committed as plaintext. Option A requires manual per-person setup and hardcodes tokens. Option C describes a configuration mechanism that does not exist in CLAUDE.md. Option D also requires manual setup and does not solve the commit-to-version-control problem.
+
+</details>
+
+---
+
+**Q38.** A developer productivity agent frequently makes multiple exploratory tool calls to discover what data sources are available in your MCP server before it can answer user questions. This pattern increases latency and consumes context for routine requests.
+
+What MCP feature most directly addresses this discovery overhead?
+
+- **A)** Add a `list_tools` meta-tool to the MCP server that returns all available tool names and descriptions.
+- **B)** Expose content catalogs as MCP resources, giving the agent visibility into available data at connection time rather than through exploratory tool calls.
+- **C)** Reduce the number of tools in the MCP server by merging similar tools together to minimize the discovery surface.
+- **D)** Add a caching layer that stores the results of previous exploratory calls and reuses them across sessions.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+MCP resources are designed to expose content catalogs so agents know what data is available without making exploratory tool calls. This gives the agent upfront visibility at connection time, reducing the need for repeated discovery queries. Option A would still require a tool call to discover available resources. Option C reduces functionality to avoid a structural problem. Option D addresses symptom rather than cause, and cross-session caching of content catalogs may return stale data.
+
+</details>
+
+---
+
+**Q39.** A developer productivity agent needs to find all TypeScript files in a project that import from a deprecated module named `legacy-auth`. The project has thousands of files across many directories.
+
+Which combination of built-in tools is most appropriate for this task?
+
+- **A)** Use `Bash` to run `find . -name "*.ts"` and then `Bash` again to run `grep` on each file found.
+- **B)** Use `Glob` to find all `.ts` files, then use `Read` to open each file and check whether it contains the import.
+- **C)** Use `Grep` to search for the import pattern across all TypeScript files in the codebase.
+- **D)** Use `Read` on the project root directory to get a file listing, then recursively `Read` each subdirectory.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+`Grep` is the correct built-in tool for searching file contents across a codebase. It efficiently searches all TypeScript files for the import pattern without requiring separate file enumeration. Option A uses Bash shell commands that should be replaced by dedicated tools when those tools are available. Option B uses `Glob` for enumeration and then `Read` on each file, which is far less efficient than `Grep` for a content search. Option D uses `Read` for directory traversal, which is not a supported use of that tool.
+
+</details>
+
+---
+
+**Q40.** A developer productivity agent needs to update a configuration value in a file. The value appears in a block of code that contains several nearly identical lines. When the agent uses `Edit`, the tool returns an error: "Match not unique: found 3 occurrences of the target text."
+
+What is the correct fallback approach?
+
+- **A)** Use `Bash` to run a `sed` command to replace all occurrences of the target text simultaneously.
+- **B)** Use `Grep` to locate the line number of each occurrence, then use `Edit` with a line number parameter to target the correct one.
+- **C)** Use `Write` to overwrite the entire file with a corrected version, based on the contents loaded by `Read`.
+- **D)** Use `Read` to load the full file contents, identify the exact surrounding context needed to make the edit unique, and retry `Edit` with a larger `old_string` that uniquely identifies the correct location.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+When `Edit` fails due to non-unique text, the correct first step is to use `Read` to examine the full file and find enough surrounding context to construct a unique `old_string`. This is more surgical than a full `Write` overwrite. Option C using `Read + Write` is a valid fallback but should only be used when `Edit` still cannot find a unique anchor even with additional context. Option A uses Bash shell commands when built-in tools should be preferred, and would replace all occurrences rather than targeting the correct one. Option B describes a line number parameter that `Edit` does not support.
+
+</details>
+
+---
+
+**Q118.** A support agent has four MCP tools: `get_customer`, `lookup_order`, `process_refund`, `escalate_to_human`. In production, Claude calls `lookup_order` when the user asks "Who is customer 44192?" about 31% of the time, returning an order not found error. The `get_customer` description reads: "Retrieves customer data." The `lookup_order` description reads: "Looks up order information by ID." What is the most effective first fix?
+
+- **A)** Rewrite both descriptions to be 3–4 sentences each, explicitly stating what each tool accepts (customer ID vs. order ID), when to use it, and what it does not return.
+- **B)** Add a routing classifier tool that inspects the user query and emits a structured "intent" field before any tool call.
+- **C)** Set `tool_choice` to `{"type":"tool","name":"get_customer"}` whenever the user message contains the word "customer."
+- **D)** Consolidate `get_customer` and `lookup_order` into one `lookup_entity` tool that takes an `entity_type` parameter.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** Anthropic's official guidance states that tool descriptions are "by far the most important factor in tool performance" and recommends at least 3–4 sentences per description covering purpose, parameters, when to use, and what is not returned. Both current descriptions are one-line and share the keyword "up," creating selection ambiguity that is resolved cheaply by description quality.
+
+**Why B is Wrong:** A routing classifier is textbook over-engineering — it adds another tool that can itself misfire and doesn't address the root cause, which is inadequate descriptions.
+**Why C is Wrong:** Forcing a specific tool by keyword match is brittle and sidesteps the LLM's actual selection capability; "customer" legitimately appears in order-status questions too.
+**Why D is Wrong:** Consolidating an overloaded entity tool adds a new branching parameter that itself needs differentiation logic; it also removes scoping that may matter for downstream permissioning.
+
+**Pattern/Trap:** P5 Tool Description Primacy + P3 Over-Engineering Distractor
+
+</details>
+
+---
+
+**Q119.** An extraction pipeline calls a `record_invoice` tool to return parsed invoice data. When an invoice field like `po_number` is absent from the source document, the tool schema marks it `required`, and Claude fabricates a plausible-looking PO number about 8% of the time. What is the correct fix?
+
+- **A)** Increase the temperature to 0 so the model stops hallucinating values.
+- **B)** Add a post-hoc validator that cross-checks the PO number against a database and retries on mismatch.
+- **C)** Make `po_number` nullable in the schema and instruct the description to return `null` when the field is not present in the source.
+- **D)** Add `"strict": true` to the tool definition so the API rejects invalid inputs.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** When a field is declared `required` but the source lacks the data, the model is pushed to invent a value to satisfy the schema. Making the field nullable and explicitly documenting that absence should produce `null` aligns the schema with reality and removes the fabrication pressure.
+
+**Why A is Wrong:** Temperature 0 reduces randomness but does not change the model's incentive to fill required fields; it often produces the same fabricated value deterministically.
+**Why B is Wrong:** Retry-on-mismatch only helps if a correct value exists somewhere to retrieve; when the source truly lacks the PO, retries produce the same fabrication or a new one.
+**Why D is Wrong:** `strict: true` validates Claude's output against the schema but does not make a required-but-absent field nullable — it would in fact enforce the fabrication.
+
+**Pattern/Trap:** P14 Nullable Field Prevention + P13 Retry Futility
+
+</details>
+
+---
+
+**Q120.** A developer asks Claude Code to rename a function across a TypeScript monorepo with ~4,200 files. Which sequence best reflects Anthropic's recommended incremental-exploration pattern?
+
+- **A)** `Bash("grep -rn 'oldName' src/")` → `Bash("sed -i 's/oldName/newName/g' ...")`
+- **B)** `Glob("**/*.ts")` → `Read` every file → `Write` each file back with the rename applied.
+- **C)** `Agent(subagent)` where the subagent spawns another subagent per directory to parallelize.
+- **D)** `Glob("**/*.ts")` → `Grep(pattern="oldName", output_mode="files_with_matches")` → `Read` matched files → `Edit` each with `old_string`/`new_string`.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Anthropic's published Claude Code system prompt instructs the model to prefer `Glob` over `find`, `Grep` over bash-grep, `Read` over `cat`, and `Edit` over `sed`. The Glob→Grep→Read→Edit progression narrows the search space efficiently, preserves line-numbered context for accurate edits, and uses the permission cache.
+
+**Why A is Wrong:** Anthropic explicitly instructs Claude Code to avoid `grep` and `sed` via Bash; heredoc-style commands bypass permission caching and skip the safety property that `Edit` fails fast when `old_string` is not found.
+**Why B is Wrong:** Reading and rewriting thousands of files is wasteful — Edit sends ~2 lines versus Write sending the whole file, and Glob alone does not narrow to files that actually contain `oldName`.
+**Why C is Wrong:** Subagents in Claude Code cannot spawn other subagents (no nested delegation via the Agent tool), and parallelizing before narrowing with Grep front-loads cost.
+
+**Pattern/Trap:** P2 First Step Proportionality + P3 Over-Engineering Distractor
+
+</details>
+
+---
+
+**Q121.** A coordinator agent delegates to four specialized subagents (web_search, document_analysis, synthesis, report). The report subagent produces summaries that reference statistics the coordinator discussed earlier in its own conversation but never passed in the subagent's prompt. What is happening?
+
+- **A)** The subagent is inheriting the coordinator's context window and the statistics are stale.
+- **B)** The subagent receives a fresh context by default and is fabricating plausible-sounding statistics because the coordinator did not pass them in the subagent's prompt.
+- **C)** The Anthropic API is auto-merging parallel subagent contexts after the last tool call completes.
+- **D)** The report subagent's `tool_choice` is set to `any`, which causes it to invent statistics to justify a tool call.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+**Why Correct:** By default, each Claude Code subagent starts with a fresh/blank context and receives only what the coordinator writes into its prompt — it does not inherit the parent's conversation history. When the coordinator omits the numeric facts, the subagent has no grounding and fabricates.
+
+**Why A is Wrong:** Default subagents do not inherit context; the coordinator must explicitly pass any facts the subagent needs.
+**Why C is Wrong:** There is no cross-subagent context merging; each subagent returns only its final result to the parent.
+**Why D is Wrong:** `tool_choice: any` forces tool selection but does not cause data fabrication on its own — the absence of grounding data does.
+
+**Pattern/Trap:** P6 Context Inheritance Misconception
+
+</details>
+
+---
+
+**Q122.** The `process_refund` MCP tool sometimes returns a transient 503 from an upstream payments API. Ops wants Claude to retry automatically but not on validation errors (like invalid amount). How should the MCP server signal this distinction?
+
+- **A)** Return `isError: true` in both cases, with descriptive text in the `content` array explaining the category so the model can decide whether to self-correct and retry.
+- **B)** Return a JSON-RPC protocol error with code `-32603` for transient issues and `-32602` for validation errors.
+- **C)** Return `isError: false` for transient errors (so Claude keeps going) and `isError: true` for validation errors.
+- **D)** Add a custom top-level `isRetryable` boolean to the tool response and rely on clients to honor it.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** The MCP spec defines two error mechanisms: JSON-RPC protocol errors (for structural issues the model cannot fix) and tool-execution errors surfaced via `isError: true` in the result. Tool-execution errors are meant to give "actionable feedback that language models can use to self-correct and retry with adjusted parameters," and the category is conveyed through descriptive text in `content`.
+
+**Why B is Wrong:** Protocol errors bypass the model's ability to reason about the failure; the spec explicitly says they are "less likely to result in successful recovery" because they indicate request-structure issues.
+**Why C is Wrong:** Returning `isError: false` for a real failure is deceptive — the model will treat the (absent) result as success and produce incorrect downstream behavior.
+**Why D is Wrong:** The MCP spec does not define a formal `isRetryable` field; adding a proprietary top-level key is non-standard and will be ignored by compliant clients.
+
+**Pattern/Trap:** Structured Error Signaling (isError contract)
+
+</details>
+
+---
+
+**Q123.** A team wants every developer on the repo to automatically get access to the same set of MCP servers (GitHub, Postgres, internal docs) when they run Claude Code. Where should the configuration live?
+
+- **A)** `~/.claude.json` committed to a shared dotfiles repo each developer clones.
+- **B)** `.claude/settings.local.json` checked into the repo.
+- **C)** `managed-mcp.json` in `/Library/Application Support/ClaudeCode/` on each machine.
+- **D)** `.mcp.json` at the project root, checked into the repository.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** `.mcp.json` is the project-scope MCP config explicitly designed to be committed to the repo and shared across the team. Claude Code picks it up automatically from the project root and requires user approval before first use as a security gate.
+
+**Why A is Wrong:** `~/.claude.json` is the user-level file scoped to a single developer's machine and is not intended to be shared; it stores per-user, cross-project MCP server entries.
+**Why B is Wrong:** `.claude/settings.local.json` is meant for per-checkout overrides and is conventionally git-ignored; using it would defeat the "shared across team" requirement.
+**Why C is Wrong:** `managed-mcp.json` is for enterprise/IT-deployed lockdown policies and takes exclusive control when present — it is the wrong mechanism for normal team sharing and would block users from adding personal servers.
+
+**Pattern/Trap:** P15 Configuration Hierarchy
+
+</details>
+
+---
+
+**Q124.** The research coordinator currently exposes 34 MCP tools to every subagent so they can "do whatever they need." Tool-selection accuracy on the web_search subagent has dropped from 94% to 71% since 12 new tools were added. What is the best architectural fix?
+
+- **A)** Tell each subagent in its system prompt which tools to prefer, leaving all 34 loaded.
+- **B)** Use `tool_choice: {"type":"any"}` so subagents are forced to choose quickly.
+- **C)** Scope each subagent's `tools:` allowlist to only the 3–6 tools relevant to its role.
+- **D)** Switch all subagents to a model with a larger context window so all 34 tool definitions fit without degradation.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** Per-subagent `tools:` allowlists are Anthropic's stated pattern for scoped, least-privilege tool access. Reducing the tool surface to what each role actually needs directly mitigates selection degradation — the documented motivation behind the Tool Search Tool is precisely that loading many definitions into context upfront hurts performance.
+
+**Why A is Wrong:** System-prompt preference instructions are secondary to the tool descriptions themselves and do not remove the attention cost of 34 definitions sitting in context.
+**Why B is Wrong:** `any` forces a tool call but does not improve which tool is chosen; the selection is still made against 34 candidates.
+**Why D is Wrong:** A larger context window does not fix attention quality — the "lost in the middle" phenomenon and selection degradation persist regardless of window size.
+
+**Pattern/Trap:** P11 Scoped Access + P8 Larger Context Window Fallacy
+
+</details>
+
+---
+
+**Q125.** A GitHub Action runs Claude Code with `claude -p "review this PR"`. The `.mcp.json` at the repo root references `"headers": {"Authorization": "Bearer ${GITHUB_TOKEN}"}`. On the runner, the job fails with a config parse error. What is the most likely cause?
+
+- **A)** `.mcp.json` does not support environment variable expansion in `headers`.
+- **B)** `${GITHUB_TOKEN}` is unset in the runner's shell because the secret was not exported as an env var to the Claude Code step.
+- **C)** `-p` mode ignores `.mcp.json` entirely; you must pass `--mcp-config` explicitly.
+- **D)** GitHub Actions masks secrets, which breaks the expansion step.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+**Why Correct:** Claude Code's `.mcp.json` supports `${VAR}` expansion in `command`, `args`, `env`, `url`, and `headers`. If the required variable is unset and no `${VAR:-default}` fallback is provided, Claude Code fails to parse the config. GitHub Actions requires secrets to be explicitly exposed to a step via `env:` — they are not globally available.
+
+**Why A is Wrong:** `.mcp.json` does support expansion in `headers`; that is a documented supported location.
+**Why C is Wrong:** `-p` mode loads `.mcp.json` normally; `--mcp-config` is for custom paths, not a requirement in print mode.
+**Why D is Wrong:** Secret masking redacts values in logs but does not prevent expansion at runtime when the env var is actually set.
+
+**Pattern/Trap:** P15 Configuration Hierarchy + env expansion semantics
+
+</details>
+
+---
+
+**Q126.** A team builds an extractor that must always return a JSON object matching a fixed schema. Which combination best guarantees structured, validated output on every call?
+
+- **A)** `tool_choice: {"type":"any"}` with a single tool definition marked `"strict": true`.
+- **B)** `tool_choice: {"type":"auto"}` with a single tool and a strong system prompt instructing Claude to "always call the tool."
+- **C)** `tool_choice: {"type":"none"}` with a system prompt that demands JSON output.
+- **D)** Two tools with overlapping descriptions so Claude picks whichever matches best.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** `tool_choice: {"type":"any"}` forces Claude to call a tool (when only one is defined, that specific tool), and `strict: true` enables strict JSON-schema validation of the tool input against the definition. This is Anthropic's documented pattern for guaranteed structured output via tools.
+
+**Why B is Wrong:** `auto` leaves the decision to the model, which may occasionally produce natural language instead of a tool call; prompt instructions alone are not a hard guarantee.
+**Why C is Wrong:** `none` prevents all tool use; Claude would return freeform JSON with no schema validation.
+**Why D is Wrong:** Overlapping descriptions degrade tool selection and add failure modes; more tools is the wrong direction for a single-schema extractor.
+
+**Pattern/Trap:** P1 Prompt vs Programmatic Enforcement
+
+</details>
+
+---
+
+**Q127.** A developer wants to change a single import statement in a 1,200-line file. Which approach does Anthropic recommend?
+
+- **A)** `Read` the file, then `Write` the full file back with the import replaced.
+- **B)** `Bash("sed -i '1s/.*/import X from \"y\";/' file.ts")`.
+- **C)** `Read` the file, then `Edit` with `old_string` as the current import line and `new_string` as the replacement.
+- **D)** `Grep` for the import, then `MultiEdit` with 1,200 operations to rewrite line-by-line.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** `Edit` is the correct tool for targeted changes: it sends only the diff (~2 lines for a 1,200-line file), it fails fast if `old_string` is not found or is non-unique, and it integrates with permission caching. Claude Code must Read before Edit to ensure accurate context.
+
+**Why A is Wrong:** `Write` replaces the whole file, wasting tokens and losing the safety property that Edit fails when the old content is absent.
+**Why B is Wrong:** Anthropic's Claude Code system prompt explicitly instructs the model to avoid `sed` via Bash and to use `Edit` instead.
+**Why D is Wrong:** MultiEdit with 1,200 operations is absurd for a one-line change and still does not match the intended single-replacement semantics.
+
+**Pattern/Trap:** P2 First Step Proportionality
+
+</details>
+
+---
+
+**Q128.** The support agent's `process_refund` tool is described as: "Issues a refund for an order." In staging, Claude calls it after vague requests like "fix my problem" 14% of the time, issuing unauthorized refunds. Policy requires refunds only after identity verification. What is the correct enforcement mechanism?
+
+- **A)** Append to the system prompt: "Never call process_refund without identity verification."
+- **B)** Lower the model temperature so it adheres more strictly to instructions.
+- **C)** Add the phrase "do not call unless verified" to the tool description.
+- **D)** Implement a server-side pre-check in the MCP tool that verifies identity state before executing; return `isError: true` with an explicit "identity not verified" message otherwise.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** For policy rules that carry financial or identity consequences, programmatic enforcement in the tool server is the only reliable control. Prompt-level instructions are probabilistic and will fail some percentage of the time. Returning `isError: true` with actionable text lets the model self-correct and route to verification without performing the sensitive action.
+
+**Why A is Wrong:** System-prompt rules are suggestions to a probabilistic model; a 14% error rate on a financial action is unacceptable and will persist with prompt-only controls.
+**Why B is Wrong:** Temperature affects sampling variance, not rule adherence; the model can deterministically choose the wrong action at temperature 0.
+**Why C is Wrong:** Tool descriptions influence selection but do not enforce anything at execution time; a single bad selection still causes the refund.
+
+**Pattern/Trap:** P1 Prompt vs Programmatic Enforcement
+
+</details>
+
+---
+
+**Q129.** An MCP tool returns search results. When zero documents match, which response design best prevents hallucination?
+
+- **A)** Return `{"content":[], "isError": false}`.
+- **B)** Return a JSON-RPC error with code `-32603` and no content.
+- **C)** Return `{"content":[{"type":"text","text":"No documents matched query 'X' across index 'Y'. This is a valid empty result, not an error."}], "isError": false}`.
+- **D)** Return `{"content":[{"type":"text","text":"null"}], "isError": true}`.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** Anthropic's hallucination-reduction guidance recommends explicit descriptive messages for empty results rather than silent empty content. An empty `content` array leaves the model ungrounded and prone to invention; an explicit "no match" message with the queried parameters grounds the model and distinguishes "legitimately empty" from "error."
+
+**Why A is Wrong:** Empty content arrays are a known trigger for hallucination because the model has no textual grounding and may confabulate results to fill the gap.
+**Why B is Wrong:** "No results" is not a protocol error — it's a valid tool outcome; using JSON-RPC errors here loses the distinction between "tool could not run" and "tool ran and found nothing."
+**Why D is Wrong:** Setting `isError: true` for a legitimate empty result miscategorizes the response and may trigger unwanted retry/self-correction behavior.
+
+**Pattern/Trap:** P14 Nullable Field Prevention (empty-result variant)
+
+</details>
+
+---
+
+**Q130.** A developer adds three new MCP servers via `claude mcp add --scope user ...`. A teammate clones the same repo but cannot see the servers. Why?
+
+- **A)** MCP servers added with `--scope user` live in `~/.claude.json` and are private to the user's machine — not shared via git.
+- **B)** The `.mcp.json` file is in `.gitignore` by default.
+- **C)** `--scope user` encrypts server definitions to the user's local keychain.
+- **D)** The teammate must run `claude mcp sync` to pull user-scope servers from the Anthropic cloud.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** Claude Code has three MCP scopes: local (default, private), project (shared via `.mcp.json` in repo), and user (cross-project but per-user, stored in `~/.claude.json`). Only project scope is designed for team sharing; user scope is intentionally machine-local and not committed.
+
+**Why B is Wrong:** `.mcp.json` is expected to be committed to the repo; it is not gitignored by default.
+**Why C is Wrong:** There is no keychain encryption; `~/.claude.json` is a plain JSON file.
+**Why D is Wrong:** There is no `claude mcp sync` command and Anthropic does not host user MCP configs in a cloud registry.
+
+**Pattern/Trap:** P15 Configuration Hierarchy
+
+</details>
+
+---
+
+**Q131.** The document_analysis subagent must summarize 12 PDFs but should not modify any files or run commands. Which tool configuration follows least-privilege?
+
+- **A)** `tools: Read, Grep, Glob` — omit Write, Edit, Bash entirely.
+- **B)** Include all tools but set `permissionMode: "acceptEdits"` to confirm each write.
+- **C)** Include all tools and rely on a system-prompt instruction to "only read files."
+- **D)** Include `Bash` so the subagent can run `cat` on PDFs for faster throughput.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** Anthropic's subagent examples for read-only reviewers/explorers specify exactly `tools: Read, Grep, Glob`. Omitting Write, Edit, and Bash makes unauthorized mutation impossible at the permission layer — no prompt can cause what the tool surface does not expose.
+
+**Why B is Wrong:** `acceptEdits` auto-approves file edits and some Bash — it is broader than needed and does not constrain the tool surface; also, it does not auto-approve MCP tools anyway.
+**Why C is Wrong:** System-prompt constraints are probabilistic; the tool surface itself is the hard boundary.
+**Why D is Wrong:** `Bash` is the broadest privilege in Claude Code and grants arbitrary execution; also, `Read` natively handles PDFs with page selection, making Bash+cat both unsafe and unnecessary.
+
+**Pattern/Trap:** P11 Scoped Access / Least Privilege
+
+</details>
+
+---
+
+**Q132.** Two tools exist: `lookup_customer_by_email(email)` and `lookup_customer_by_phone(phone)`. Usage analysis shows 84% of queries arrive with either an email or a phone, and Claude occasionally picks the wrong tool when both keywords appear in the message. An architect proposes merging them into `lookup_customer(identifier, identifier_type)`. Is this the right move?
+
+- **A)** Yes — fewer tools always reduces selection errors.
+- **B)** No — instead use `tool_choice: {"type":"any"}` and let Claude try both tools until one succeeds.
+- **C)** Yes, and add a third `lookup_customer_by_name` tool so all access patterns are covered.
+- **D)** No — keep them separate and instead tighten each description to state exactly which input type each accepts and which it rejects.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Two narrow, well-scoped tools with distinct, keyword-rich descriptions are generally easier to select between than one overloaded tool with a branching `identifier_type` parameter — the selection problem just moves to the parameter and the description still has to disambiguate. The cheaper fix is clearer descriptions that explicitly name the accepted input type and reject mismatches.
+
+**Why A is Wrong:** "Fewer tools is always better" is a fallacy — excessive consolidation creates parameter-branching and description ambiguity that hurt reliability.
+**Why B is Wrong:** `any` forces a tool call but does not let the model try multiple tools sequentially in a single turn; it also burns latency and cost on guesswork.
+**Why C is Wrong:** Adding a third tool without first fixing descriptions multiplies the selection surface and does not address the current ambiguity.
+
+**Pattern/Trap:** P5 Tool Description Primacy + P3 Over-Engineering (consolidation variant)
+
+</details>
+
+---
+
+**Q133.** A CI job uses Claude Code's headless mode to triage incoming issues. Security requires that only the `mcp__github__*` tools and the `Read`, `Grep`, `Glob` built-ins are available — no Bash, no Write, no Edit. What is the correct invocation?
+
+- **A)** `claude -p "triage" --permission-mode bypassPermissions`
+- **B)** `claude -p "triage" --disallowedTools "Bash"`
+- **C)** `claude -p "triage" --allowedTools "mcp__github__* Read Grep Glob"`
+- **D)** `claude -p "triage"` and rely on the `.claude/settings.json` `permissions.deny` list.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** In headless mode, `--allowedTools` defines an explicit allowlist; wildcard `mcp__github__*` is supported for MCP tool namespaces, and built-ins are listed by canonical name. This is also the Anthropic-recommended pattern over `permissionMode` for MCP access because `permissionMode: acceptEdits` does not auto-approve MCP tools and `bypassPermissions` is far too broad.
+
+**Why A is Wrong:** `bypassPermissions` auto-approves everything including Bash and file edits — the opposite of the security requirement.
+**Why B is Wrong:** Denying only Bash still leaves Write, Edit, and every other tool enabled by default; an allowlist is required, not a partial denylist.
+**Why D is Wrong:** Relying on settings-file denials without an explicit allowlist leaves the surface implicit and fragile; settings can be overridden and the enumerated deny list is easy to under-specify.
+
+**Pattern/Trap:** P11 Scoped Access / Least Privilege
+
+</details>
+
+---
+
+**Q134.** The coordinator must expose a library of 600 reference papers as browsable content to subagents but does not want them consumed as tool calls. Which MCP primitive is correct?
+
+- **A)** Tools — define 600 `read_paper_X` tools, one per paper.
+- **B)** Resources — expose each paper under a URI (e.g., `paper://arxiv/2401.12345`) so hosts can attach them as context.
+- **C)** Prompts — register each paper as a user-invokable slash command.
+- **D)** Sampling — ask the host LLM to summarize each paper on demand.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+**Why Correct:** MCP defines three primitives by control model: Tools are model-controlled executable actions; Resources are application-driven, read-only data exposed by URI for context inclusion; Prompts are user-controlled templates. A content catalog of papers is the textbook use case for Resources, and URI templates (RFC 6570) handle the scale.
+
+**Why A is Wrong:** Creating 600 tools would catastrophically degrade selection and is semantically wrong — reading a paper is not an action with side effects.
+**Why C is Wrong:** Prompts are pre-defined templates for user invocation, not a content catalog.
+**Why D is Wrong:** Sampling is a server-to-client capability to request LLM generation from the host; it is not a storage/retrieval primitive.
+
+**Pattern/Trap:** P5/P3 Primitive Selection (Resources vs Tools)
+
+</details>
+
+---
+
+**Q135.** A developer's `.mcp.json` defines a `github` server, and their `~/.claude.json` also defines a server named `github`. When Claude Code starts in the project, which `github` server does it use?
+
+- **A)** Both are merged; tools from each appear prefixed.
+- **B)** Project scope takes precedence over user scope when the server names match, so the `.mcp.json` definition is used.
+- **C)** User scope always wins because it reflects personal configuration.
+- **D)** Claude Code refuses to start and prints a name-collision error.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+**Why Correct:** Claude Code's MCP scope precedence (highest to lowest) is local → project → user → plugin → claude.ai connectors, with same-name collisions resolved by picking the highest-precedence source only (no merging). A project-scope `.mcp.json` entry therefore wins over a user-scope entry of the same name.
+
+**Why A is Wrong:** The scopes do not merge on name collision — only the highest-precedence definition is used.
+**Why C is Wrong:** User scope is lower-precedence than project scope precisely so teams can override personal configs for project work.
+**Why D is Wrong:** Name collisions are resolved silently by precedence; they do not cause startup failures.
+
+**Pattern/Trap:** P15 Configuration Hierarchy
+
+</details>
+
+---
+
+**Q136.** An extractor pipeline uses 23 tools. Ops notices that at temperatures 0 and 0.3, tool-selection accuracy is nearly identical (both poor, ~68%), but the model often picks a tool whose description starts with "Retrieves..." regardless of intent. What is the likely root cause?
+
+- **A)** Model temperature is too low; raise it to 0.7.
+- **B)** The schema version is outdated; migrate to JSON Schema 2020-12.
+- **C)** Descriptions share a common lead verb ("Retrieves..."), reducing keyword differentiation; rewrite to use distinct, intent-specific verbs and front-load the distinguishing information.
+- **D)** The system prompt is too short; add more general instructions at the top.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** Tool selection is highly sensitive to keyword overlap and ordering within descriptions. When many descriptions begin with the same verb, the early-token signal is non-discriminative, and the model gravitates to whichever description best matches later keywords — often the first or most familiar. Rewriting for distinct lead verbs and front-loaded differentiation is the direct fix.
+
+**Why A is Wrong:** Temperature affects sampling variance, not the underlying selection signal — the problem persists at any temperature.
+**Why B is Wrong:** Schema-draft version has no effect on selection quality; it affects validation only.
+**Why D is Wrong:** Anthropic explicitly treats tool descriptions as the primary selection mechanism; system-prompt additions are secondary and do not override keyword-level ambiguity.
+
+**Pattern/Trap:** P5 Tool Description Primacy
+
+</details>
+
+---
+
+**Q137.** The `escalate_to_human` tool succeeds but the ticketing backend occasionally times out at the network layer, returning no response for ~45 seconds. Which behavior should the MCP server exhibit?
+
+- **A)** Return `isError: false` with empty content so Claude moves on.
+- **B)** Return a JSON-RPC `-32000` error so Claude stops the conversation.
+- **C)** Crash the MCP server process to trigger Claude Code to reconnect.
+- **D)** Return `isError: true` with text like "Escalation queue unreachable (timeout after 45s). Safe to retry after a short delay." — so the model can self-correct.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Transient tool failures are exactly what `isError: true` with descriptive text is for — the spec says this channel is meant to give the model "actionable feedback that language models can use to self-correct and retry with adjusted parameters." Explicit timeout text signals both the category and the correct recovery.
+
+**Why A is Wrong:** Reporting failure as success causes silent loss of the escalation and misleads the model into thinking the human was notified.
+**Why B is Wrong:** JSON-RPC protocol errors signal structural problems the model cannot fix; using them for a transient network timeout misuses the channel and loses the self-correction opportunity.
+**Why C is Wrong:** Crashing the server is a reliability anti-pattern; stdio servers are not auto-reconnected, and HTTP reconnect has limited retry semantics.
+
+**Pattern/Trap:** Structured Error Signaling (isError contract)
+
+</details>
+
+---
+
+**Q138.** In an interactive Claude Code session, a developer sees tool-call results referencing outdated file contents. Investigation shows the session has been running for 8 hours across three distinct tasks and the model is recalling stale file state from earlier. What is the most appropriate remediation?
+
+- **A)** Continue the session and rely on Read to refresh state when needed.
+- **B)** Increase `MAX_MCP_OUTPUT_TOKENS` so more context fits.
+- **C)** Start a fresh session; resume only when the prior context is still directly relevant.
+- **D)** Fork the subagent so both conversations share the cache.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** Long, multi-task sessions accumulate stale context that competes with fresh tool results for model attention. Anthropic's guidance favors fresh sessions when context is stale and resuming only when the prior conversation is still valid. A fresh session restores selection quality and eliminates misleading recall.
+
+**Why A is Wrong:** Read can refresh file state, but the stale prior turns remain in context and continue to bias the model's reasoning.
+**Why B is Wrong:** `MAX_MCP_OUTPUT_TOKENS` caps per-call output size; it does not address stale conversation history or attention degradation.
+**Why D is Wrong:** Fork mode inherits the entire stale history byte-for-byte — the opposite of the fix needed.
+
+**Pattern/Trap:** P18 Fresh Session vs Resume
+
+</details>
+
+---
+
+**Q139.** The synthesis subagent receives inputs from three earlier subagents and is expected to preserve exact numeric figures. On spot-check, about 6% of numbers drift (e.g., $1.24B becomes $1.2B) after a second synthesis pass. What is the correct mitigation?
+
+- **A)** Add a fourth pass to "review and correct" the summary.
+- **B)** Increase the context window of the synthesis subagent.
+- **C)** Lower the temperature of the synthesis subagent to 0.
+- **D)** Have the coordinator pass raw numeric findings directly to the final report stage rather than summarizing them through multiple intermediate agents.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Repeated summarization loses precision on numbers and dates — each pass is a lossy compression. The architectural fix is to preserve raw numeric facts through the pipeline (pass them verbatim into the final stage) rather than laundering them through additional summarizations. This is a root-cause fix at the decomposition boundary.
+
+**Why A is Wrong:** A self-review pass by the same model class tends to confirm the already-drifted numbers; self-review has limited ability to catch its own upstream distortions.
+**Why C is Wrong:** Temperature 0 makes drift deterministic but does not prevent it — the drift is an artifact of summarization, not sampling.
+**Why B is Wrong:** The inputs are not too large; the problem is that they are being re-summarized, not that they were truncated.
+
+**Pattern/Trap:** P16 Progressive Summarization Risk + P10 Root Cause vs Symptom
+
+</details>
+
+---
+
+**Q140.** A team wants to use a popular community MCP server that fetches web content to enrich PR reviews. The repo is on a private codebase. Which design consideration is most important?
+
+- **A)** Community MCP servers are tested by Anthropic before listing, so trust is fine.
+- **B)** Setting `permissionMode: "bypassPermissions"` is safe as long as the server is popular.
+- **C)** The server should run in the Claude Code main process to reduce latency.
+- **D)** Any server that fetches untrusted external content creates prompt-injection risk in the Claude Code session; sandbox the server, restrict its tool permissions via `allowedTools`, and treat its output as untrusted.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: D**
+
+**Why Correct:** Anthropic's MCP docs explicitly warn: "Anthropic has not verified the correctness or security of all these servers... Be especially careful when using MCP servers that could fetch untrusted content, as these can expose you to prompt injection risk." Defensive design — sandboxing, scoped `allowedTools`, treating fetched content as untrusted — is mandatory.
+
+**Why A is Wrong:** Anthropic does not verify community MCP servers; the directory is community-curated.
+**Why B is Wrong:** `bypassPermissions` disables safety prompts globally and is explicitly over-broad; "popular" is not a trust signal.
+**Why C is Wrong:** MCP servers run as separate processes (stdio) or remote endpoints (HTTP); there is no "main process" execution mode, and co-locating would worsen the blast radius if anything.
+
+**Pattern/Trap:** P11 Scoped Access + prompt-injection risk
+
+</details>
+
+---
+
+**Q141.** A developer runs `claude mcp add --transport stdio --env API_KEY=sk-test-1234 mytool -- node server.js` and wonders why their teammate sees the server but fails to connect after cloning the repo. What happened?
+
+- **A)** `--env` only sets the value at invocation time on the local machine; the secret is stored in the user's local config and not replicated to others. The correct pattern is `${API_KEY}` in `.mcp.json` and each developer sets the env var locally.
+- **B)** The teammate needs to run `claude mcp sync` to pull the env var.
+- **C)** The server name `mytool` conflicts with a reserved name.
+- **D)** Stdio MCP servers cannot use environment variables.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** The `--env` flag stores a plain value in the user's local MCP config on that machine. The `.mcp.json` committed to the repo may reference `${API_KEY}`, but the actual secret value lives in the per-user config (or must be exported in each developer's shell). Secrets should never be committed.
+
+**Why B is Wrong:** There is no `claude mcp sync` command.
+**Why C is Wrong:** `mytool` is not a reserved name; MCP does not enforce any such reservation.
+**Why D is Wrong:** Stdio servers fully support environment variables via the `env` object and `${VAR}` expansion.
+
+**Pattern/Trap:** P15 Configuration Hierarchy (secrets handling)
+
+</details>
+
+---
+
+**Q142.** A team has built a single `universal_data_tool(action, resource, params)` that does CRUD across five backend systems. Tool-selection accuracy looks fine (~96%), but parameter errors (wrong `action`/`resource` combos) now account for 22% of failures. What is the right redesign?
+
+- **A)** Split the universal tool into purpose-specific tools with explicit names (e.g., `create_customer`, `update_order`, `delete_invoice`) and concrete parameter schemas.
+- **B)** Keep the universal tool and add a long natural-language description of which combos are valid.
+- **C)** Raise model temperature so it explores more parameter combinations.
+- **D)** Add `"strict": true` and hope validation surfaces the bad combos.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: A**
+
+**Why Correct:** Overloaded "universal" tools move the selection problem from tool-level to parameter-level, and the model lacks the compositional discipline to always pair `action` and `resource` correctly. Splitting into concrete, well-named tools with tight schemas makes each call's intent unambiguous and shrinks the invalid-input space to zero by construction.
+
+**Why B is Wrong:** A long description is exactly the kind of probabilistic control that a deterministic schema would replace; 22% parameter errors indicate the model cannot reliably follow such prose.
+**Why C is Wrong:** Higher temperature increases parameter error rates, not decreases them.
+**Why D is Wrong:** `strict: true` rejects invalid inputs but does not help the model choose valid ones; the failures simply shift from silent to loud without fixing the root cause.
+
+**Pattern/Trap:** P5/P10 Splitting vs Consolidating (root cause)
+
+</details>
+
+---
+
+**Q143.** A developer needs to find every file importing a deprecated module across 15,000 files and list just the file paths. Which tool invocation is most efficient?
+
+- **A)** `Bash("find . -name '*.ts' -exec grep -l 'deprecatedModule' {} \\;")`
+- **B)** `Glob("**/*.ts")` then `Read` each file.
+- **C)** `Grep(pattern="from ['\"]deprecatedModule['\"]", type="ts", output_mode="files_with_matches")`.
+- **D)** `Agent(general-purpose)` with instructions to "find the files."
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: C**
+
+**Why Correct:** `Grep` is ripgrep-backed, accepts a `type` filter for TypeScript, and supports `output_mode="files_with_matches"` — returning only the paths without file bodies. This is the minimum-tokens, fastest, Anthropic-recommended approach. Anthropic explicitly instructs Claude Code to use `Grep` rather than Bash-grep.
+
+**Why A is Wrong:** Anthropic's system prompt tells Claude to avoid `find` and `grep` via Bash; also, shelling out bypasses the permission cache and is materially slower than ripgrep.
+**Why B is Wrong:** Reading every file is wildly wasteful and will blow out context on 15,000 files — Grep returns paths without reading content bodies.
+**Why D is Wrong:** Delegating to a general-purpose subagent introduces coordination overhead for what is a single direct tool call.
+
+**Pattern/Trap:** P2 First Step Proportionality + built-in tool selection
+
+</details>
+
+---
+
+**Q144.** The support agent handles refunds, returns, and billing disputes. Product wants a single flow where, during a refund conversation, the agent can also verify identity and check loyalty-tier discounts — without adding every tool to every other flow. What is the best tool-distribution design?
+
+- **A)** Give every agent every tool so any flow can do anything at runtime.
+- **B)** Create narrow, read-only cross-role tools (e.g., `verify_identity`, `get_loyalty_tier`) and include them in the refund agent's scoped allowlist alongside refund-specific tools.
+- **C)** Build one mega-tool `handle_customer_interaction(intent, params)` with a large `intent` enum.
+- **D)** Use `tool_choice: {"type":"any"}` so Claude is forced to find something workable.
+
+<details>
+<summary><b>Show answer &amp; explanation</b></summary>
+
+**Correct Answer: B**
+
+**Why Correct:** Scoped access is not "only tools owned by this domain" — it's "exactly the tools this role needs." Narrow, read-only helpers for common cross-role needs (identity, loyalty) can be safely exposed to multiple agents without violating least privilege. This keeps each agent's tool count low while enabling realistic multi-step flows.
+
+**Why A is Wrong:** Giving every agent every tool produces selection degradation (the exact problem scoped access solves) and violates least privilege.
+**Why C is Wrong:** A mega-tool with a big `intent` enum moves selection to parameter-level and suffers the same failure modes as any other universal tool.
+**Why D is Wrong:** `any` forces a tool call but does nothing about which tools are available; it is irrelevant to the distribution question.
+
+**Pattern/Trap:** P11 Scoped Access (cross-role helpers)
+
+</details>
+
+---
