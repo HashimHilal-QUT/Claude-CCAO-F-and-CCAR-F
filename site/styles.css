@@ -18,6 +18,7 @@
 @media(max-width:600px){.timer-panel{align-items:flex-start;flex-direction:column;padding:16px}.timer-panel .button{width:100%}.quiz-shell{padding:18px 15px}.quiz-options{grid-template-columns:1fr}}
 .menu-toggle{display:none;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--ink);padding:8px 11px;font-size:12px}
 @media(max-width:720px){.menu-toggle{display:block}.site-header nav#site-nav,.intensive-theme .site-header nav#site-nav{display:none;position:absolute;top:100%;left:0;right:0;padding:10px 16px;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:0 6px 15px #174b3a12}.intensive-theme .site-header nav#site-nav{background:#090909;border-color:#403a32}.site-header nav#site-nav.open,.intensive-theme .site-header nav#site-nav.open{display:grid;gap:0}.site-header nav#site-nav a{padding:10px 4px}.intensive-theme .menu-toggle{border-color:#403a32;color:#f7f1e8}}
+.intensive-theme .timer-panel{background:#151515;border-color:#403a32;border-left-color:#f47b20}.intensive-theme .timer-panel strong{color:#f47b20}.intensive-theme .timer-panel span{color:#d8d0c4}.intensive-theme .button-secondary{border-color:#403a32;color:#f7f1e8}
 
 /* SiteTheme adaptation: warm editorial canvas, serif reading type, and terracotta actions. */
 :root{--ink:#191918;--muted:#5a5a52;--paper:#f5f3ea;--white:#fff;--line:#d9d5ca;--green:#2d7a5f;--green-dark:#1a4d3a;--coral:#d97757;--accent:#c4522c;--mint:#e7f0e9}

@@ -60,6 +60,8 @@ async function init() {
   if ($("#quiz-mode")) $("#quiz-mode").addEventListener("click", () => setMode("quiz"));
   if ($("#timer-start-stop")) $("#timer-start-stop").addEventListener("click", toggleIndependentTimer);
   if ($("#timer-reset")) $("#timer-reset").addEventListener("click", resetIndependentTimer);
+  if ($("#training-timer-start-stop")) $("#training-timer-start-stop").addEventListener("click", toggleTrainingTimer);
+  if ($("#training-timer-reset")) $("#training-timer-reset").addEventListener("click", resetTrainingTimer);
   if ($("#hero-quiz")) $("#hero-quiz").addEventListener("click", () => { document.querySelector("#study").scrollIntoView(); startQuiz(); });
   if ($("#nav-quiz")) $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
 
@@ -159,6 +161,39 @@ function resetIndependentTimer() {
   if (state.timer.interval) clearInterval(state.timer.interval);
   state.timer = { secondsLeft: 0, running: false, interval: null };
   renderTimerPanel();
+}
+function renderTrainingTimer() {
+  const timer = state.timer;
+  $("#training-timer-time").textContent = timer.secondsLeft ? formatTime(timer.secondsLeft) : "Not started";
+  $("#training-timer-note").textContent = timer.running ? "Timer running independently of quiz answers." : (timer.secondsLeft ? "Timer stopped. Resume when ready." : "Optional pacing timer for 120 questions.");
+  $("#training-timer-start-stop").textContent = timer.running ? "Stop timer" : "Start timer";
+}
+function toggleTrainingTimer() {
+  const timer = state.timer;
+  if (timer.running) {
+    clearInterval(timer.interval);
+    timer.interval = null;
+    timer.running = false;
+  } else {
+    if (!timer.secondsLeft) timer.secondsLeft = 240 * 60;
+    timer.running = true;
+    timer.interval = setInterval(() => {
+      timer.secondsLeft--;
+      if (timer.secondsLeft <= 0) {
+        timer.secondsLeft = 0;
+        clearInterval(timer.interval);
+        timer.interval = null;
+        timer.running = false;
+      }
+      renderTrainingTimer();
+    }, 1000);
+  }
+  renderTrainingTimer();
+}
+function resetTrainingTimer() {
+  if (state.timer.interval) clearInterval(state.timer.interval);
+  state.timer = { secondsLeft: 0, running: false, interval: null };
+  renderTrainingTimer();
 }
 function updateScoreCard() {
   if (!state.quiz || !$("#score-value")) return;
