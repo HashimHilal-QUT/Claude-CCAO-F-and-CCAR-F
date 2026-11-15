@@ -57,19 +57,21 @@ def render_markdown(source: str, title: str) -> str:
         body.append(f"<p>{' '.join(paragraph)}</p>")
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{escape(title)} | Claude Foundations</title><style>
-:root{{--ink:#17201f;--muted:#66716f;--paper:#f6f7f3;--green:#1d6b58;--mint:#dcefe5;--line:#dfe4df}}
-*{{box-sizing:border-box}}body{{margin:0;background:linear-gradient(135deg,#f6f7f3,#e8f1eb);color:var(--ink);font:17px/1.8 "Georgia",serif}}
-.shell{{max-width:820px;margin:auto;padding:50px 28px 90px}}header{{padding:22px 0 42px;border-bottom:1px solid var(--line);margin-bottom:38px}}
-.back{{font:11px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--green);text-decoration:none}}
-.eyebrow{{font:11px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.15em;color:var(--green);margin:38px 0 12px}}
-h1{{font:600 clamp(38px,6vw,64px)/1.08 Georgia,serif;letter-spacing:-.04em;margin:0;max-width:720px}}
-h2{{font:600 27px/1.2 Georgia,serif;letter-spacing:-.025em;margin:48px 0 14px;color:var(--green-dark,#134b3f)}}
-p{{max-width:70ch;margin:0 0 20px}}code{{background:var(--mint);border-radius:4px;padding:2px 5px;font:14px ui-monospace,monospace}}
-.beat{{display:flex;gap:6px;margin:27px 0;align-items:center}}.beat span{{display:block;width:5px;height:5px;border-radius:50%;background:#a6bcb0}}
+<title>{escape(title)} | CCAR-F Intensive Training</title><style>
+:root{{--ink:#f7f1e8;--muted:#d8d0c4;--paper:#090909;--orange:#f47b20;--surface:#151515;--line:#403a32;--mint:#163b2b}}
+*{{box-sizing:border-box}}body{{margin:0;background:var(--paper);color:var(--ink);font:17px/1.8 "Georgia",serif}}
+.shell{{max-width:900px;margin:auto;padding:30px 28px 90px}}.topbar{{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:10px 0 24px;border-bottom:1px solid var(--line);font-family:-apple-system,system-ui,sans-serif}}
+.brand{{color:var(--ink);font-weight:700;text-decoration:none}}.brand b{{color:var(--orange)}}.nav{{display:flex;gap:16px;font-size:12px}}.nav a,.back{{color:var(--orange);text-decoration:none}}.nav a:hover,.back:hover{{color:#ffb36b}}
+header{{padding:42px 0 42px;border-bottom:1px solid var(--line);margin-bottom:38px}}
+.back{{font:11px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.1em}}
+.eyebrow{{font:11px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.15em;color:var(--orange);margin:38px 0 12px}}
+h1{{font:600 clamp(38px,6vw,64px)/1.08 Georgia,serif;letter-spacing:-.04em;margin:0;max-width:780px;color:#fff}}
+h2{{font:600 27px/1.2 Georgia,serif;letter-spacing:-.025em;margin:48px 0 14px;color:var(--orange)}}
+p{{max-width:72ch;margin:0 0 20px;color:var(--muted)}}code{{background:var(--mint);color:#fff;border-radius:4px;padding:2px 5px;font:14px ui-monospace,monospace}}
+.beat{{display:flex;gap:6px;margin:27px 0;align-items:center}}.beat span{{display:block;width:5px;height:5px;border-radius:50%;background:var(--orange)}}
 footer{{border-top:1px solid var(--line);margin-top:60px;padding-top:20px;color:var(--muted);font:11px ui-monospace,monospace}}
-@media(max-width:600px){{.shell{{padding:25px 20px 60px}}body{{font-size:16px}}h2{{font-size:24px}}}}
-</style></head><body><main class="shell"><header><a class="back" href="../../../#training">← Back to training hub</a>
+@media(max-width:600px){{.shell{{padding:20px 18px 60px}}body{{font-size:16px}}h2{{font-size:24px}}.topbar{{align-items:flex-start;flex-direction:column;gap:10px}}.nav{{gap:10px;flex-wrap:wrap}}}}
+</style></head><body><main class="shell"><div class="topbar"><a class="brand" href="../../training.html"><b>CCAR-F</b> Intensive Training</a><nav class="nav"><a href="../../training-podcast.html">Podcast</a><a href="../../training-notes.html">Domain Notes</a><a href="../../training-quiz.html">120 Question Quiz</a></nav></div><header><a class="back" href="../../training-notes.html">← Back to Domain Notes</a>
 <p class="eyebrow">CCAR-F chapter guide</p><h1>{escape(title)}</h1></header>{''.join(body)}
 <footer>Claude Foundations · Exam preparation companion material</footer></main></body></html>"""
 
