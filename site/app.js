@@ -7,10 +7,11 @@ async function init() {
   if (!response.ok) throw new Error(`Could not load question bank (${response.status})`);
   ({ banks: state.banks } = await response.json());
   const trainingResponse = await fetch("training.json");
-  if (trainingResponse.ok) {
+  if (trainingResponse.ok && $("#training-chapters")) {
     state.training = await trainingResponse.json();
     renderTraining();
   }
+  if (!$("#study-view")) return;
   updateSummary();
   renderDomainFilter();
   render();
@@ -24,15 +25,15 @@ async function init() {
   $("#study-mode").addEventListener("click", () => setMode("study"));
   $("#quiz-mode").addEventListener("click", () => setMode("quiz"));
   $("#random-quiz").addEventListener("click", () => startQuiz(true));
-  $("#hero-quiz").addEventListener("click", () => { document.querySelector("#study").scrollIntoView(); startQuiz(); });
-  $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
+  if ($("#hero-quiz")) $("#hero-quiz").addEventListener("click", () => { document.querySelector("#study").scrollIntoView(); startQuiz(); });
+  if ($("#nav-quiz")) $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
 }
 
 function currentBank() { return state.banks.find((bank) => bank.id === state.bank); }
 function updateSummary() {
   const total = state.banks.reduce((sum, bank) => sum + bank.questions.length, 0);
-  $("#total-count").textContent = total;
-  state.banks.forEach((bank) => { $(`#${bank.id}-count`).textContent = bank.questions.length; });
+  if ($("#total-count")) $("#total-count").textContent = total;
+  state.banks.forEach((bank) => { if ($(`#${bank.id}-count`)) $(`#${bank.id}-count`).textContent = bank.questions.length; });
 }
 function renderDomainFilter() {
   $("#domain-filter").innerHTML = `<option value="all">All domains</option>` +
@@ -123,17 +124,17 @@ init().catch((error) => { $("#study-view").innerHTML = `<div class="empty-state"
 function renderTraining() {
   const training = state.training;
   const audioCount = training.chapters.reduce((sum, chapter) => sum + chapter.audio.length, 0);
-  $("#training-count").textContent = `${training.chapters.length} chapters · ${audioCount} podcast episodes · ${training.quiz.length} quiz questions`;
-  $("#training-chapters").innerHTML = training.chapters.map((chapter) => `
+  if ($("#training-count")) $("#training-count").textContent = `${training.chapters.length} chapters · ${audioCount} podcast episodes · ${training.quiz.length} quiz questions`;
+  if ($("#training-chapters")) $("#training-chapters").innerHTML = training.chapters.map((chapter) => `
     <article class="chapter-card">
       <div class="chapter-number">0${chapter.number}</div>
       <div class="chapter-body"><p class="chapter-label">Chapter ${chapter.number}</p><h3>${escapeHtml(chapter.title)}</h3>
       <details><summary>Listen to chapter podcast <span>(${chapter.audio.length} episodes)</span></summary>
       <div class="audio-list">${chapter.audio.map((episode) => `<div class="audio-row"><span>${escapeHtml(episode.title)}</span><audio controls preload="none" src="${encodeURI(episode.file)}"></audio></div>`).join("")}</div></details></div>
     </article>`).join("");
-  $("#material-links").innerHTML = training.chapters.map((chapter) => `<a href="${encodeURI(chapter.material)}" target="_blank" rel="noopener"><span>Chapter ${chapter.number}</span>${escapeHtml(chapter.title)} <b>↗</b></a>`).join("");
-  $("#training-quiz-intro").textContent = `Practice with ${training.quiz.length} scenario-based questions from the five training domains.`;
-  $("#training-quiz-start").addEventListener("click", startTrainingQuiz);
+  if ($("#material-links")) $("#material-links").innerHTML = training.chapters.map((chapter) => `<a href="${encodeURI(chapter.material)}" target="_blank" rel="noopener"><span>Chapter ${chapter.number}</span>${escapeHtml(chapter.title)} <b>↗</b></a>`).join("");
+  if ($("#training-quiz-intro")) $("#training-quiz-intro").textContent = `Practice with all ${training.quiz.length} scenario-based questions from the five training domains.`;
+  if ($("#training-quiz-start")) $("#training-quiz-start").addEventListener("click", startTrainingQuiz);
 }
 function startTrainingQuiz() {
   state.trainingQuiz = { questions: [...state.training.quiz].sort(() => Math.random() - 0.5), index: 0, score: 0, answered: false };
