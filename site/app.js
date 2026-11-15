@@ -6,6 +6,14 @@ async function init() {
   const response = await fetch("questions.json");
   if (!response.ok) throw new Error(`Could not load question bank (${response.status})`);
   ({ banks: state.banks } = await response.json());
+
+  // FIX: attach the quiz-view delegated click listener BEFORE any early return,
+  // so answers are always clickable on the quiz page regardless of DOM ordering.
+  if ($("#quiz-view")) $("#quiz-view").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-choice]");
+    if (button && !button.disabled) answerQuiz(button.dataset.choice);
+  });
+
   const trainingResponse = await fetch("training.json");
   if (trainingResponse.ok && $("#training-chapters")) {
     state.training = await trainingResponse.json();
@@ -26,13 +34,13 @@ async function init() {
   if ($("#quiz-mode")) $("#quiz-mode").addEventListener("click", () => setMode("quiz"));
   if ($("#timer-start-stop")) $("#timer-start-stop").addEventListener("click", toggleIndependentTimer);
   if ($("#timer-reset")) $("#timer-reset").addEventListener("click", resetIndependentTimer);
-  if ($("#quiz-view")) $("#quiz-view").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-choice]");
-    if (button && !button.disabled) answerQuiz(button.dataset.choice);
-  });
   if ($("#hero-quiz")) $("#hero-quiz").addEventListener("click", () => { document.querySelector("#study").scrollIntoView(); startQuiz(); });
   if ($("#nav-quiz")) $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
-  if (document.body.dataset.page === "quiz") startQuiz();
+
+  // FIX: data-page is declared on <html>, not <body>.
+  // Original code used document.body.dataset.page, which is always undefined,
+  // so startQuiz() never ran on quiz.html and the answer buttons were never rendered.
+  if (document.documentElement.dataset.page === "quiz") startQuiz();
 }
 
 function currentBank() { return state.banks.find((bank) => bank.id === state.bank); }
@@ -131,7 +139,7 @@ function updateScoreCard() {
   $("#score-percent").textContent = total ? `${percent}% correct so far` : "No answers yet";
 }
 function answerQuiz(choice) {
-  const quiz = state.quiz; if (quiz.answered) return; quiz.answered = true;
+  const quiz = state.quiz; if (!quiz || quiz.answered) return; quiz.answered = true;
   const question = quiz.questions[quiz.index]; if (choice === question.correct_answer) quiz.score++;
   updateScoreCard();
   document.querySelectorAll("[data-choice]").forEach((button) => { button.disabled = true; if (button.dataset.choice === question.correct_answer) button.classList.add("correct"); else if (button.dataset.choice === choice) button.classList.add("incorrect"); });
