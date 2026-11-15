@@ -20,13 +20,14 @@ async function init() {
     document.querySelectorAll("[data-bank]").forEach((item) => item.classList.toggle("active", item === button));
     setModeButtons(); renderDomainFilter(); render();
   }));
-  $("#search").addEventListener("input", (event) => { state.search = event.target.value.trim().toLowerCase(); render(); });
-  $("#domain-filter").addEventListener("change", (event) => { state.domain = event.target.value; render(); });
-  $("#study-mode").addEventListener("click", () => setMode("study"));
-  $("#quiz-mode").addEventListener("click", () => setMode("quiz"));
-  $("#random-quiz").addEventListener("click", () => startQuiz(true));
+  if ($("#search")) $("#search").addEventListener("input", (event) => { state.search = event.target.value.trim().toLowerCase(); render(); });
+  if ($("#domain-filter")) $("#domain-filter").addEventListener("change", (event) => { state.domain = event.target.value; render(); });
+  if ($("#study-mode")) $("#study-mode").addEventListener("click", () => setMode("study"));
+  if ($("#quiz-mode")) $("#quiz-mode").addEventListener("click", () => setMode("quiz"));
+  if ($("#random-quiz")) $("#random-quiz").addEventListener("click", () => startQuiz(true));
   if ($("#hero-quiz")) $("#hero-quiz").addEventListener("click", () => { document.querySelector("#study").scrollIntoView(); startQuiz(); });
   if ($("#nav-quiz")) $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
+  if ($("#quiz-mode")?.classList.contains("active")) startQuiz();
 }
 
 function currentBank() { return state.banks.find((bank) => bank.id === state.bank); }
@@ -73,8 +74,8 @@ function setMode(mode) {
   if (mode === "quiz") startQuiz(); else render();
 }
 function setModeButtons() {
-  $("#study-mode").classList.toggle("active", state.mode === "study");
-  $("#quiz-mode").classList.toggle("active", state.mode === "quiz");
+  if ($("#study-mode")) $("#study-mode").classList.toggle("active", state.mode === "study");
+  if ($("#quiz-mode")) $("#quiz-mode").classList.toggle("active", state.mode === "quiz");
 }
 function startQuiz(timed = false) {
   const pool = [...filteredQuestions()].sort(() => Math.random() - 0.5);
