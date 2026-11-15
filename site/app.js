@@ -136,7 +136,7 @@ function renderTraining() {
   $("#training-quiz-start").addEventListener("click", startTrainingQuiz);
 }
 function startTrainingQuiz() {
-  state.trainingQuiz = { questions: [...state.training.quiz].sort(() => Math.random() - 0.5).slice(0, 5), index: 0, score: 0, answered: false };
+  state.trainingQuiz = { questions: [...state.training.quiz].sort(() => Math.random() - 0.5), index: 0, score: 0, answered: false };
   $("#training-quiz-start").classList.add("hidden");
   renderTrainingQuestion();
 }
