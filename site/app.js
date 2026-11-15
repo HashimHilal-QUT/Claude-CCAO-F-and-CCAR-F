@@ -7,8 +7,7 @@ async function init() {
   if (!response.ok) throw new Error(`Could not load question bank (${response.status})`);
   ({ banks: state.banks } = await response.json());
 
-  // FIX: attach the quiz-view delegated click listener BEFORE any early return,
-  // so answers are always clickable on the quiz page regardless of DOM ordering.
+  // Delegated answer-click listener (attached once, survives #quiz-view re-renders).
   if ($("#quiz-view")) $("#quiz-view").addEventListener("click", (event) => {
     const button = event.target.closest("[data-choice]");
     if (button && !button.disabled) answerQuiz(button.dataset.choice);
@@ -23,13 +22,32 @@ async function init() {
   updateSummary();
   renderDomainFilter();
   render();
+
+  // FIX: bank toggle must not force study mode, must clear stale quiz state,
+  // and must restart the quiz if the user was already in quiz mode.
   document.querySelectorAll("[data-bank]").forEach((button) => button.addEventListener("click", () => {
-    state.bank = button.dataset.bank; state.domain = "all"; state.mode = "study";
+    if (state.bank === button.dataset.bank) return; // no-op if already selected
+    state.bank = button.dataset.bank;
+    state.domain = "all";
+    state.search = "";
     document.querySelectorAll("[data-bank]").forEach((item) => item.classList.toggle("active", item === button));
-    setModeButtons(); renderDomainFilter(); render();
+    // Clear stale quiz + view so no disabled buttons can swallow clicks.
+    state.quiz = null;
+    if ($("#quiz-view")) $("#quiz-view").innerHTML = "";
+    if ($("#score-value")) $("#score-value").textContent = "0 / 0";
+    if ($("#score-percent")) $("#score-percent").textContent = "No answers yet";
+    renderDomainFilter();
+    render();                 // rebuilds study view + timer note for the new bank
+    if (state.mode === "quiz") startQuiz();  // fresh pool for the new bank
+    else renderQuizPlaceholder();            // keep #quiz-view consistent while hidden
   }));
+
   if ($("#search")) $("#search").addEventListener("input", (event) => { state.search = event.target.value.trim().toLowerCase(); render(); });
-  if ($("#domain-filter")) $("#domain-filter").addEventListener("change", (event) => { state.domain = event.target.value; render(); });
+  if ($("#domain-filter")) $("#domain-filter").addEventListener("change", (event) => {
+    state.domain = event.target.value;
+    // Domain change while in quiz mode: restart with the new filtered pool.
+    if (state.mode === "quiz") startQuiz(); else render();
+  });
   if ($("#study-mode")) $("#study-mode").addEventListener("click", () => setMode("study"));
   if ($("#quiz-mode")) $("#quiz-mode").addEventListener("click", () => setMode("quiz"));
   if ($("#timer-start-stop")) $("#timer-start-stop").addEventListener("click", toggleIndependentTimer);
@@ -37,9 +55,7 @@ async function init() {
   if ($("#hero-quiz")) $("#hero-quiz").addEventListener("click", () => { document.querySelector("#study").scrollIntoView(); startQuiz(); });
   if ($("#nav-quiz")) $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
 
-  // FIX: data-page is declared on <html>, not <body>.
-  // Original code used document.body.dataset.page, which is always undefined,
-  // so startQuiz() never ran on quiz.html and the answer buttons were never rendered.
+  // data-page lives on <html>, not <body>.
   if (document.documentElement.dataset.page === "quiz") startQuiz();
 }
 
@@ -94,11 +110,16 @@ function setModeButtons() {
 }
 function startQuiz(timed = false) {
   const pool = [...filteredQuestions()].sort(() => Math.random() - 0.5);
-  if (!pool.length) return;
+  if (!pool.length) { renderQuizPlaceholder(); return; }
   state.mode = "quiz"; state.quiz = { questions: pool, index: 0, score: 0, answered: false };
   setModeButtons(); render(); renderQuiz();
   const quizSection = document.querySelector(".study-section");
   if (quizSection) quizSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function renderQuizPlaceholder() {
+  if ($("#quiz-view")) $("#quiz-view").innerHTML = "";
+  if ($("#score-value")) $("#score-value").textContent = "0 / 0";
+  if ($("#score-percent")) $("#score-percent").textContent = "No answers yet";
 }
 function renderQuiz() {
   const quiz = state.quiz; const question = quiz.questions[quiz.index]; const progress = quiz.index / quiz.questions.length * 100;
@@ -139,12 +160,23 @@ function updateScoreCard() {
   $("#score-percent").textContent = total ? `${percent}% correct so far` : "No answers yet";
 }
 function answerQuiz(choice) {
-  const quiz = state.quiz; if (!quiz || quiz.answered) return; quiz.answered = true;
-  const question = quiz.questions[quiz.index]; if (choice === question.correct_answer) quiz.score++;
+  // FIX: guard against stale state so clicks are never silently swallowed.
+  const quiz = state.quiz;
+  if (!quiz || quiz.answered || !quiz.questions[quiz.index]) return;
+  quiz.answered = true;
+  const question = quiz.questions[quiz.index];
+  if (choice === question.correct_answer) quiz.score++;
   updateScoreCard();
-  document.querySelectorAll("[data-choice]").forEach((button) => { button.disabled = true; if (button.dataset.choice === question.correct_answer) button.classList.add("correct"); else if (button.dataset.choice === choice) button.classList.add("incorrect"); });
+  document.querySelectorAll("[data-choice]").forEach((button) => {
+    button.disabled = true;
+    if (button.dataset.choice === question.correct_answer) button.classList.add("correct");
+    else if (button.dataset.choice === choice) button.classList.add("incorrect");
+  });
   $("#quiz-feedback").innerHTML = `<div class="quiz-feedback"><strong>${choice === question.correct_answer ? "Correct." : `Incorrect — the correct answer is ${question.correct_answer}.`}</strong><br>${escapeHtml(question.explanation)}<br><button class="quiz-next" type="button">${quiz.index + 1 === quiz.questions.length ? "See results" : "Next question →"}</button></div>`;
-  $(".quiz-next").addEventListener("click", () => { if (quiz.index + 1 === quiz.questions.length) showQuizResult(); else { quiz.index++; quiz.answered = false; renderQuiz(); } });
+  $(".quiz-next").addEventListener("click", () => {
+    if (quiz.index + 1 === quiz.questions.length) showQuizResult();
+    else { quiz.index++; quiz.answered = false; renderQuiz(); }
+  });
 }
 function showQuizResult(timeExpired = false) {
   const quiz = state.quiz;
