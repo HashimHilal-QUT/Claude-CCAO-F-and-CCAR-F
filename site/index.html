@@ -17,7 +17,8 @@
       </a>
       <nav aria-label="Primary navigation">
         <a href="#study">Study bank</a>
-        <a href="#quiz">Practice quiz</a>
+        <a href="#training">Training hub</a>
+        <a href="#study">Practice quiz</a>
       </nav>
     </div>
   </header>
@@ -79,6 +80,30 @@
         <div id="quiz-view" class="hidden"></div>
         <div id="empty-state" class="empty-state hidden">
           <span>◌</span><h3>No questions match that search.</h3><p>Try a different concept or clear the filters.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="training" class="training-section">
+      <div class="wrap">
+        <div class="section-heading">
+          <div><p class="eyebrow">CCAR-F training hub</p><h2>Go deeper, your way.</h2></div>
+          <p id="training-count" class="results-count"></p>
+        </div>
+        <p class="training-lede">A companion learning path for the Architect Foundations exam: listen to the chapter podcast, read the study material, then test your understanding.</p>
+        <div id="training-chapters" class="training-chapters"></div>
+        <div class="training-lower">
+          <div class="training-material panel-like">
+            <div class="training-panel-heading"><div><p class="eyebrow">Study material</p><h3>Chapter guides</h3></div><span class="training-icon">↗</span></div>
+            <p>Use the written guides for focused review, examples, and quick refreshers between practice sessions.</p>
+            <div id="material-links" class="material-links"></div>
+          </div>
+          <div class="training-quiz panel-like">
+            <div class="training-panel-heading"><div><p class="eyebrow">Training quiz</p><h3>Check your understanding</h3></div><span class="training-icon">?</span></div>
+            <p id="training-quiz-intro"></p>
+            <button id="training-quiz-start" class="button button-primary" type="button">Start training quiz <span aria-hidden="true">→</span></button>
+            <div id="training-quiz-card" class="hidden"></div>
+          </div>
         </div>
       </div>
     </section>

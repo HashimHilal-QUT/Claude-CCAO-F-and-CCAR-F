@@ -11,6 +11,8 @@ python3 site/build_questions.py
 
 The generated site can be opened locally with any static file server, for example `python3 -m http.server --directory site`.
 
+The **CCAR-F Training Hub** adds five chapter guides, 35 podcast episodes, and a 120-question training quiz. The catalog is generated with `python3 site/build_training.py` when the private `CCAR-F_Training/` source folder is available. The large MP3 and Markdown assets are hosted directly in Azure under the `training/` prefix rather than stored in GitHub.
+
 ### Azure deployment
 
 The GitHub Actions workflow in [`.github/workflows/deploy-site.yml`](.github/workflows/deploy-site.yml) rebuilds the dataset and publishes `site/` to the Azure Blob Storage `$web` container on pushes to `main` or by manual dispatch. Store this one GitHub Actions secret:

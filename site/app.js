@@ -1,4 +1,4 @@
-const state = { banks: [], bank: "ccaf", domain: "all", search: "", mode: "study", questions: [], quiz: null };
+const state = { banks: [], training: null, bank: "ccaf", domain: "all", search: "", mode: "study", questions: [], quiz: null, trainingQuiz: null };
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
 
@@ -6,6 +6,11 @@ async function init() {
   const response = await fetch("questions.json");
   if (!response.ok) throw new Error(`Could not load question bank (${response.status})`);
   ({ banks: state.banks } = await response.json());
+  const trainingResponse = await fetch("training.json");
+  if (trainingResponse.ok) {
+    state.training = await trainingResponse.json();
+    renderTraining();
+  }
   updateSummary();
   renderDomainFilter();
   render();
@@ -92,3 +97,37 @@ function showQuizResult() {
   $("#try-again").addEventListener("click", startQuiz);
 }
 init().catch((error) => { $("#study-view").innerHTML = `<div class="empty-state"><h3>Question bank unavailable</h3><p>${escapeHtml(error.message)}</p></div>`; });
+
+function renderTraining() {
+  const training = state.training;
+  const audioCount = training.chapters.reduce((sum, chapter) => sum + chapter.audio.length, 0);
+  $("#training-count").textContent = `${training.chapters.length} chapters · ${audioCount} podcast episodes · ${training.quiz.length} quiz questions`;
+  $("#training-chapters").innerHTML = training.chapters.map((chapter) => `
+    <article class="chapter-card">
+      <div class="chapter-number">0${chapter.number}</div>
+      <div class="chapter-body"><p class="chapter-label">Chapter ${chapter.number}</p><h3>${escapeHtml(chapter.title)}</h3>
+      <details><summary>Listen to chapter podcast <span>(${chapter.audio.length} episodes)</span></summary>
+      <div class="audio-list">${chapter.audio.map((episode) => `<div class="audio-row"><span>${escapeHtml(episode.title)}</span><audio controls preload="none" src="${encodeURI(episode.file)}"></audio></div>`).join("")}</div></details></div>
+    </article>`).join("");
+  $("#material-links").innerHTML = training.chapters.map((chapter) => `<a href="${encodeURI(chapter.material)}" target="_blank" rel="noopener"><span>Chapter ${chapter.number}</span>${escapeHtml(chapter.title)} <b>↗</b></a>`).join("");
+  $("#training-quiz-intro").textContent = `Practice with ${training.quiz.length} scenario-based questions from the five training domains.`;
+  $("#training-quiz-start").addEventListener("click", startTrainingQuiz);
+}
+function startTrainingQuiz() {
+  state.trainingQuiz = { questions: [...state.training.quiz].sort(() => Math.random() - 0.5).slice(0, 5), index: 0, score: 0, answered: false };
+  $("#training-quiz-start").classList.add("hidden");
+  renderTrainingQuestion();
+}
+function renderTrainingQuestion() {
+  const quiz = state.trainingQuiz; const question = quiz.questions[quiz.index];
+  $("#training-quiz-card").classList.remove("hidden");
+  $("#training-quiz-card").innerHTML = `<div class="training-quiz-progress">Question ${quiz.index + 1} of ${quiz.questions.length} · ${quiz.score} correct</div><h4>${escapeHtml(question.stem)}</h4><div class="training-options">${question.options.map((option, index) => `<button type="button" class="training-option" data-training-choice="${index}"><span>${String.fromCharCode(65 + index)}</span>${escapeHtml(option)}</button>`).join("")}</div><div id="training-feedback"></div>`;
+  document.querySelectorAll("[data-training-choice]").forEach((button) => button.addEventListener("click", () => answerTrainingQuestion(Number(button.dataset.trainingChoice))));
+}
+function answerTrainingQuestion(choice) {
+  const quiz = state.trainingQuiz; if (quiz.answered) return; quiz.answered = true;
+  const question = quiz.questions[quiz.index]; const correct = choice === question.correct; if (correct) quiz.score++;
+  document.querySelectorAll("[data-training-choice]").forEach((button) => { button.disabled = true; if (Number(button.dataset.trainingChoice) === question.correct) button.classList.add("correct"); else if (Number(button.dataset.trainingChoice) === choice) button.classList.add("incorrect"); });
+  $("#training-feedback").innerHTML = `<div class="training-feedback"><strong>${correct ? "Correct." : `The correct answer is ${String.fromCharCode(65 + question.correct)}.`}</strong><br>${escapeHtml(question.explanation)}<br><button class="quiz-next" id="training-next" type="button">${quiz.index + 1 === quiz.questions.length ? "Finish quiz" : "Next question →"}</button></div>`;
+  $("#training-next").addEventListener("click", () => { if (quiz.index + 1 === quiz.questions.length) { $("#training-quiz-card").innerHTML = `<div class="training-result"><strong>${quiz.score}/${quiz.questions.length}</strong><p>Keep going — revisit a chapter guide and try again.</p><button class="quiz-next" id="training-retry" type="button">Try another quiz</button></div>`; $("#training-retry").addEventListener("click", startTrainingQuiz); } else { quiz.index++; quiz.answered = false; renderTrainingQuestion(); } });
+}
