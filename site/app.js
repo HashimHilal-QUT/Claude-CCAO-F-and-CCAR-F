@@ -3,6 +3,14 @@ const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
 
 async function init() {
+  const menuToggle = document.querySelector(".menu-toggle");
+  const siteNav = $("#site-nav");
+  if (menuToggle && siteNav) {
+    menuToggle.addEventListener("click", () => {
+      const open = siteNav.classList.toggle("open");
+      menuToggle.setAttribute("aria-expanded", String(open));
+    });
+  }
   const response = await fetch("questions.json");
   if (!response.ok) throw new Error(`Could not load question bank (${response.status})`);
   ({ banks: state.banks } = await response.json());
