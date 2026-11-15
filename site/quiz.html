@@ -1,3 +1,165 @@
-<!doctype html><html lang="en" data-page="quiz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quiz Hub | Claude Foundations</title><link rel="stylesheet" href="styles.css?v=20261115"><script defer src="app.js?v=20261115"></script></head><body>
-<header class="site-header"><div class="wrap header-inner"><a class="brand" href="index.html"><span class="brand-mark">C</span><span><strong>Claude</strong><small>Foundations prep</small></span></a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button><nav id="site-nav"><a href="study.html">Study Hub</a><a class="active" href="quiz.html">Quiz Hub</a><a href="training.html">CCAR-F Intensive Training</a></nav></div></header>
-<main><section class="study-section"><div class="wrap"><div class="section-heading"><div><p class="eyebrow">Quiz Hub</p><h2>Practice the complete question bank.</h2></div><p id="results-count" class="results-count"></p></div><div class="toolbar"><div class="segmented"><button class="segment active" data-bank="ccaf" type="button">CCAR-F <span>227 questions</span></button><button class="segment" data-bank="ccao" type="button">CCAO-F <span>91 questions</span></button></div><label class="select-label"><select id="domain-filter"></select></label></div><div class="mode-row"><div class="mode-switch"><button id="quiz-mode" class="mode active" type="button">Untimed quiz</button></div><span id="timer-note" class="timer-note">Official-guide pacing: 2 minutes per question</span></div><div id="timer-panel" class="timer-panel"><div><p class="eyebrow">Independent timer</p><strong id="timer-panel-time">Not started</strong><span id="timer-panel-note">Use this optional timer while you work through the quiz.</span></div><div class="timer-controls"><button id="timer-start-stop" class="button button-primary" type="button">Start timer</button><button id="timer-reset" class="button button-secondary" type="button">Reset</button></div></div><div id="score-card" class="score-card"><span>Score</span><strong id="score-value">0 / 0</strong><small id="score-percent">No answers yet</small></div><div id="study-view" class="hidden"></div><div id="quiz-view"></div><div id="empty-state" class="empty-state hidden"><h3>No questions match that filter.</h3></div></div></section></main><footer><div class="wrap"><span>Quiz Hub</span><span>Untimed or timed · Full question banks</span></div></footer></body></html>
+<!doctype html>
+<html lang="en" data-page="quiz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Quiz Hub | Claude Foundations</title>
+<link rel="stylesheet" href="styles.css?v=20261115">
+<style>
+  /* ==========================================================
+     Quiz Hub layout fixes ONLY. Everything else (typography,
+     colors, cards, options, breakpoints) comes from styles.css.
+     These rules are additive and don't change other pages.
+     ========================================================== */
+
+  /* 1. Center the main quiz column on all viewports */
+  .study-section .wrap { /* already centered via .wrap, this is a no-op guard */ }
+  .quiz-shell,
+  .timer-panel { margin-inline: auto; }
+
+  /* 2. Score card should sit within the centered column */
+  .score-card { margin-inline: 0; }
+
+  /* 3. Study-view answer options: 1 column on tablet too (currently only 600px) */
+  @media (max-width: 720px) {
+    .options { grid-template-columns: 1fr; }
+    .quiz-options { grid-template-columns: 1fr; }
+  }
+
+  /* 4. Make quiz options comfortable to tap on phones */
+  @media (max-width: 600px) {
+    .quiz-option { padding: 14px 15px; font-size: 15px; }
+    .quiz-option .letter { font-size: 12px; }
+    .quiz-shell { padding: 20px 16px; }
+    .quiz-progress { font-size: 11px; }
+    .quiz-next { width: 100%; padding: 13px 17px; }
+    .timer-panel { padding: 16px; }
+    .timer-panel .button { width: 100%; }
+    .timer-controls { flex-direction: column; width: 100%; }
+    .segmented { width: 100%; }
+    .segment { flex: 1; text-align: center; }
+    .select-label { min-width: 0; width: 100%; }
+    .section-heading h2 { font-size: 26px; }
+  }
+
+  /* 5. Toolbar should not overflow on tablet */
+  @media (max-width: 900px) {
+    .toolbar { flex-wrap: wrap; }
+    .select-label { min-width: 200px; flex: 1 1 100%; }
+    .search { min-width: 0; flex: 1 1 100%; }
+  }
+
+  /* 6. Keep the quiz shell from stretching on very wide screens */
+  @media (min-width: 1200px) {
+    .quiz-shell { max-width: 960px; }
+    .timer-panel { max-width: 960px; }
+  }
+
+  /* 7. Prevent iOS from zooming on input focus */
+  @media (max-width: 600px) {
+    select, input { font-size: 16px; }
+  }
+
+  /* 8. Better empty state */
+  .empty-state { padding: 40px 16px; }
+</style>
+<script defer src="app.js?v=20261115"></script>
+</head>
+<body class="quiz-hub">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">C</span>
+      <span><strong>Claude</strong><small>Foundations prep</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav id="site-nav">
+      <a href="study.html">Study Hub</a>
+      <a class="active" href="quiz.html">Quiz Hub</a>
+      <a href="training.html">CCAR-F Intensive Training</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="study-section">
+    <div class="wrap">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Quiz Hub</p>
+          <h2>Practice the complete question bank.</h2>
+        </div>
+        <p id="results-count" class="results-count"></p>
+      </div>
+
+      <div class="toolbar">
+        <div class="segmented">
+          <button class="segment active" data-bank="ccaf" type="button">CCAR-F <span>227 questions</span></button>
+          <button class="segment" data-bank="ccao" type="button">CCAO-F <span>91 questions</span></button>
+        </div>
+        <label class="select-label"><select id="domain-filter"></select></label>
+      </div>
+
+      <div class="mode-row">
+        <div class="mode-switch">
+          <button id="quiz-mode" class="mode active" type="button">Untimed quiz</button>
+        </div>
+        <span id="timer-note" class="timer-note">Official-guide pacing: 2 minutes per question</span>
+      </div>
+
+      <div id="timer-panel" class="timer-panel">
+        <div>
+          <p class="eyebrow">Independent timer</p>
+          <strong id="timer-panel-time">Not started</strong>
+          <span id="timer-panel-note">Use this optional timer while you work through the quiz.</span>
+        </div>
+        <div class="timer-controls">
+          <button id="timer-start-stop" class="button button-primary" type="button">Start timer</button>
+          <button id="timer-reset" class="button button-secondary" type="button">Reset</button>
+        </div>
+      </div>
+
+      <div id="score-card" class="score-card">
+        <span>Score</span>
+        <strong id="score-value">0 / 0</strong>
+        <small id="score-percent">No answers yet</small>
+      </div>
+
+      <div id="study-view" class="hidden"></div>
+      <div id="quiz-view"></div>
+      <div id="empty-state" class="empty-state hidden"><h3>No questions match that filter.</h3></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Quiz Hub</span>
+    <span>Untimed or timed · Full question banks</span>
+  </div>
+</footer>
+
+<script>
+  // Mobile menu toggle. Your styles.css already defines:
+  //   .menu-toggle { display:none }  → shown @max-width:720px
+  //   .site-header nav#site-nav { display:none; position:absolute; top:100%; ... }
+  //   .site-header nav#site-nav.open { display:grid }
+  // So we only need to toggle the `.open` class + aria-expanded.
+  (function () {
+    var btn = document.querySelector('.menu-toggle');
+    var nav = document.getElementById('site-nav');
+    if (!btn || !nav) return;
+    btn.addEventListener('click', function () {
+      var open = nav.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    nav.addEventListener('click', function (e) {
+      if (e.target.tagName === 'A') {
+        nav.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  })();
+</script>
+</body>
+</html>
