@@ -1,1 +1,370 @@
-<!doctype html><html lang="en" class="intensive-theme"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>120 Question Quiz | CCAR-F Intensive Training</title><link rel="stylesheet" href="styles.css"><script defer src="app.js"></script></head><body><header class="site-header"><div class="wrap header-inner"><a class="brand" href="training.html"><span class="brand-mark">C</span><span><strong>CCAR-F</strong><small>Intensive training</small></span></a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button><nav id="site-nav"><a href="training-podcast.html">Podcast</a><a href="training-notes.html">Domain Notes</a><a class="active" href="training-quiz.html">120 Question Quiz</a><a href="training-playbook.html">Architect's Playbook</a></nav></div></header><main><section class="training-section"><div class="wrap"><p class="eyebrow">03 · Assessment</p><h1>120 Question Quiz</h1><p id="training-quiz-intro">Complete all 120 scenario-based questions.</p><div id="training-timer-panel" class="timer-panel"><div><p class="eyebrow">Independent 240-minute timer</p><strong id="training-timer-time">Not started</strong><span id="training-timer-note">Use this optional timer while you work through the quiz.</span></div><div class="timer-controls"><button id="training-timer-start-stop" class="button button-primary" type="button">Start timer</button><button id="training-timer-reset" class="button button-secondary" type="button">Reset</button></div></div><div id="training-quiz-card" class="hidden"></div><div id="training-chapters" class="hidden"></div><div id="material-links" class="hidden"></div><div id="training-lower" class="hidden"></div></div></section></main></body></html>
+<!doctype html>
+<html lang="en" class="intensive-theme" data-page="training-quiz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>120 Question Quiz | CCAR-F Intensive Training</title>
+<link rel="stylesheet" href="styles.css?v=20261115">
+<style>
+  /* ==========================================================
+     Training Quiz — academic layout, larger type, dark theme.
+     Mirrors quiz.html layout; colors stay in intensive-theme palette.
+     All app.js IDs/classes preserved.
+     ========================================================== */
+
+  :root {
+    --t-bg: #090909;
+    --t-card: #151515;
+    --t-ink: #f7f1e8;
+    --t-muted: #d8d0c4;
+    --t-rule: #403a32;
+    --t-accent: #f47b20;
+    --t-accent-soft: #2a1d10;
+    --t-correct: #6ad59a;
+    --t-correct-bg: #163b2b;
+    --t-wrong: #f09080;
+    --t-wrong-bg: #44251d;
+    --t-serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+    --t-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --t-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --t-ctrl-h: 38px;
+    --t-ctrl-radius: 4px;
+  }
+
+  body { background: var(--t-bg); color: var(--t-ink); }
+
+  /* ---- Training section title ---- */
+  .intensive-theme .training-section {
+    background: var(--t-bg);
+    padding: 36px 0 56px;
+  }
+  .intensive-theme .training-section .eyebrow {
+    color: var(--t-accent);
+    font: 500 10px/1 var(--t-mono); letter-spacing: .18em;
+    text-transform: uppercase; margin: 0 0 8px;
+  }
+  .intensive-theme .training-section h1 {
+    color: #fff;
+    font: 600 clamp(24px, 3vw, 32px)/1.15 var(--t-serif);
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--t-rule);
+  }
+  .intensive-theme #training-quiz-intro {
+    color: var(--t-muted);
+    font: 400 14px/1.6 var(--t-serif);
+    margin: 0 0 16px;
+    max-width: 720px;
+  }
+
+  /* ==========================================================
+     TIMER PANEL — bordered, aligned, compact row
+     ========================================================== */
+  .intensive-theme .timer-panel {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; flex-wrap: wrap;
+    height: var(--t-ctrl-h);
+    margin: 0 0 14px;
+    padding: 0 10px;
+    background: var(--t-card);
+    border: 1px solid var(--t-rule);
+    border-left: 3px solid var(--t-accent);
+    border-radius: var(--t-ctrl-radius);
+  }
+  .intensive-theme .timer-panel > div:first-child {
+    display: inline-flex; align-items: center; gap: 10px;
+    height: 100%;
+    flex: 1 1 auto; min-width: 0;
+  }
+  .intensive-theme .timer-panel .eyebrow {
+    display: inline-block; margin: 0;
+    color: var(--t-muted);
+    font: 500 10px/1 var(--t-mono);
+    letter-spacing: .14em; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .intensive-theme .timer-panel strong {
+    color: var(--t-ink);
+    font: 600 13px/1 var(--t-mono);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .intensive-theme #training-timer-note {
+    display: none; /* hidden on wide; shown on small screens */
+  }
+  .intensive-theme .timer-panel .timer-controls {
+    display: inline-flex; gap: 6px; height: 100%;
+    flex: 0 0 auto;
+  }
+  .intensive-theme .timer-panel .button {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 100%; padding: 0 14px;
+    border: 1px solid var(--t-rule);
+    border-radius: var(--t-ctrl-radius);
+    background: transparent; color: var(--t-ink);
+    font: 600 12px/1 var(--t-sans);
+    white-space: nowrap;
+    transition: background .12s ease, border-color .12s ease, color .12s ease;
+  }
+  .intensive-theme .timer-panel .button:hover { border-color: var(--t-accent); color: var(--t-accent); }
+  .intensive-theme .timer-panel .button-primary {
+    background: var(--t-accent); color: #090909; border-color: var(--t-accent);
+  }
+  .intensive-theme .timer-panel .button-primary:hover {
+    background: #ff9848; border-color: #ff9848; color: #090909;
+  }
+  .intensive-theme .timer-panel .button-secondary {
+    background: transparent; color: var(--t-ink);
+  }
+
+  /* ==========================================================
+     QUIZ CARD — the shell holding the start button OR question
+     ========================================================== */
+  .intensive-theme #training-quiz-card {
+    margin: 0 auto;
+    max-width: 900px;
+  }
+  .intensive-theme #training-quiz-card:not(.hidden) {
+    background: var(--t-card);
+    border: 1px solid var(--t-rule);
+    border-radius: var(--t-ctrl-radius);
+    padding: clamp(22px, 3vw, 34px) clamp(22px, 3.4vw, 40px);
+  }
+
+  /* Start button */
+  .intensive-theme #training-quiz-start {
+    display: inline-block;
+    padding: 12px 22px;
+    background: var(--t-accent); color: #090909;
+    font: 600 12px/1 var(--t-sans); letter-spacing: .08em;
+    text-transform: uppercase;
+    border: 1px solid var(--t-accent); border-radius: 3px;
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+  .intensive-theme #training-quiz-start:hover { background: #ff9848; border-color: #ff9848; }
+
+  /* Progress line */
+  .intensive-theme .training-quiz-progress {
+    color: var(--t-muted);
+    font: 500 11px/1.4 var(--t-mono);
+    letter-spacing: .12em; text-transform: uppercase;
+    margin: 0 0 10px;
+    display: block;
+  }
+
+  /* Question */
+  .intensive-theme .training-quiz h4,
+  .intensive-theme #training-quiz-card h4 {
+    color: #fff;
+    font: 600 clamp(19px, 1.9vw, 22px)/1.45 var(--t-serif);
+    letter-spacing: -0.005em;
+    margin: 0 0 22px;
+    max-width: 100%;
+  }
+
+  /* Options — 2-col grid, larger type */
+  .intensive-theme .training-options {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin: 0 0 6px;
+  }
+  .intensive-theme .training-option {
+    display: grid; grid-template-columns: 34px 1fr; align-items: baseline;
+    gap: 12px;
+    padding: 16px 18px;
+    background: var(--t-card);
+    border: 1px solid var(--t-rule);
+    border-radius: 4px;
+    color: var(--t-ink);
+    font: 400 17px/1.5 var(--t-serif);
+    text-align: left;
+    transition: background .12s ease, border-color .12s ease;
+    cursor: pointer;
+  }
+  .intensive-theme .training-option span {
+    display: inline-block; padding: 0;
+    background: transparent; border-radius: 0;
+    color: var(--t-accent);
+    font: italic 600 17px/1 var(--t-serif);
+    text-align: right;
+    margin: 0;
+    width: auto; height: auto;
+  }
+  .intensive-theme .training-option:hover:not(:disabled) {
+    background: #1b1917; border-color: var(--t-accent);
+  }
+  .intensive-theme .training-option:disabled { cursor: default; }
+  .intensive-theme .training-option.correct {
+    background: var(--t-correct-bg);
+    border-color: #2f6b4c;
+    color: var(--t-correct);
+  }
+  .intensive-theme .training-option.correct span { color: var(--t-correct); }
+  .intensive-theme .training-option.incorrect {
+    background: var(--t-wrong-bg);
+    border-color: #7a3a2c;
+    color: var(--t-wrong);
+  }
+  .intensive-theme .training-option.incorrect span { color: var(--t-wrong); }
+
+  /* Rationale — full width below options */
+  .intensive-theme .training-feedback {
+    margin: 18px 0 0;
+    padding: 18px 20px 18px 22px;
+    background: var(--t-accent-soft);
+    border-left: 4px solid var(--t-accent);
+    border-radius: 0 4px 4px 0;
+    color: var(--t-ink);
+    font: 400 15.5px/1.65 var(--t-serif);
+  }
+  .intensive-theme .training-feedback strong {
+    display: block; margin-bottom: 8px;
+    color: var(--t-accent);
+    font: 600 14px/1.4 var(--t-sans);
+    letter-spacing: .01em;
+  }
+  .intensive-theme .training-feedback strong::before {
+    content: "Rationale — "; color: var(--t-accent);
+    font: 500 11px/1 var(--t-mono); letter-spacing: .14em;
+    text-transform: uppercase; margin-right: 4px;
+  }
+  .intensive-theme .training-feedback .quiz-next { display: block; margin: 16px 0 0 auto; }
+
+  /* Next / Finish / Retry button */
+  .intensive-theme .quiz-next {
+    display: inline-block;
+    padding: 12px 22px;
+    background: var(--t-accent); color: #090909;
+    font: 600 12px/1 var(--t-sans); letter-spacing: .08em;
+    text-transform: uppercase;
+    border: 0; border-radius: 3px;
+    cursor: pointer; white-space: nowrap;
+    transition: background .15s ease;
+  }
+  .intensive-theme .quiz-next:hover { background: #ff9848; }
+
+  /* Result screen */
+  .intensive-theme .training-result {
+    text-align: center;
+    padding: clamp(24px, 5vw, 48px) 20px;
+    color: var(--t-muted);
+  }
+  .intensive-theme .training-result strong {
+    display: block;
+    color: var(--t-accent);
+    font: 600 clamp(56px, 11vw, 84px)/1 var(--t-serif);
+    letter-spacing: -0.02em;
+    margin: 0 0 10px;
+  }
+  .intensive-theme .training-result p {
+    color: var(--t-muted);
+    font: italic 400 15.5px/1.55 var(--t-serif);
+    max-width: 400px; margin: 0 auto 20px;
+  }
+  .intensive-theme .training-result .quiz-next { margin: 0 auto; display: inline-block; }
+
+  .intensive-theme .hidden { display: none !important; }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 900px) {
+    .intensive-theme .training-options { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 720px) {
+    .intensive-theme .training-section { padding: 24px 0 40px; }
+    .intensive-theme .timer-panel {
+      height: auto;
+      flex-direction: column; align-items: stretch;
+      gap: 8px;
+      padding: 10px 12px;
+    }
+    .intensive-theme .timer-panel > div:first-child {
+      flex-wrap: wrap; height: auto;
+    }
+    .intensive-theme #training-timer-note { display: inline; }
+    .intensive-theme .timer-panel .timer-controls {
+      width: 100%; height: var(--t-ctrl-h);
+    }
+    .intensive-theme .timer-panel .button { flex: 1; }
+  }
+
+  @media (max-width: 600px) {
+    .intensive-theme .training-section h1 { font-size: 22px; }
+    .intensive-theme #training-quiz-card:not(.hidden) { padding: 18px 16px 22px; }
+    .intensive-theme #training-quiz-card h4 { font-size: 18px; }
+    .intensive-theme .training-option {
+      padding: 14px 14px; font-size: 16px;
+      grid-template-columns: 28px 1fr; gap: 10px;
+    }
+    .intensive-theme .training-option span { font-size: 16px; }
+    .intensive-theme .quiz-next { width: 100%; text-align: center; padding: 13px 16px; }
+    .intensive-theme .training-feedback { padding: 14px 16px; font-size: 15px; }
+    .intensive-theme .training-feedback .quiz-next { margin-top: 14px; }
+  }
+</style>
+<script defer src="app.js?v=20261115"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="training.html">
+      <span class="brand-mark">C</span>
+      <span><strong>CCAR-F</strong><small>Intensive training</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav id="site-nav">
+      <a href="training-podcast.html">Podcast</a>
+      <a href="training-notes.html">Domain Notes</a>
+      <a class="active" href="training-quiz.html">120 Question Quiz</a>
+      <a href="training-playbook.html">Architect's Playbook</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="training-section">
+    <div class="wrap">
+      <p class="eyebrow">03 · Assessment</p>
+      <h1>120 Question Quiz</h1>
+      <p id="training-quiz-intro">Complete all 120 scenario-based questions.</p>
+
+      <div id="training-timer-panel" class="timer-panel">
+        <div>
+          <p class="eyebrow">240-min timer</p>
+          <strong id="training-timer-time">Not started</strong>
+          <span id="training-timer-note">Use this optional timer while you work through the quiz.</span>
+        </div>
+        <div class="timer-controls">
+          <button id="training-timer-start-stop" class="button button-primary" type="button">Start timer</button>
+          <button id="training-timer-reset" class="button button-secondary" type="button">Reset</button>
+        </div>
+      </div>
+
+      <div id="training-quiz-card" class="hidden"></div>
+      <div id="training-chapters" class="hidden"></div>
+      <div id="material-links" class="hidden"></div>
+      <div id="training-lower" class="hidden"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  (function () {
+    var btn = document.querySelector('.menu-toggle');
+    var nav = document.getElementById('site-nav');
+    if (!btn || !nav) return;
+    btn.addEventListener('click', function () {
+      var open = nav.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    nav.addEventListener('click', function (e) {
+      if (e.target.tagName === 'A') {
+        nav.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  })();
+</script>
+</body>
+</html>
