@@ -74,7 +74,7 @@ function setModeButtons() {
   $("#quiz-mode").classList.toggle("active", state.mode === "quiz");
 }
 function startQuiz() {
-  const pool = [...filteredQuestions()].sort(() => Math.random() - 0.5).slice(0, 10);
+  const pool = [...filteredQuestions()].sort(() => Math.random() - 0.5);
   if (!pool.length) return;
   state.mode = "quiz"; state.quiz = { questions: pool, index: 0, score: 0, answered: false };
   setModeButtons(); render(); renderQuiz();
