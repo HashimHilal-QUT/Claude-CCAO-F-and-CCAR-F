@@ -26,6 +26,10 @@ async function init() {
   if ($("#quiz-mode")) $("#quiz-mode").addEventListener("click", () => setMode("quiz"));
   if ($("#timer-start-stop")) $("#timer-start-stop").addEventListener("click", toggleIndependentTimer);
   if ($("#timer-reset")) $("#timer-reset").addEventListener("click", resetIndependentTimer);
+  if ($("#quiz-view")) $("#quiz-view").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-choice]");
+    if (button && !button.disabled) answerQuiz(button.dataset.choice);
+  });
   if ($("#hero-quiz")) $("#hero-quiz").addEventListener("click", () => { document.querySelector("#study").scrollIntoView(); startQuiz(); });
   if ($("#nav-quiz")) $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
   if (document.body.dataset.page === "quiz") startQuiz();
@@ -91,10 +95,6 @@ function startQuiz(timed = false) {
 function renderQuiz() {
   const quiz = state.quiz; const question = quiz.questions[quiz.index]; const progress = quiz.index / quiz.questions.length * 100;
   $("#quiz-view").innerHTML = `<div class="quiz-shell"><div class="quiz-progress"><span>QUESTION ${quiz.index + 1} OF ${quiz.questions.length}</span><span>${quiz.score} correct</span><span>Untimed quiz</span></div><div class="quiz-track"><span style="width:${progress}%"></span></div><h3>${escapeHtml(question.stem)}</h3><div class="quiz-options">${Object.entries(question.options).map(([letter, text]) => `<button class="quiz-option" data-choice="${letter}" type="button"><span class="letter">${letter}</span><span>${escapeHtml(text)}</span></button>`).join("")}</div><div id="quiz-feedback"></div></div>`;
-  $("#quiz-view").onclick = (event) => {
-    const button = event.target.closest("[data-choice]");
-    if (button && !button.disabled) answerQuiz(button.dataset.choice);
-  };
   updateScoreCard();
 }
 function renderTimerPanel() {
