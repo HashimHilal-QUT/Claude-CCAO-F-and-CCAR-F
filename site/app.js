@@ -212,10 +212,11 @@ function renderTraining() {
   }
   if ($("#training-quiz-intro")) $("#training-quiz-intro").textContent = `Practice with all ${training.quiz.length} scenario-based questions from the five training domains.`;
   if ($("#training-quiz-start")) $("#training-quiz-start").addEventListener("click", startTrainingQuiz);
+  if (document.documentElement.classList.contains("intensive-theme") && $("#training-quiz-card")) startTrainingQuiz();
 }
 function startTrainingQuiz() {
   state.trainingQuiz = { questions: [...state.training.quiz].sort(() => Math.random() - 0.5), index: 0, score: 0, answered: false };
-  $("#training-quiz-start").classList.add("hidden");
+  if ($("#training-quiz-start")) $("#training-quiz-start").classList.add("hidden");
   renderTrainingQuestion();
 }
 function renderTrainingQuestion() {
