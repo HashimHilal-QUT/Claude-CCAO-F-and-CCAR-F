@@ -25,6 +25,7 @@ async function init() {
   $("#quiz-mode").addEventListener("click", () => setMode("quiz"));
   $("#random-quiz").addEventListener("click", startQuiz);
   $("#hero-quiz").addEventListener("click", () => { document.querySelector("#study").scrollIntoView(); startQuiz(); });
+  $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
 }
 
 function currentBank() { return state.banks.find((bank) => bank.id === state.bank); }
