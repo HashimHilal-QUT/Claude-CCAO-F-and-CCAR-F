@@ -1,0 +1,2437 @@
+Chapter one: Agentic Architecture and Orchestration
+
+## Cold open: the refund that never happened
+
+Before we start, a story. The refund that never happened.
+
+[beat]
+
+A customer writes in about a damaged parcel. The support agent looks up the order. It says it will check the refund policy. And then it goes quiet.
+
+The case is logged as resolved. No refund was issued. No escalation ticket exists. And nobody notices for three weeks, until the customer complains in public.
+
+When the engineers pull the transcript, nothing is broken in the ordinary sense. No error. No crash. The agent simply stopped. And the code around it took stopping to mean finished.
+
+On another run, the same agent looked up the same order, with the same arguments, twenty-eight times in a row. It only ended when a counter finally cut it off.
+
+What do those two failures have in common? The same root. Nobody outside the model was deciding when the work was actually done.
+
+That is what this chapter is about.
+
+[beat]
+
+This is Domain one, Agentic Architecture and Orchestration. It is twenty-seven percent of the exam. The heaviest domain. Roughly sixteen of the sixty questions.
+
+It has seven task statements, and we take them in order. Loops. Coordinators and subagents. Spawning subagents and passing context. Enforcement and handoffs. Hooks. Decomposition. And sessions.
+
+[beat]
+
+One thing to hold on to before we start.
+
+Questions in this domain almost always show you a system that already works, and is now failing in some specific, measurable way. You are asked for the structural fix.
+
+The wrong answers are usually real fixes. Just for a different problem.
+
+And the exam rewards one move above all others. Hold on to this line. Take a rule out of the prompt, and put it into code.
+
+## Part one: Agentic loops
+
+Part one. Agentic loops.
+
+This is task statement one point one: design and implement agentic loops for autonomous task execution. By the end of this part, you'll know how to read why the model stopped, how to handle each reason, and why the decision to stop belongs to your code, not the model.
+
+[beat]
+
+Start with the difference between asking and sending.
+
+Ask a friend a question, and you get one answer. Then it's over.
+
+Now send that friend to the shops with a list. Something different happens. They find an item out of stock, and pick a substitute. They see a long queue, and try another till. You scripted none of that. They made a series of small decisions on the way to the goal.
+
+That's the difference between a single call to a model and an agent. The same ability to produce an answer, wrapped in a loop.
+
+The model picks an action. Your code carries it out. The result goes back in. The loop runs again.
+
+[beat]
+
+Here's the part architects get wrong.
+
+A real friend gets tired and comes home. An agent doesn't. It has no clock. No fatigue. And no view of your bank balance.
+
+It will keep taking reasonable-looking next steps until something outside it says stop.
+
+So who decides when to stop? You do. The decision to stop belongs to you.
+
+[beat]
+
+In plain terms, every time the model stops producing text, it tells you why.
+
+It finished its thought. It hit a length limit. It's waiting for you to run something. It paused partway. Or it declined.
+
+Your code reads that note, and does something different for each one.
+
+But here's what the note never says. It never says the job is done. It only says the model stopped talking.
+
+The technical name for that note is the stop reason field. The Messages A P I, the application programming interface you call directly, documents seven values.
+
+One. end turn. Two. max tokens. Three. stop sequence. Four. tool use. Five. pause turn. Six. refusal. And seven. model context window exceeded.
+
+The documentation's advice is blunt. Always check stop reason.
+
+[beat]
+
+Let's take three of them now.
+
+tool use means the model has asked for one or more tools, and is waiting. Your loop runs every requested call, then continues.
+
+end turn means the model finished its turn on its own. That's your normal exit. But it is only a candidate for success. Never proof.
+
+stop sequence means the model emitted one of the stop strings you configured. A companion field tells you which one fired, so you branch on that.
+
+The other four, we'll take one at a time.
+
+Quick recap before the first question. The model always tells you why it stopped. It never tells you the job is done. You branch on the reason.
+
+[beat]
+
+Question one. The waiter who walks away too early.
+
+Here's the scenario. An invoice extraction agent runs a hand-written loop. The loop exits as soon as the first content block of a response is text. About one invoice in twelve ends with no record, and no error.
+
+The transcripts show a final response with a short line of text. Something like "let me check the vendor master first". Followed by a tool request.
+
+What's going on?
+
+Take a second.
+
+Think of a waiter who hears a diner say "hmm, let me think," and walks away. The words sounded like the end. But the diner hadn't closed the menu. They were about to order.
+
+The answer. In exam terms, one response can carry a text block and a tool use block together. The model often thinks out loud before calling a tool, and that's normal.
+
+The stop reason on that response is tool use. The model is waiting for a result.
+
+A loop that checks the type of the first content block exits in the middle of the task. And it silently drops the tool call.
+
+The fix is to branch on stop reason. Continue on tool use. And handle every other value explicitly.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: max tokens is too low, and the response was truncated. Why? Truncation shows up as a max tokens stop reason with incomplete content. These transcripts contain a complete tool request.
+
+Wrong: the vendor master tool returned an empty result. Why? That tool never ran. The loop exited first.
+
+Wrong: a missing turn cap, and a scheduler killing long runs. Why? A scheduler kill leaves no clean final response. These runs have one.
+
+The constraint that decides it is the phrase "a text block followed by a tool use block." Content type and stop reason measure different things.
+
+Hold on to this line. Branch on why the model stopped, never on what it happened to say.
+
+[beat]
+
+Question two. The pen pal who forgets everything.
+
+Here's the scenario. To cut token spend, an engineer changes the loop. After each tool call, it sends back only the tool result. It skips the assistant message that held the tool request.
+
+Requests start failing with errors on the second iteration.
+
+Why?
+
+Take a second.
+
+Picture a pen pal who forgets everything between letters. If you reply "yes, here is the answer" without restating their question, they can't make sense of it. Every letter has to carry the whole thread.
+
+The answer. The Messages A P I is stateless. It keeps nothing between calls. Your loop owns the history, and must send all of it, every time.
+
+[beat]
+
+There are three formatting rules. Break any of them, and you get an A P I error. Not a weaker answer. An error.
+
+First. You append the assistant message that contains the tool use block. Each tool use block carries an id.
+
+Second. You follow it immediately with a user message holding one tool result per tool use id. Each result's tool use id field matches. Nothing goes in between.
+
+Third. Inside that user message, the tool result blocks come first, before any text.
+
+A tool result can also carry an optional is error flag, for reporting a failed call.
+
+So what happens if you remove the assistant message? The tool result points at an id that no longer exists. The request is rejected.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: the A P I remembers the assistant turn on the server, and a stale session id needs refreshing. Why? The Messages A P I holds no server-side memory at all.
+
+Wrong: the result lacks is error set to false. Why? That flag is optional. Its absence can't cause a rejection.
+
+Wrong: max tokens is too low. Why? Output length has nothing to do with a malformed history.
+
+And if you want to save tokens? Trim the tool output instead.
+
+Hold on to this line. The A P I forgets everything. So every request carries the full history, and every tool result sits right after the request it answers.
+
+[beat]
+
+Now the length limits.
+
+In plain words, a response can be cut off for two different reasons. Either the answer itself ran out of room. Or the whole working space was already full.
+
+To careless code, they look the same. Why? Because a cut-off answer arrives looking just like a finished one.
+
+Think of a filing cabinet so full that nothing new fits. Buying a bigger envelope for the report doesn't help. The problem is the cabinet, not the envelope.
+
+[beat]
+
+In exam terms, here are the two.
+
+First. max tokens means the output hit the max tokens limit you set on the request. The response is truncated. The fix is to raise the limit, or continue the response.
+
+Second. model context window exceeded means the response filled the model's entire context window. That's also truncation. But raising max tokens can't help. The window is full, no matter how large the output allowance is.
+
+So what do you do instead? You compact the conversation. Summarise. Or move the work into subagents that each start with a fresh window.
+
+In both cases, you never parse the truncated output as a finished artifact.
+
+One small detail from the notes. model context window exceeded is typed only in the software development kits' beta namespace. And on models older than Claude Sonnet four point five, it needs a beta header. Handle it either way.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A contract extraction pipeline processes merger bundles of several hundred pages, in one conversation. On the largest bundles, the final response arrives with model context window exceeded. And the partial Jason is stored as if complete.
+
+The team proposes doubling max tokens.
+
+What's the right answer?
+
+Take a second.
+
+The answer. Mark the response truncated. Then compact the context, or move per-document extraction into fresh subagents.
+
+Now the wrong turns.
+
+Wrong: double max tokens. Why? That's the remedy for a different stop reason.
+
+Wrong: retry at a lower temperature. Why? It doesn't change how much context the bundle consumes. It's a global remedy, applied without a diagnosis.
+
+And the nastiest trap. Wrong: a Jason repair step that closes the unterminated brackets. Why? That produces valid Jason with missing clauses. It looks complete downstream. And that is worse than a visible failure.
+
+[beat]
+
+The notes add a close cousin.
+
+A nightly batch. On about two percent of nights, the parser fails on malformed Jason. And on a few nights, it stores an invoice with three of its eleven line items missing.
+
+Both symptoms are the same thing. Truncation, passed downstream as if finished.
+
+And they won't reproduce interactively. Why not? Because short test documents never hit the limits.
+
+Hold on to this line. max tokens means the envelope was too small. model context window exceeded means the cabinet is full. Neither is a finished answer.
+
+[beat]
+
+Next, pause turn.
+
+In plain words, sometimes the model is doing a lot of work inside a single turn, and hits an internal step limit. It stops. It effectively leaves a note saying it paused here, and someone should pick it up. It has not finished.
+
+Picture a courier who reaches the end of a shift halfway through a route. They leave a note: "route paused at stop ten." If the dispatcher files that note as delivered, half the parcels never arrive.
+
+The technical name is the pause turn stop reason. It appears when a server-side tool loop, such as the built-in web search, reaches its iteration limit. That limit defaults to ten.
+
+It's a continuation point, not a completion. You append the assistant content to the history, and send another request. The same turn resumes, without redoing earlier work.
+
+[beat]
+
+Question four.
+
+Here's the scenario. A research assistant uses server-side web search. The loop continues only on tool use, and returns the text for anything else. On broad questions, answers stop mid-thought, with no error. The logs show pause turn.
+
+Which fix costs least?
+
+Take a second.
+
+The answer. Append the assistant content, and send another request.
+
+Now the wrong turns.
+
+Wrong: raise max tokens. Why? Output truncation reports max tokens, not pause turn.
+
+Wrong: treat it like a refusal, and retry on a fallback model. Why? That throws away progress and doubles cost.
+
+Wrong: raise the loop's own turn cap. Why? That cap never fired. The loop exited because it misread pause turn as completion.
+
+[beat]
+
+refusal is the opposite case. It's terminal for that path.
+
+A companion field called stop details is filled in only on a refusal. It names the policy category that triggered it. For every other stop reason, it's null.
+
+The correct action? Read stop details. Then either retry on a fallback model, or escalate. You never loop on a refusal.
+
+[beat]
+
+So when do you use which? Here's the contrast, one at a time.
+
+tool use: run the tools, and continue.
+
+end turn: exit, then check the work yourself.
+
+max tokens: truncated. So raise the limit, or continue.
+
+model context window exceeded: truncated. So shrink what one context holds.
+
+pause turn: not finished. So send it back.
+
+refusal: stop this path. Read stop details. Fall back, or escalate.
+
+stop sequence: read which one fired.
+
+Hold on to this line. pause turn means still going, send it back. refusal means stop here and escalate.
+
+[beat]
+
+A quick word on the study material itself, because the sources disagree here.
+
+The lesson one slide deck says end turn is the only valid exit from a loop.
+
+The written notes go further. They treat max tokens and model context window exceeded as truncation exits. They treat pause turn as a continuation. And they add a code-checked acceptance test on top of end turn.
+
+Do these really conflict? Not really. The deck describes the normal, happy exit. The notes describe everything a production loop must handle.
+
+So on the exam. If a question asks for the normal completion signal, the answer is end turn. If it asks how a loop should handle truncation, a paused server tool, or a claim of success, use the fuller picture from the notes.
+
+[beat]
+
+Now the heart of this part. Termination.
+
+In plain words, a loop can fail in four different ways.
+
+One. It can run too long.
+
+Two. It can run too expensive.
+
+Three. It can run stuck. Busy, but going nowhere.
+
+Four. It can run wrong. Stopping, and claiming success, when the work was never done.
+
+No single counter catches all four.
+
+[beat]
+
+Picture a new hire. They say "done" at the end of every shift. And they keep phoning the same supplier, who never answers.
+
+A good manager needs two checks. First, look for the signed delivery note before accepting "done". Second, step in when the same call has been made three times with nothing new.
+
+Asking the hire to try harder? That fixes neither.
+
+[beat]
+
+The technical version. You need four independent termination guards.
+
+One. A turn cap. It bounds the worst case in round trips.
+
+Two. A budget cap. It bounds it in money. Why do you need both? Because a single turn that reads a huge file can cost more than twenty cheap turns. So a turn cap does not bound spend.
+
+Three. No-progress detection. It catches the loop that is busy and stuck. The usual technique is to record a signature for each tool call, meaning the tool name plus its arguments. Then halt after a bounded run of consecutive turns with no new signature. The notes use a limit of three.
+
+Four. An acceptance check. It's run by your code, rather than claimed by the model. It decides whether an end turn is actually a success.
+
+The loop then returns a status the caller must inspect. Such as complete, halted, truncated, or refused.
+
+[beat]
+
+Question five. This one is pick two.
+
+Here's the scenario. A refund agent has a turn cap of thirty, and exits on end turn. Some cases are logged as resolved, with no refund issued and no ticket. And some runs call lookup order with identical arguments until the cap fires.
+
+Leadership wants both failure classes caught, without raising cost.
+
+Which two?
+
+Take a second.
+
+The answers. First. Have code verify that a refund id or escalation ticket exists before any case is logged as resolved. Second. Hash each tool name plus its arguments, and halt after a bounded run of turns with no new call signature.
+
+Each guard catches a failure the other cannot.
+
+Now the wrong turns.
+
+Wrong: a system prompt sentence telling the agent not to finish until the issue is fully resolved. Why? That's advisory. The model can still end its turn on an unresolved case.
+
+Wrong: raise the cap to sixty. Why? It makes the stuck runs more expensive. And it still doesn't notice nothing is happening.
+
+Wrong: scan the final reply for the word "resolved". Why? Parsing the model's own words to decide completion is a named anti-pattern. Wording varies. And the word can appear without evidence.
+
+[beat]
+
+Question six. A related one from the notes.
+
+Here's the scenario. An incident agent calls log search with the identical query fifteen or twenty times. Each time, it gets the same empty result. It only stops when an hourly token allowance cuts it off. The loop already has a turn cap of two hundred.
+
+What's the fix?
+
+Take a second.
+
+The answer. No-progress detection.
+
+Now the wrong turns.
+
+Wrong: lower the cap to forty. Why? That just makes the failure cheaper, without detecting it.
+
+Wrong: mark the empty result with is error. Why? It's plausible, and harmful. An empty result is a valid answer. Calling it an error invites more retries.
+
+Wrong: set tool choice to auto. Why? It does nothing. auto is already the permissive default.
+
+The words in a stem that point you here. "Identical calls, repeatedly" points to no-progress detection. "Resolved without evidence" points to an acceptance check.
+
+[beat]
+
+Question seven. One more on termination, and this one is about the cap itself.
+
+Here's the scenario. A pull request review agent in continuous integration runs a loop while its iteration counter is below six. When the counter hits six, it posts whatever it has as the finished review.
+
+Small pull requests finish in three iterations. Large ones get cut off. And their partial reviews are posted as complete.
+
+What's the right design?
+
+Take a second.
+
+A kitchen timer stops a pot boiling dry. But a cook who serves every dish the moment the timer rings will serve raw roasts and burnt toast. The timer is the backstop. The cook still checks whether the food is done.
+
+The answer. In exam terms, an iteration cap is a circuit breaker, not a termination condition. The right design makes stop reason the primary exit, and keeps the counter as a safety valve. When the counter fires, the run is reported as halted. Never as complete.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: raise the counter to thirty. Why? It's still the primary stop. And it still posts partial reviews as complete whenever it fires.
+
+Wrong: remove the counter, and rely only on end turn. Why? That deletes the safety valve, and leaves runaway runs unbounded. You demote the cap. You do not delete it.
+
+Wrong: end each review with the phrase "R E V I E W complete", and exit when it appears. Why? That's parsing words again.
+
+Hold on to this line. The model stopping is a candidate. Your code decides success. And the cap only bounds the worst case, and reports halted.
+
+[beat]
+
+Now the Agent S D K. That's the software development kit for building agents. It gives you the same guards as options, rather than hand-written code.
+
+First, there's max turns in Python, spelled max turns in type script. One detail the exam likes. It counts tool-use turns only. The final text-only response is free.
+
+Second, there's max budget usd, spelled max budget usd in type script. It caps spend in dollars.
+
+When either fires, the final result message carries a subtype other than success.
+
+The subtypes are these five. success. error max turns. error max budget usd. error during execution. And error max structured output retries.
+
+The result text field exists only on success. So you check the subtype before you read the result. That's mandatory. Not defensive.
+
+[beat]
+
+Question eight. The notes have one on this.
+
+Here's the scenario. A wrapper reads the result field and writes it to a report file. On long tasks, the file is sometimes created empty. The process exits with a nonzero code. And the alert just says "unexpected error."
+
+Which two fixes?
+
+Take a second.
+
+The answer. First. Check the subtype before reading the result. Second. Wrap the iteration in a try block. Why? Because a single-shot query yields the final error result, and then raises.
+
+Now the wrong turns.
+
+Wrong: set max turns very high. Why? That removes the guard.
+
+Wrong: read stop reason instead of the subtype. Why? The subtype tells you why the loop ended. stop reason tells you why the model stopped on its final turn. And it's null on a result synthesised after a crash.
+
+[beat]
+
+Finally, on the Messages A P I side. There's a beta helper called the Tool Runner that wraps the loop for you. It takes a max iterations parameter. And it exits when the model stops calling tools, or when that limit is reached.
+
+[beat]
+
+That's part one.
+
+If you remember one thing, make it this. Read stop reason on every response. Treat truncation as truncation. Send pause turn back. And let four guards, not the model, decide when the run is over.
+
+Coming up in part two: coordinators and subagents.
+
+## Part two: Coordinators and subagents
+
+Part two. Coordinators and subagents.
+
+This is task statement one point two: orchestrate multi-agent systems with coordinator-subagent patterns. By the end of this part, you'll know how to pick between one agent, a coordinator, and plain code. Why everything routes through the hub. When to fan out. And how to bound the whole tree.
+
+[beat]
+
+Let's start with a picture.
+
+You send three people into a supermarket, each with a third of the list. You stand at the entrance. You hold the list. You decide who takes what. And you check the trolley at the end. They walk the aisles.
+
+What do you gain? You never hear about the aisles. Three people walked for an hour, and you got three short reports.
+
+What do you pay? None of them can see the others' baskets. And you pay for all three trips, whether or not you use what they bring.
+
+That's a coordinator.
+
+And there's a third option people skip. If you know exactly what's on the list, in what order, and it's the same every week, you don't need anyone exercising judgment at all. You need a checklist, and someone following it.
+
+[beat]
+
+The technical names are these. Three shapes.
+
+One. A single agent, running one loop.
+
+Two. A coordinator with subagents.
+
+Three. A deterministic pipeline. That means plain code that runs fixed steps in a fixed order.
+
+[beat]
+
+When does each one fit, and how does each one fail?
+
+A single agent suits one thread of reasoning, where each step depends on the last. It fails by filling its context window, and losing early instructions.
+
+A coordinator with subagents suits independent subtasks that each produce a lot of verbose intermediate work. Each subagent keeps that work in its own window. Only its final message returns. It fails through fan-out cost, duplicated work, and context lost at the boundary.
+
+A deterministic pipeline suits work whose steps and order are known in advance. It's predictable. It's easy to cost. And it fails only by meeting something its author did not anticipate.
+
+[beat]
+
+The deciding test is one question. Does the next step depend on the content of the previous result?
+
+Compile, then test, then deploy. That's a pipeline.
+
+Read a failure, form a hypothesis, choose where to look next. That's an agent.
+
+And very often, the best answer is a narrow agent inside one stage of a pipeline.
+
+[beat]
+
+Question one.
+
+Here's the scenario. An on-call assistant reads an arbitrary production alert. It picks each next diagnostic, out of about forty, based on what the last one returned.
+
+A platform lead wants to replace it with a fixed pipeline that runs a standard set, in a standard order. The surrounding steps never vary: opening a ticket, attaching output, and paging the owner.
+
+What's the right design?
+
+Take a second.
+
+Think of a hospital. It doesn't let doctors improvise the admission paperwork. And it doesn't force them to follow a fixed script when diagnosing. The forms follow a checklist. The diagnosis follows the clues.
+
+The answer. Make the fixed steps a deterministic pipeline. Keep a bounded agent loop only for the diagnosis stage.
+
+Now the wrong turns.
+
+Wrong: replace everything with the fixed pipeline. Why? A fixed order can't follow an alert where each result decides the next step. So it runs irrelevant checks, and misses the right one.
+
+Wrong: run all forty diagnostics as parallel subagents. Why? That pays for every branch, whether needed or not. And it ignores the dependency between steps.
+
+Wrong: keep one agent for the whole workflow, with a higher turn cap. Why? That pays latency and unpredictability to rediscover a flowchart you already own. And it risks a skipped page.
+
+[beat]
+
+Question two. The notes run the same idea the other way round.
+
+Here's the scenario. A release-notes generator fetches a diff, classifies the change, renders a paragraph, and appends it. Always in that order. A colleague proposes a coordinator with four specialist subagents.
+
+What's the answer?
+
+Take a second.
+
+The answer. A deterministic pipeline in code, with a single narrow model call for classification. Why? Because classification is the only step that needs judgment.
+
+Hold on to this line. If you can draw the flowchart before the run, write code. Use an agent only where the next step depends on what you just learned.
+
+[beat]
+
+Next, the rule that workers don't talk to each other.
+
+In plain words, everything goes through the coordinator. That's slower on paper, and safer in practice.
+
+Pilots talk to the control tower, not to each other. Two pilots chatting directly might be quicker. But then nobody holds the full picture. And there's no record of who was told what.
+
+The technical name is the hub-and-spoke pattern. Subagents never communicate directly. All routing passes through the coordinator.
+
+That gives you two things. First, observability, meaning one complete record of every handoff. Second, central error handling, meaning one place where failures are detected and routed.
+
+The coordinator owns the plan, the budget, and the acceptance criteria. The subagents own the work.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A research coordinator routes each search subagent's findings to a report writer. An engineer proposes letting the search subagents send findings straight to the writer, to save latency.
+
+Compliance requires a complete record of what each worker received and produced. And one place where failures are handled.
+
+What do you do?
+
+Take a second.
+
+The answer. Keep all communication routed through the coordinator.
+
+Now the wrong turns.
+
+Wrong: approve direct routing, and have each subagent log its own messages. Why? That rebuilds the record after the fact. And it removes the single point where failures are caught.
+
+Wrong: allow direct routing only for high-confidence findings. Why? A partial bypass still breaks the record, for exactly the traffic that skips the hub.
+
+Wrong: merge search and writing into one subagent. Why? That floods the writer's window with verbose search output. And it still doesn't meet the audit requirement.
+
+The constraint words are "complete record" and "one place where failures are handled." Those make the hub non-negotiable.
+
+[beat]
+
+Now a failure that looks like a quality problem, and is really a structure problem.
+
+Question four.
+
+Here's the scenario. A market research coordinator spawns four parallel subagents. One. Analyst reports. Two. Regulatory filings. Three. Earnings call transcripts. Four. Social sentiment.
+
+Each returns a solid, well-cited summary. Runs are fast. But clients complain the final report never connects a regulatory change to the sentiment shift that followed.
+
+What's missing?
+
+Take a second.
+
+Four reporters each cover one beat for a newspaper, and every story is excellent. But no editor reads all four. So nobody notices that the council vote in one story explains the protest in another. The fix is an editor, not bigger notebooks.
+
+The answer. In exam terms, the four lanes really are independent, so the parallel fan-out is correct. What's missing is a stage responsible for cross-source synthesis.
+
+Siloed output from a multi-agent system usually signals a missing aggregation step. Not a model problem. Not a context problem.
+
+So you add an explicit synthesis step. Such as a cross-source subagent whose job is finding intersections.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: a bigger context window for each subagent. Why? Nothing in the design asks anyone to connect the lanes, however much they can hold.
+
+Wrong: let the four subagents exchange findings directly. Why? That breaks hub and spoke.
+
+Wrong: give every subagent all four source tools. Why? That undoes the decomposition. It roughly quadruples cost. And it still leaves nobody owning synthesis.
+
+Hold on to this line. Siloed results mean nobody was given the job of joining them up.
+
+[beat]
+
+Next, speed.
+
+In plain words, if three jobs don't need each other's answers, start them all at once. The total wait becomes the slowest job, not the sum of all three.
+
+You need quotes from three builders. Calling the first, waiting a week, then calling the second, triples the wait for nothing. No quote depends on another. So you ask all three on the same day.
+
+The technical version. Each delegation is a tool call.
+
+A coordinator that issues one delegation call per turn, waits, then issues the next, runs its subagents in sequence.
+
+A coordinator that emits several delegation calls in a single response runs them in parallel. Latency then equals the slowest branch.
+
+[beat]
+
+Question five.
+
+Here's the scenario. A code modernisation coordinator analyses three independent modules, about four minutes each. The phase takes twelve minutes. The transcripts show one call, a wait, then the next.
+
+What's the fix?
+
+Take a second.
+
+The answer. Emit all three subagent calls in a single response.
+
+Now the wrong turns.
+
+Wrong: switch to a smaller model. Why? It may trim each branch, but it keeps the serial structure.
+
+Wrong: raise the concurrent-subagent limit. Why? The documented default is twenty. That's far more than three. So that isn't what serialises them.
+
+Wrong: merge the three into one subagent. Why? It's still sequential. And it pulls all three modules into one window.
+
+The signature to recognise: latency roughly three times what it should be.
+
+[beat]
+
+Now the contrast, because the exam tests it from both sides.
+
+The deciding test for parallel versus sequential is this. Does any branch need another branch's findings? Findings. Not files.
+
+Three auditors reading three different service directories are independent.
+
+An auditor and a remediation planner are sequential. Even if they open no common file. Why? Because the planner's input is the auditor's output.
+
+[beat]
+
+Question six. The notes include one on exactly this.
+
+Here's the scenario. A coordinator spawns three vendor research subagents. And at the same time, a fourth that writes the recommendation. The recommendation keeps citing things the summaries contradict.
+
+What's the fix?
+
+Take a second.
+
+The answer. Run the recommender after the other three.
+
+Parallel fan-out over dependent stages gives you full cost, plus branches that contradict each other.
+
+There's a failure-handling difference too. A sequential chain stops, and reports the stage that failed. A parallel fan-out collects each branch's outcome. So one failed branch doesn't void the others.
+
+Hold on to this line. Parallel when no branch needs another's findings. Sequential when it does. And the test runs through conclusions, not the filesystem.
+
+[beat]
+
+Question seven. One more coordinator failure from the notes.
+
+Here's the scenario. A team adds subagents to a data quality agent, expecting token use to fall. Instead, it rises by about eighty percent. And the main conversation still fills up, even though the subagents return concise summaries.
+
+What's the cause?
+
+Take a second.
+
+The answer. The coordinator is re-reading the same tables, and rerunning the same queries, after its workers report. It pays for the work twice.
+
+The fix is to constrain the coordinator's own tools. And instruct it to gather, combine and route. Not to investigate.
+
+Now the wrong turn.
+
+Wrong: each subagent inherits the parent's full history. It's tempting. Why is it wrong? Because it doesn't. A subagent starts fresh.
+
+[beat]
+
+Now bounding the tree.
+
+In plain words, anything that can delegate can delegate to something that delegates. Left alone, one request can grow into a tree of agents. And the bill grows with it.
+
+So you need two things. One limit on money that covers everyone. And one rule on how many layers of delegation are allowed.
+
+Picture a project manager. They give the team one company card, whose limit covers everyone. And they rule that contractors may not hire subcontractors.
+
+Limiting how many phone calls each contractor makes wouldn't stop one expensive purchase. And a polite request not to subcontract is easy to ignore.
+
+[beat]
+
+The technical version has four settings. I'll take them one at a time.
+
+First. The coordinator delegates through a built-in tool called Agent. That tool must be listed in the coordinator's allowed tools. If it isn't, every delegation falls through to a permission decision. And in modes that never prompt, it's denied.
+
+The symptom? Claude doing all the work itself, with no Agent calls anywhere in the transcript.
+
+Second. max budget usd covers the whole tree. Why? Because subagent requests count toward the query's total cost usd. At the cap, the query refuses new subagents.
+
+[beat]
+
+Third. The environment variable Claude C O D E M A X subagent S P A W N D E P T H caps nesting. It defaults to three layers below the main agent. Setting it to one lets the main agent delegate, while its workers cannot.
+
+Fourth. Claude C O D E M A X concurrent subagents caps how many run at once. It defaults to twenty. Beyond that, a spawn fails with the message "Concurrent subagent limit reached."
+
+And the notes add one thing. Opus-class models delegate more readily than earlier ones. So these bounds matter more than they used to.
+
+[beat]
+
+Question eight. This one is pick two.
+
+Here's the scenario. A research coordinator on an Opus-class model grew a tree three layers deep. It cost several times its estimate.
+
+The architect must bound total spend, including subagents. And stop workers spawning workers. While the coordinator keeps delegating.
+
+Which two?
+
+Take a second.
+
+The answers. First. Set max budget usd on the coordinator's query. Second. Set Claude C O D E M A X subagent S P A W N D E P T H to one.
+
+Now the wrong turns.
+
+Wrong: set max turns on each subagent. Why? That bounds round trips, not dollars. And one turn reading a huge file can cost more than many cheap turns.
+
+Wrong: remove Agent from the coordinator's allowed tools. Why? That stops the coordinator delegating, which the requirements forbid.
+
+Wrong: add a prompt sentence saying subagents must never create subagents. Why? Nothing enforces it. And the coordinator's prompt doesn't even cross into the subagents.
+
+[beat]
+
+Question nine. A contrast worth holding.
+
+What if only one specific subagent must never delegate, while others still can?
+
+Here's the scenario, from the notes. A reviewer that someone gave the Agent tool. It produced a tree four layers deep.
+
+What's the narrowest fix?
+
+Take a second.
+
+The answer. Remove Agent from that one subagent's tools list. Or add it to its disallowed tools.
+
+Now the wrong turns.
+
+Wrong: set spawn depth to one. Why? That would stop every subagent delegating. It over-applies the fix.
+
+Wrong: the budget cap. Why? It only cuts the tree off partway, after money is spent.
+
+Wrong: the concurrency cap. Why? It limits width, not depth.
+
+So here's the contrast. Depth and budget bound the whole tree. Removing the tool from one agent makes that agent structurally unable.
+
+[beat]
+
+Last in this part: what a budget stop means.
+
+Question ten.
+
+Here's the scenario. A due-diligence coordinator runs three researcher subagents under a max budget usd cap. On a run that hits the cap, it publishes a report from the two researchers that finished, and labels it complete. The third was stopped mid-work.
+
+Analysts act on the report, without knowing a third of the sources were never covered.
+
+What should happen?
+
+Take a second.
+
+A survey team runs out of money after two of three towns. It publishes "the region's results". Readers assume all three towns were counted. The honest report says two of three towns were surveyed, and the third was not reached.
+
+The answer. In exam terms, at the cap the query stops background subagents, and ends with the subtype error max budget usd. That's an incomplete result, not a partial success.
+
+The wrapper must check the subtype before trusting the result. And carry the coverage gap into the human-facing output. Two of three sources, with the third named.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: raise the cap. Why? The failure becomes rarer. And the next capped run is mislabelled the same way.
+
+Wrong: remove the cap, and rely on max turns. Why? Runaway cost risk. And turns don't bound money.
+
+Wrong: tell the coordinator in its prompt to mention missing sources. Why? That's advisory. And the coordinator may not even know which worker was stopped.
+
+The reliable signal is the subtype.
+
+We'll meet coverage reporting again in the chapter on context management and reliability. There, the rule is this. Eleven of thirteen is reported as eleven of thirteen, with the two named.
+
+[beat]
+
+That's part two.
+
+If you remember one thing, make it this. Pick the shape by asking whether the next step depends on the last result. Route everything through the hub. Fan out only what is independent. Cap the whole tree's money and depth. And never call a capped run complete.
+
+Coming up in part three: spawning subagents and passing context.
+
+## Part three: Spawning subagents and passing context
+
+Part three. Spawning subagents and passing context.
+
+This is task statement one point three: configure subagent invocation, context passing, and spawning. By the end of this part, you'll know what a subagent can and cannot see, how to write a delegation it can act on, and how findings should come back.
+
+[beat]
+
+Let's start with a picture.
+
+Write a handover note for the colleague covering your shift, and you learn quickly what travels and what doesn't.
+
+You spent the morning on a problem. They didn't. Everything you worked out reaches them only if it's on the note.
+
+"Finish the thing we discussed" is not a note. It's a reference to a conversation they weren't in.
+
+[beat]
+
+A worker agent is that colleague. With one difference that makes the discipline stricter.
+
+It can't phone you.
+
+There's no shared memory behind the note. No history it can look up. And nobody on the other end to answer a question. Whatever you left out is gone.
+
+But that strictness has an upside, and it's the whole reason to delegate. A colleague who starts with a clean desk isn't carrying your morning's clutter.
+
+[beat]
+
+The technical version. A subagent's context window starts fresh.
+
+The Agent S D K documentation says it plainly. The only content you pass from parent to subagent is the Agent tool's prompt string. So any file paths, error messages or decisions the subagent needs must go directly into that prompt.
+
+[beat]
+
+So what exactly crosses the boundary? The subagent receives four things.
+
+One. Its own system prompt. That comes from the prompt field of its agent definition, or the markdown body of a subagent file.
+
+Two. The delegation message, meaning the Agent tool's prompt string.
+
+Three. The project Claude dot M D files, loaded through setting sources.
+
+Four. Its tool definitions, inherited, or narrowed by its tools list.
+
+[beat]
+
+And what does it not receive?
+
+It does not receive the parent's conversation history, or any tool result in it.
+
+It does not receive the parent's system prompt.
+
+It does not receive preloaded skill content, unless the skill is named in its skills field.
+
+And it does not receive the parent's output style, or auto memory.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A platform team puts its code review standards in the coordinator's system prompt. The coordinator follows them. The three reviewer subagents it spawns ignore them.
+
+The standards apply to every subagent, on every run. The team doesn't want compliance to depend on the coordinator remembering to restate them. Project setting sources are enabled.
+
+Where should the standards go?
+
+Take a second.
+
+A new contractor isn't handed the manager's personal notebook. But every contractor gets the site safety handbook on day one. If a rule has to reach every contractor, it goes in the handbook.
+
+The answer. Put the standards in the project Claude dot M D, which subagents load. Or in each reviewer's own definition prompt.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: move the standards to the top of the coordinator's system prompt, and repeat them at the end. Why? The parent's system prompt never crosses the boundary. So no amount of emphasis there reaches a subagent.
+
+Wrong: put them in the coordinator's conversation history, which subagents supposedly read through the parent tool-use link. Why? They don't. The parent tool use id field correlates messages for tracing. It does not share context.
+
+Wrong: have the coordinator paste the standards into every delegation prompt. Why? That works only when the coordinator remembers. That's the exact dependency the team wants removed. And it costs tokens on every call.
+
+Hold on to this line. If every subagent must know it every time, put it where subagents load it on their own. In Claude dot M D, or their own definition.
+
+[beat]
+
+Next, the delegation prompt itself.
+
+Question two.
+
+Here's the scenario. In a Claude Code session, the main agent spends twenty minutes running a slow integration suite. It isolates one failing test, its assertion error, and the cause: a timezone default in a date helper.
+
+It then delegates with the prompt "Fix the failing test we found; use the fix we agreed on."
+
+The subagent reruns the full suite. It changes the test's expected value, instead of the helper. And it takes eighteen turns.
+
+What went wrong?
+
+Take a second.
+
+A doctor hands over mid-shift with a sticky note saying "finish what we discussed." The colleague wasn't in the room. So they repeat every test, and may treat the wrong thing. A proper handover names the patient, the finding, and the decision already made.
+
+[beat]
+
+The answer. In exam terms, "we" and "the fix we agreed on" refer to nothing the subagent can see. Rerunning the suite and editing the test are direct consequences of missing inputs.
+
+The fix is to rewrite the delegation as a self-contained work order. What goes in it?
+
+One. The file path.
+
+Two. The test name.
+
+Three. The command to reproduce it.
+
+Four. The exact error text.
+
+Five. The locked decision. Here, that's to change the helper to use U T C, and not touch the test.
+
+Six. What's out of scope.
+
+And seven. The shape of what to return. For example, just the diff and the passing test output.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: raise the subagent's max turns, and use a larger model. Why? More turns and a bigger model can't recover information the subagent was never given.
+
+Wrong: add the timezone decision to the project Claude dot M D. Why? Claude dot M D does reach subagents. But a one-off fix decision is the wrong lifetime for a durable project file. And it still leaves out the test and the error.
+
+Wrong: give the subagent the Agent tool, so it can delegate the slow suite run. Why? That pushes the same missing context one layer further down. And it adds cost.
+
+[beat]
+
+The notes have a near twin.
+
+A coordinator delegates "Audit checkout's dependencies using the approach we agreed on." But the parent had already read the manifest. It had found an ancient pinned version. And it had agreed with the user that no major version bumps are allowed this cycle.
+
+The subagent searches broadly. It proposes a major bump. And it takes nineteen turns.
+
+Same fix. A self-contained work order, with the manifest path, the finding, the locked no-major-bumps decision, and the return shape.
+
+[beat]
+
+Here's the heuristic to remember.
+
+Hold on to this line. If you can't write the delegation prompt without saying "as discussed", the work is not separable yet. It belongs in the parent conversation.
+
+And notice the distinctive symptoms of a missing handoff. There are three.
+
+One. A subagent that says it can't find a file the parent just read.
+
+Two. One that asks a question nobody is there to answer.
+
+Three. One that re-derives an analysis the parent already paid for.
+
+Each looks like model incompetence. Each is a missing handoff. And the fix is explicit injection of context. Not more turns. Not a bigger model.
+
+So, a delegation prompt is an interface. It carries inputs, locked decisions, scope, and the return shape. Or the child is guessing.
+
+[beat]
+
+Now, how the coordinator chooses which subagent to use.
+
+Question three.
+
+Here's the scenario. A support coordinator has three subagents: billing-disputes, shipping-status, and account-security. Each has a detailed prompt, and the right tools.
+
+But all three descriptions read "Helps customers resolve their issues." About a third of shipping questions go to billing-disputes.
+
+What's the fix?
+
+Take a second.
+
+A hospital switchboard lists three departments as "helps patients." Callers keep landing in the wrong ward. Relabel them broken bones, heart problems, and children under twelve, and the operator routes correctly. Without a longer manual.
+
+The answer. A subagent's description field is the selection signal Claude matches tasks against, at the moment it picks a worker. It's a routing rule, not documentation. Three identical descriptions leave the coordinator guessing.
+
+So you rewrite each description as a routing rule. It says when to use it, what it handles, and what it does not handle.
+
+For example. shipping-status answers where-is-my-order and delivery date questions. And it does not handle refunds, charges or logins.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: add routing rules to the coordinator's system prompt, like "send tracking questions to shipping-status." Why? That patches a description defect with a prompt rule. It holds until the rule loses the competition for attention. And every new subagent needs another patch.
+
+Wrong: give all three subagents every tool, so a misrouted question can still be answered. Why? That breaks least privilege. And it hides the misrouting.
+
+Wrong: move the coordinator to a larger model. Why? It still has nothing to tell three identical descriptions apart.
+
+This theme returns in the chapter on tool design and integration. There, the same rule applies to tool descriptions. Fix the defect where it lives, not with a prompt patch.
+
+Hold on to this line. The description is how the coordinator picks. So write it as a rule for when to pick it.
+
+[beat]
+
+Next, the tools list, and its look-alikes. This is where the exam sets name collisions against each other. So slow down.
+
+In plain words. If a worker must never do something, don't hand it the means to do it. A note saying "please don't" is not the same as withholding the key.
+
+If a trainee must never open the safe, you don't give them the key along with a polite note. You simply don't give them the key. The manager keeps theirs.
+
+The technical version. A subagent's tools field is an availability list. A tool left out is not in that agent's session at all. So the action can't be taken, whatever the model decides.
+
+There's also disallowed tools. It removes named tools, and it's applied first.
+
+That's structural enforcement. The first rung of the enforcement ladder we meet in part four.
+
+[beat]
+
+Now the three look-alikes. One at a time.
+
+One. Skill frontmatter allowed-tools, with a hyphen. It pre-approves listed tools for the invoking turn. And it restricts nothing.
+
+Two. The S D K option allowed tools, one word, in camel case. It's a permission list. It decides which calls run without prompting.
+
+Three. A subagent's tools list. That one restricts.
+
+So: permission, restriction, pre-approval.
+
+And a fourth name to keep separate. read only hint, a tool annotation. It's a scheduling hint, about whether a tool can run in parallel with other read-only tools. It is never authorization.
+
+The Model Context Protocol specification even requires clients to treat annotations as untrusted, unless they come from a trusted server. So a tool marked read only hint true can still write to disk.
+
+[beat]
+
+Question four.
+
+Here's the scenario. A policy-lookup subagent is meant only to read refund policy and order records. It inherits every tool. And last week, it issued a refund on its own.
+
+The security lead wants it to be impossible for this subagent to call refunds issue. While the main agent keeps that tool.
+
+What do you do?
+
+Take a second.
+
+The answer. Set the subagent's tools list to only the read tools it needs. So refunds issue is not in its session.
+
+Now the wrong turns.
+
+Wrong: list refunds issue under allowed-tools in a skill's frontmatter, with a note marking it forbidden. Why? Skill allowed-tools pre-approves, and restricts nothing.
+
+Wrong: mark the lookup tools with read only hint. Why? Annotations are hints, not authorization. And hinting the read tools does nothing to remove the refund tool.
+
+Wrong: add a prompt line saying never issue refunds. Why? It's probabilistic. And the subagent's instructions have already failed once.
+
+[beat]
+
+A note on the study material here, because the sources use different names.
+
+The lesson two slide deck uses the older names. It calls the delegation tool the Task tool. And it uses allowed tools, with an underscore, when describing which tools an agent may use.
+
+The written notes use the current names. The Agent tool, which was renamed from Task in Claude Code version two point one point sixty-three. And tools, for a subagent's own availability list.
+
+Recognise both spellings.
+
+The notes add a practical wrinkle. Current releases emit Agent in tool use blocks. But they still show Task in the system init tools list, and in the permission denials list on the result. So detection code should match both names.
+
+On the exam, if a question says Task, read it as Agent. And if a question frames allowed tools as a restriction on what a subagent can do, answer in the question's terms. While remembering that in the current S D K, the restricting field is tools, and allowed tools is the permission list.
+
+Hold on to this line. tools restricts. allowed tools permits. Skill allowed-tools pre-approves. And read only hint authorises nothing.
+
+[beat]
+
+A few more mechanics complete the picture.
+
+An agent definition requires two fields: description and prompt.
+
+It also accepts optional fields. These include tools, disallowed tools, model, skills, memory, mcp servers, initial prompt, max turns, background, effort, and permission mode.
+
+If model is left out, the subagent uses the main model.
+
+Subagents can also be defined as files in the dot claude slash agents slash folder. They're markdown, with a small header that requires only name and description.
+
+If a programmatic definition and a file share a name, the programmatic one wins.
+
+And every message produced inside a subagent carries a parent tool use id. So you can trace which delegation it belongs to.
+
+[beat]
+
+Now, how findings come back.
+
+Question five.
+
+Here's the scenario. A regulatory research system has search subagents. Each one summarises ten sources into a paragraph of prose, before handing it to a synthesis subagent.
+
+The briefings read well. But auditors must be able to trace every claim to its source and retrieval date. And almost none can be traced.
+
+What's the fix?
+
+Take a second.
+
+A researcher photocopies ten articles, writes a one-page summary, and throws the copies away. When an editor asks where a figure came from, nobody can say. A labelled index card per fact, with its source and date, is what makes the summary checkable.
+
+The answer. In exam terms, summarising into prose silently drops attribution. Once ten sources become one paragraph, no downstream agent can recover which claim came from where.
+
+So you return findings as structured objects that keep content separate from metadata. Such as the source U R L, the retrieval time, and a confidence value. With claim identifiers linked to source identifiers.
+
+And the synthesis stage's output schema must keep that claim-to-source mapping intact. Or the chain of provenance breaks right there.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: instruct the synthesis subagent to cite carefully and include dates. Why? It can't cite what the prose handoff already threw away.
+
+Wrong: pass the full text of every source to the synthesiser. Why? That floods its window. And it still doesn't enforce claim-to-source links.
+
+Wrong: have the search subagents write longer summaries. Why? Longer prose is still prose.
+
+The chapter on context management and reliability picks up provenance in more depth.
+
+Hold on to this line. Hand findings back as labelled records, not paragraphs. And make the next stage keep the labels.
+
+[beat]
+
+And what happens when two findings disagree?
+
+Question six.
+
+Here's the scenario. Two researcher subagents report different list prices for the same competitor product. One comes from a vendor datasheet dated March. One from a reseller page retrieved last week.
+
+The synthesis subagent keeps the newer figure, and drops the other without comment. The client has said pricing conflicts must be visible to a human reviewer.
+
+What should the output be?
+
+Take a second.
+
+Two witnesses give different times for an accident. A good clerk writes down both statements, and flags the difference for the judge. Instead of quietly keeping whichever witness sounded more certain. The judge decides, not the clerk.
+
+The answer. In exam terms, a subagent must never silently pick one of two conflicting claims. The correct output records a conflict object, holding both claims with their sources. It marks it unresolved. And it escalates it to the coordinator, which surfaces it to the reviewer.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: keep the higher-confidence figure, and note the rating. Why? That's still a silent resolution. And stated confidence is not evidence.
+
+Wrong: average the two figures, and flag the result as an estimate. Why? That manufactures a number neither source reported.
+
+Wrong: re-run both researchers until they agree. Why? That burns budget. And it can converge on the wrong figure, because the sources genuinely differ.
+
+Hold on to this line. When sources conflict, record both, mark it unresolved, and let a human decide.
+
+[beat]
+
+One last mechanic before we leave this part. Parallelism at the tool level follows its own rule.
+
+Within a single turn, read-only tools, such as Read, Glob and Grep, can run at the same time.
+
+Tools that change state, such as Edit, Write and Bash, run one after another, to avoid conflicts.
+
+Custom tools default to sequential. They opt in to parallel scheduling with read only hint.
+
+And again, that hint affects scheduling only. Never safety.
+
+[beat]
+
+That's part three.
+
+If you remember one thing, make it this. The child knows only what you write down. Write the work order. Write descriptions as routing rules. Withhold tools rather than forbid them. And hand findings back as structured records that keep their sources, and their conflicts, visible.
+
+Coming up in part four: enforcement and handoffs in multi-step workflows.
+
+## Part four: Enforcement and handoffs in multi-step workflows
+
+Part four. Enforcement and handoffs.
+
+This is task statement one point four: implement multi-step workflows with enforcement and handoff patterns. By the end of this part, you'll know the three rungs of the enforcement ladder, what a handoff record must carry, and how a handoff to a human differs from one between stages.
+
+[beat]
+
+Let's start with a picture.
+
+A sign in a staff kitchen asking people to wash up is a request. A barrier that won't open until you tap a card is a guarantee.
+
+Both express the same wish. Only one of them holds on the day somebody is in a hurry.
+
+Instructions in a prompt are the sign. Most of the time they work. And that's exactly the trap.
+
+A rule that holds nineteen times out of twenty looks like a rule. Right up until the twentieth run writes to something that matters.
+
+If a step must happen, something outside the model's judgment has to check that it happened. Every time.
+
+[beat]
+
+The technical principle. Hold on to this line. A prompt is a request, and code is a guarantee.
+
+If a step must happen, encode it as a gate your code evaluates. Not as a sentence competing with everything else in the context window.
+
+And there's an order in which you reach for enforcement. It's called the enforcement ladder. Three rungs.
+
+First. Structural. Withhold the tool. A stage that must not write has no write tool in its tools list.
+
+Second. Deterministic interception. A pre tool use hook that denies the call outright. No amount of model reasoning can route around it.
+
+Third. Contractual. A handoff record the next stage validates before it does anything. So an out-of-order or incomplete stage fails loudly, at the boundary.
+
+The price is the same in all three. You give up some flexibility. And every gate is code someone has to maintain.
+
+[beat]
+
+Question one. A prerequisite gate.
+
+Here's the scenario. An account-security agent can call verify identity and reset password. Despite clear system prompt instructions, audit logs show about one reset in two hundred happening before identity was verified.
+
+Compliance requires zero exceptions. And when a reset is blocked, the agent should explain why and escalate, rather than retry.
+
+What's the answer?
+
+Take a second.
+
+A bank teller's cash drawer stays locked until the I D scanner turns green. The teller can't hand over money first and check I D later, however long the queue. If the scanner refuses, a message tells the teller to call a supervisor.
+
+The answer. A pre tool use hook that tracks session state, and denies reset password until verify identity has succeeded.
+
+It runs in code, before the call executes. So the model can't bypass it.
+
+And the denial carries a permission decision reason. For example: "Identity not verified. Do not retry. Escalate." That reason gives the model the context to escalate, instead of retrying with different parameters.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: a post tool use hook that flags unverified resets for review. Why? post tool use runs after the tool has already executed. So the reset has already happened. It detects. It does not prevent.
+
+Wrong: move the rule into Claude dot M D. Why? That helps a rule persist. But it's still advisory. And most of the time is not zero exceptions.
+
+Wrong: add few-shot examples showing verification first. Why? Examples improve consistency, not compliance.
+
+The constraint words that decide it are "zero exceptions" and "explain and escalate rather than retry."
+
+Hold on to this line. If one step must come before another every time, block the second step in code until the first has succeeded. And say why.
+
+[beat]
+
+Now the contrast between keeping a rule in view, and enforcing it.
+
+Question two. This one is pick two.
+
+Here's the scenario. A long-running Claude Code job in continuous integration migrates a large codebase. The opening prompt says never edit files under db slash migrations slash applied slash.
+
+The conversation compacts twice. And afterwards, the agent edits an applied migration.
+
+The team wants the rule enforced every time. And still visible to the model after compaction, so it plans around the rule.
+
+Which two?
+
+Take a second.
+
+A door has a "staff only" sign, and a lock. The sign tells people where not to go, so they can plan their route. The lock makes the rule hold on the day someone forgets. And a sign that falls off the wall halfway through the day protects nothing.
+
+[beat]
+
+In exam terms, compaction is when a long conversation gets summarised to free up room. And instructions in an opening prompt can be dropped when that happens.
+
+The answers. First. A pre tool use hook matched to Edit and Write, that denies any path under the applied migrations folder, with a reason.
+
+Second. Move the rule into the project Claude dot M D. It's re-injected into context on every request, so it survives compaction.
+
+The hook is enforcement. Claude dot M D is persistence. They're separate jobs.
+
+Without Claude dot M D, the model keeps colliding with the hook. Without the hook, the rule is still only advisory.
+
+Now the wrong turns.
+
+Wrong: repeat the rule three times in the opening prompt. Why? That changes the odds, not the guarantee.
+
+Wrong: raise the compaction trigger, so the prompt is summarised later. Why? The failure becomes rarer. Nothing is enforced.
+
+Wrong: mark the files with read only hint. Why? A tool scheduling hint is not a file permission.
+
+[beat]
+
+Question three. The notes add a sibling.
+
+Here's the scenario. A normalise, validate, load workflow. The prompt says load must never run unless validate passed. The conversation compacted twice. And the agent went straight from normalise to load.
+
+What are the real enforcements?
+
+Take a second.
+
+The answer. There are two. First. A load-stage subagent whose tools list contains no write tool, until it receives a validated handoff. Second. A pre tool use hook that denies the load tool when the validation artifact is missing.
+
+Now the wrong turns.
+
+Wrong: reposition the prompt text. Wrong: raise max turns. Why are both wrong? The agent didn't run out of room. It skipped a step.
+
+[beat]
+
+So when do you use a prompt instruction, when Claude dot M D, and when a hook?
+
+A prompt instruction. For guidance that's fine to follow most of the time.
+
+Claude dot M D. For rules that must stay visible across a long session.
+
+A hook, or a withheld tool. For anything that must hold every time.
+
+The configuration chapter goes deeper on what belongs in Claude dot M D, versus rules files and skills.
+
+Hold on to this line. Claude dot M D keeps the rule in view. The hook makes it true.
+
+[beat]
+
+Now handoff records between stages.
+
+Question four.
+
+Here's the scenario. A two-stage pipeline extracts claims data to a staging file, then loads it into a warehouse. The load stage starts whenever a handoff file exists in the run folder.
+
+After a crash and rerun, the loader picked up a handoff left by the earlier aborted run. And it loaded a stale, half-validated dataset.
+
+What's the fix?
+
+Take a second.
+
+A warehouse accepts a delivery only if the paperwork matches today's order number, and the seal on the box is unbroken. A box left on the dock from last week's cancelled order is refused. Even though it looks like a delivery.
+
+The answer. In exam terms, a handoff record makes a stage boundary real only if the next stage validates it before acting.
+
+So the loader runs four checks.
+
+One. It checks the run id.
+
+Two. It checks that stage next expected names the load stage.
+
+Three. It checks that the gate status is pass, and was evaluated by code.
+
+Four. It checks the artifact's checksum.
+
+Any mismatch is a refusal. And that refusal is the enforcement. Everything else is a suggestion.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: have the extraction stage write a more detailed prose summary. Why? Prose asserts a result without evidence. And a clearer claim from the old run is still a claim from the old run.
+
+Wrong: include the whole dataset inline in the handoff. Why? Handoffs carry addresses, not payloads. Inlining bloats every downstream context. And it still doesn't identify the run.
+
+Wrong: have the load agent message the extraction agent to confirm. Why? That's another probabilistic claim. And in a hub-and-spoke design, workers don't talk directly.
+
+[beat]
+
+So what goes in a handoff record? The notes list the fields. Let's take them one at a time.
+
+A handoff version.
+
+A run id.
+
+A stage section, with completed, next expected, and a timestamp.
+
+A gate section. It holds the status. The individual checks, with their expected and observed values. evaluated by, set to code. And a pointer to the evidence.
+
+A produced section. It holds the artifact's address, a row count, and a S H A two five six checksum.
+
+A decisions locked list.
+
+An open questions list.
+
+And a budget section, with dollars spent, dollars remaining, and turns used. Why the budget? So a late stage knows its runway, instead of discovering the cap by hitting it.
+
+[beat]
+
+Question five. The notes include one that isolates a single field.
+
+Here's the scenario. An extraction stage writes a nine hundred megabyte file. It hands over a paragraph saying extraction completed, the row count looked reasonable, and validation passed.
+
+What's the primary defect?
+
+Take a second.
+
+The answer. The handoff mixes up a model's claim with a verified result.
+
+A model saying "validation passed" is a claim. A program comparing forty-two observed columns against forty-two expected is evidence. That's what evaluated by code distinguishes. And only evidence should open a gate.
+
+Now the wrong turns.
+
+Wrong: inline the data. Why? That's backwards.
+
+Wrong: switch prose to Jason. Why? It doesn't help if it still only asserts.
+
+Wrong: add the session id, so the load can resume extraction. Why? That confuses recovery with handoff.
+
+Hold on to this line. The next stage's first act is to check the paperwork. And it refuses on any mismatch.
+
+[beat]
+
+Next, locked decisions.
+
+Question six.
+
+Here's the scenario. A multi-stage financial extraction pipeline hands work between subagents. Stage one agreed with the client to store all amounts in minor units, meaning cents. And all dates in U T C.
+
+Stage three, running later from its own work order, stored amounts in major units. Reconciled totals were off by a factor of one hundred. The handoff carries only artifact paths.
+
+What's the fix?
+
+Take a second.
+
+A wedding planner agrees with the couple that every price is quoted in euros. The caterer, briefed separately, quotes in pounds. And the budget sheet falls apart. Writing "all prices in euros, already agreed" on every supplier brief would have prevented it.
+
+The answer. Add a decisions locked field to the handoff record. The next stage reads it, and must not relitigate it.
+
+Settled decisions have to travel with the work. Or the next stage rediscovers them differently. The notes call that the most expensive form of subagent drift.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: pass stage one's full conversation history to stage three. Why? That defeats context isolation. It bloats the window. And the decision still has to be dug out of prose.
+
+Wrong: a prompt line telling stage three to stay consistent with whatever earlier stages decided. Why? It points at information stage three was never given.
+
+Wrong: a larger model, to infer the convention. Why? No model can reliably infer a convention the data doesn't state.
+
+Hold on to this line. Decisions that are settled go in the handoff, in writing. So no later stage can reopen them.
+
+[beat]
+
+Now the handoff to a human. That's a different kind of record.
+
+Question seven.
+
+Here's the scenario. When the refund agent escalates, it writes a friendly paragraph to the human queue. Human agents open the full conversation transcript for almost every ticket. They're looking for the order, what was tried, and why it failed. Handling time doubles.
+
+What's the fix?
+
+Take a second.
+
+A nurse ending a shift doesn't hand over a recording of the whole day. They give a short chart. Patient. Problem. What was tried. What to watch. What to do next. The next nurse can act in two minutes, instead of forty.
+
+The answer. A structured handoff, with fields. Let's list them.
+
+The customer id. The issue type. The root cause. What was attempted. The escalation reason, meaning the specific policy that required it. The amount. And a recommended next action.
+
+The person acting on it should never need the transcript.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: attach the full transcript. Why? That formalises the problem.
+
+Wrong: write a longer, more detailed paragraph. Why? It's slower to scan. And it still buries the fields.
+
+Wrong: let human agents resume the agent's session to question it. Why? Session resume restores a conversation for an agent, not a decision summary for a person. And it adds another round trip.
+
+[beat]
+
+So, the contrast.
+
+A stage-to-stage handoff record is for a machine. It carries addresses, gate evidence, locked decisions and budget. And the next stage validates it.
+
+A human handoff summary is for a person. It carries the decision inputs in plain fields, so they can act without reading the history.
+
+Both refuse to make the reader dig through a transcript.
+
+[beat]
+
+One last mechanic from the notes.
+
+For runs that coordinate dozens to hundreds of agents, turn-by-turn delegation stops being the right shape.
+
+The documentation points to the Workflow tool. It moves the orchestration into a script the runtime runs outside the conversation.
+
+It needs the type script Agent S D K at version zero point three point one hundred forty-nine or later. And Workflow must be in allowed tools.
+
+Treat it as the escape hatch for scale. Not the default.
+
+[beat]
+
+That's part four.
+
+If you remember one thing, make it this. A prompt is a request, and code is a guarantee. Climb the ladder: from withholding the tool, to denying it in a hook, to a handoff record the next stage validates. Put locked decisions in the record. And give humans a structured summary, not a transcript.
+
+Coming up in part five: hooks for interception and normalization.
+
+## Part five: Hooks for interception and normalization
+
+Part five. Hooks.
+
+This is task statement one point five: apply Agent S D K hooks for tool call interception and data normalization. By the end of this part, you'll know the main hook events, how a pre tool use hook answers, how to clean results on the way back, why async hooks can't change anything, and who wins when hooks disagree.
+
+[beat]
+
+Let's start with a picture.
+
+Think of the counter at a post office. You bring a parcel. The clerk weighs it. Rewrites the address into the format the sorting machines want. Tells you the customs form is missing. Or refuses the parcel outright.
+
+You never had to know any of those rules. And no amount of insisting changes what the clerk does. Why? Because the rules live at the counter, not in your head.
+
+[beat]
+
+Hooks are that counter. They're placed between the agent and everything it tries to do.
+
+They're code you write that runs at fixed moments. Before a call goes out. After a result comes back. When a worker starts. When a run ends.
+
+Because they run inside your program, rather than inside the conversation, they take none of the model's attention. And they can't be argued with.
+
+Two uses follow.
+
+One. You can stop something happening.
+
+Two. You can correct the shape of something, on the way out, or on the way back.
+
+A lot of what looks like a model getting a format wrong is really a mismatch nobody put a translator in front of.
+
+[beat]
+
+The technical version. Hooks are the one place in an agentic system where you get deterministic control over a nondeterministic actor.
+
+They run in your application process, not in the context window. So they cost no tokens. And they can't be talked out of a decision.
+
+[beat]
+
+The events have real names, and the exam expects you to know the main ones.
+
+Available in both the Python and type script S D Ks are these. pre tool use. post tool use. post tool use failure. user prompt submit. Stop. subagent start. subagent stop. pre compact. permission request. And Notification.
+
+type script has a longer list on top, including session start and session end. Though those are also reachable from Python, as shell command hooks declared in a settings file.
+
+The notes warn that this list has roughly doubled in a year. So treat it as a snapshot. And never assume an unfamiliar event name is invented.
+
+[beat]
+
+For this domain, six matter most.
+
+One. pre tool use, for intercepting a call and rewriting its arguments.
+
+Two. post tool use, for normalising results, and auditing.
+
+Three and four. subagent start and subagent stop, for tracking and aggregating delegated work.
+
+Five. Stop, for persisting state at the end of a run.
+
+And six. pre compact, for archiving a transcript before it's summarised away.
+
+Stop has two documented jobs. First, it can save state before exit. Second, it's also a blocking event. A Stop hook that rejects prevents Claude from stopping, and continues the conversation. That second job is the verification gate the configuration chapter builds on.
+
+[beat]
+
+Now the return shape of a pre tool use hook.
+
+Every callback receives three things. The event input. A tool use id, which links a pre tool use to the post tool use for the same call. And a context object.
+
+All hook inputs share session id, cwd, and hook event name. And agent id and agent type are filled in when the hook fires inside a subagent.
+
+The return has top-level fields, such as system message and continue. continue is spelled continue underscore in Python. And it has a hook specific output section.
+
+For pre tool use, hook specific output carries a permission decision. That's one of four values: allow, deny, ask, or defer. Plus a permission decision reason, and an updated input.
+
+[beat]
+
+The pairing rules matter. One at a time.
+
+Pair updated input with allow, to auto-approve the rewritten call.
+
+Pair it with ask, to show the rewrite to the user.
+
+Leave permission decision out, and the modified input still applies, under normal permission evaluation.
+
+And defer ignores updated input entirely.
+
+You return a new object, rather than changing tool input in place. And you return an empty object to allow the call unchanged.
+
+Hooks are registered with a matcher, tested against the tool name. A hook with no matcher fires for every call of its event type.
+
+[beat]
+
+Question one. A scenario from the notes shows why this beats the alternatives.
+
+Here's the scenario. A compliance agent posts entries to a partner ledger, through a Model Context Protocol server. The A P I rejects lowercase currency codes, and any date that is not I S O-eight thousand six hundred and one.
+
+The tool schema documents both rules. The model gets it right most of the time. But the failure rate sits near four percent.
+
+Which approach gives a guarantee, rather than an improvement?
+
+Take a second.
+
+The answer. A pre tool use hook matched to that tool, that rewrites the arguments and returns updated input paired with allow.
+
+Now the wrong turns.
+
+Wrong: a longer tool description with examples. Why? It improves the first attempt. But it stays probabilistic.
+
+Wrong: a post tool use hook that explains the rejection. Why? It repairs after the damage, with a turn already spent.
+
+Wrong: a system prompt section. Why? That's the weakest of all.
+
+The right design uses all three in layers. Fix the description, so the model usually gets it right. And normalise in the hook, so the A P I never sees a bad value.
+
+Deny only input you genuinely can't repair. And say so in the reason.
+
+Hold on to this line. pre tool use sees the call before it happens. So it can block it, or fix it. And the model can't argue.
+
+[beat]
+
+Now the return path.
+
+Question two.
+
+Here's the scenario. A support agent's order tool returns raw fields. ordered at, as an epoch integer, meaning seconds since nineteen seventy. status, as a numeric code. amount cents. And tier codes, such as P one.
+
+The agent sometimes quotes the wrong order date, or calls a delivered order processing. The tool belongs to another team, and can't be changed.
+
+What do you do?
+
+Take a second.
+
+A translator sits between a foreign supplier and a shop assistant. Instead of teaching the assistant a new language, the translator turns every invoice into plain English before it reaches the counter. The assistant can't misread words it never sees.
+
+The answer. In exam terms, post tool use runs after the tool returns, and before the model sees the result. That makes it the normalisation window.
+
+So you write a post tool use hook that converts the raw fields into plain values. A readable date. A status word, like Delivered. An amount in dollars. And even business meaning, such as what a Premium tier entitles the customer to.
+
+The model can't misread what it never sees raw. No change to the other team's tool. No extra tool call.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: document every code, and the epoch format, in the system prompt. Why? The misreading stays possible. And the decoding tables compete with everything else in the window.
+
+Wrong: a pre tool use hook that rewrites the order id. Why? That acts on the arguments going in. But the misreadings come from the result coming back.
+
+Wrong: a separate decode order tool the agent can call when unsure. Why? That adds turns. And it relies on the model knowing when it's unsure, which is exactly when it doesn't.
+
+Hold on to this line. Fix confusing results on the way back, in code, before the model reads them.
+
+[beat]
+
+Next, trimming.
+
+Question three.
+
+Here's the scenario. A debugging assistant's log search tool returns about forty thousand tokens per call. After four or five searches, the context compacts. And the assistant loses track of which request ids it was chasing.
+
+It only needs the matching lines, with timestamps and request ids. But engineers sometimes need the full output afterwards.
+
+What's the fix?
+
+Take a second.
+
+A good assistant opens the post, and hands you only the three letters that matter. With a note saying the rest is in the tray if you want it. You never wade through junk mail. And nothing is thrown away.
+
+The answer. In exam terms, post tool use can replace a tool's output with updated tool output, before Claude ever sees it. There's also additional context, which appends rather than replaces.
+
+So: a post tool use hook returning updated tool output with just the matching lines, plus a path to the saved raw output.
+
+Keeping that path back to the raw output is what makes trimming reversible. Without it, trimming is destruction.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: an async post tool use hook that trims in the background, so the agent is never slowed. Why? An async hook can't modify anything. And by the time it finishes, the agent has already swallowed all forty thousand tokens.
+
+Wrong: a pre compact hook that archives the transcript. Why? That preserves a record before summarisation. But it does nothing to stop the window filling up.
+
+Wrong: a system prompt telling the assistant to ignore irrelevant lines. Why? The tokens are spent the moment the result lands in context. Whether the model ignores them or not.
+
+Hold on to this line. Trim big results on the way in. And always keep a path back to the full version.
+
+[beat]
+
+That trap about async deserves its own moment. The exam uses it in several disguises.
+
+In plain words, some hooks can say "carry on, I'll finish this in the background." That's fine for writing a log.
+
+But it's useless for anything that's supposed to change what happens. Why? Because by the time the hook finishes, the moment has passed.
+
+The technical name is an async hook output. async set to true in type script. Or async underscore set to True in Python. With an optional async timeout.
+
+The agent proceeds without waiting. An async hook cannot block, modify, or inject context.
+
+So async is right for logging, metrics and webhooks. And wrong for normalisation, denials, and output replacement.
+
+[beat]
+
+The notes have two questions on this.
+
+Question four.
+
+Here's the scenario. An engineer writes a pre tool use hook to redirect writes into a sandbox folder. It sends the new path to an audit service. It sets updated input. And it returns async true.
+
+The audit service receives every path. But files still land in the original locations.
+
+Why?
+
+Take a second.
+
+The answer. The async return. The rewrite is discarded, because the agent already moved on.
+
+Now the wrong turns.
+
+Wrong: updated input needs a deny decision. Why? That inverts the pairing.
+
+Wrong: the timeout was too long. Why? That invents a mechanism.
+
+[beat]
+
+Question five.
+
+Here's the scenario. A migration agent must block disallowed database statements, with a reason. And also audit every attempt, without ever slowing down.
+
+What's the design?
+
+Take a second.
+
+The answer. Split the jobs. A synchronous pre tool use hook that denies with a permission decision reason. Plus a separate async hook for the audit write.
+
+Now the wrong turns.
+
+Wrong: a single async pre tool use hook. Why? It can't deny.
+
+Wrong: a post tool use hook. Why? It fires after the statement already ran.
+
+Wrong: a permission request hook plus a Stop hook. Why? That never blocks anything.
+
+Hold on to this line. If a hook is meant to change the outcome, it must be synchronous. Async is for logging only.
+
+[beat]
+
+Now, what happens when two hooks disagree?
+
+Question six.
+
+Here's the scenario. A C I agent, meaning continuous integration, has two pre tool use hooks matched to Bash.
+
+A normalisation hook rewrites commands to use absolute paths, and returns allow with updated input.
+
+A security hook returns deny for any command touching production credentials.
+
+An engineer worries that if the normalisation hook runs last, its allow will override the security hook's deny.
+
+What change is needed?
+
+Take a second.
+
+Two managers review a purchase. One approves. One vetoes. Company policy says any veto stops the purchase, whoever signed first. Nobody needs to reorder the signatures for the veto to count.
+
+The answer. In exam terms, when several hooks or rules apply to one call, the precedence is deny, then defer, then ask, then allow. The deny wins, regardless of registration order.
+
+So no change is needed.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: register the security hook after the normalisation hook. Why? Order doesn't decide the outcome. Precedence does.
+
+Wrong: merge both hooks into one callback. Why? That couples two concerns with different owners, for nothing.
+
+Wrong: make the normalisation hook async, so it can't interfere. Why? An async hook can't modify input. So path normalisation would quietly stop working.
+
+[beat]
+
+A quick cross-domain note.
+
+The configuration chapter lists several things that resolve in different directions.
+
+Claude dot M D scopes are additive.
+
+Skill name collisions go enterprise, then personal, then project.
+
+And hook decisions go deny, defer, ask, allow.
+
+The exam likes to set those against each other.
+
+[beat]
+
+Now the contrast for this part. pre tool use versus post tool use.
+
+pre tool use acts on what's going in, before the tool runs. Use it to prevent an action. To enforce a prerequisite. Or to fix malformed arguments.
+
+post tool use acts on what's coming back, after the tool has run, but before the model sees it. Use it to normalise, trim, annotate, or audit.
+
+The classic wrong answer uses post tool use to prevent an action. It can't. By the time it fires, the action has happened.
+
+[beat]
+
+That's part five.
+
+If you remember one thing, make it this. Hooks run in your code. They cost nothing in context. And they can't be argued with. pre tool use guards the way out. post tool use cleans the way back. Deny always wins. And anything that must change the outcome is never async.
+
+Coming up in part six: decomposing complex work.
+
+## Part six: Decomposing complex work
+
+Part six. Decomposing complex work.
+
+This is task statement one point six: design task decomposition strategies for complex workflows. By the end of this part, you'll know when to split work and when to keep it whole, whether to chain steps or discover them, and how to cut the work so nothing falls between the pieces.
+
+[beat]
+
+Let's start with a picture.
+
+Anyone who has organised a house move knows the calculation. You can do a job yourself. Or hand pieces to other people.
+
+Handing out isn't free. You have to explain what you want. And for some jobs, the explaining takes longer than the doing.
+
+So what rule do people arrive at? Split a job when the pieces are genuinely separate, and each can be checked on its own. Keep it whole when briefing someone costs more than finishing it.
+
+[beat]
+
+The technical version. Hold on to this line. Decomposition buys isolation, and costs context.
+
+What do you gain? A fresh window. A narrower set of tools. A cheaper model, where the work is cheap. And a piece that can fail without taking the others down.
+
+What do you pay? You rebuild, in a prompt, everything the child would otherwise have known. Plus a return trip through the parent.
+
+[beat]
+
+The notes put the rule as three signals to split on. Context volume. Permission asymmetry. And verification independence.
+
+One. Split when a subtask throws off logs or search hits that nobody needs afterwards.
+
+Two. Split when one part needs write access, and the rest should be read-only.
+
+Three. Split when each piece has its own pass or fail check.
+
+[beat]
+
+And when do you keep work whole?
+
+First. When every intermediate result feeds the next decision.
+
+Second. When success can only be judged across the whole result.
+
+Third. When piece two needs piece one's conclusions.
+
+Fourth. When the work is refine and recheck.
+
+Fifth. When latency matters, and a fresh subagent's cold start would dominate.
+
+And don't split on the org chart. Or on file count. Or because the task merely sounds big.
+
+[beat]
+
+The first decision the exam tests is whether you know the steps in advance.
+
+In plain words, some work is a checklist. And some work is a detective story.
+
+A pilot's pre-flight checklist is the same every time, in the same order. And that's the point. A detective investigating a burglary can't write the steps in advance. Each clue decides where to look next.
+
+The technical names are prompt chaining and dynamic decomposition.
+
+Prompt chaining is a fixed sequence of prompts, where each step's output feeds the next. It's reproducible, and auditable.
+
+Dynamic decomposition lets the agent work out the subtasks as it goes, based on what it finds. It suits investigations, and open-ended work.
+
+[beat]
+
+Question one.
+
+Here's the scenario. An engineering organisation wants two workloads.
+
+The first reviews every merged pull request nightly, against a fixed twelve-item compliance checklist. Auditors require the same steps, in the same order, each time.
+
+The second investigates intermittent production data corruption. Its origin is unknown, and may lie in any of several services.
+
+Which approach for each?
+
+Take a second.
+
+The answer. Prompt chaining for the compliance review. Dynamic decomposition for the investigation.
+
+Now the wrong turns.
+
+Wrong: the inverted pairing. Why? It gives up reproducibility where auditors demand it. And it scripts steps where they can't be known.
+
+Wrong: prompt chaining for both, with investigation steps defined from the list of known services. Why? Predefined steps go wrong the moment findings diverge.
+
+Wrong: dynamic decomposition for both. Why? That gives up the reproducibility auditors require, for no benefit.
+
+[beat]
+
+This is the same test you met in part two, seen from a different angle.
+
+There, it decided pipeline versus agent. Here, it decides chain versus dynamic. In both cases, the question is whether the next step depends on what the last one found.
+
+Hold on to this line. Known steps, chain them. Unknown steps, let the agent discover them.
+
+[beat]
+
+Next, how to cut the work.
+
+Question two.
+
+Here's the scenario. A privacy review asks which code paths write customer personal data to application logs.
+
+The coordinator splits the repository across eight subagents, by team-owned directory. Each reports only paths that begin and end inside its own directory.
+
+The combined answer misses most real leaks. Why? Because personal data is typically read in one team's module, and logged by a shared logging module owned by another team.
+
+What's the fix?
+
+Take a second.
+
+To learn how a rumour spread through a school, you don't assign one investigator per classroom and ask what happened inside each room. The rumour travelled between rooms. You assign someone to follow the rumour.
+
+The answer. In exam terms, the analysis is cross-cutting. Splitting it by territory produces partial answers, and nobody positioned to see a flow that crosses a boundary.
+
+So decompose by question, not by territory. For example, one subagent traces every call into the logging module back to its inputs. Another lists every personal data field, and everywhere it's read.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: split into sixteen smaller directories. Why? More territories means more boundaries. So even more flows fall between subagents.
+
+Wrong: keep the eight, and add a synthesis subagent. Why? Synthesis helps when independent lanes each did their job. But here, the flows that matter were never traced. So there's nothing to merge.
+
+Wrong: run the eight sequentially, so each reads the previous report. Why? It's slower. And each still only traces its own directory.
+
+[beat]
+
+That gives us an important contrast with part two.
+
+In the market research case, adding a synthesis step was right. Each lane had done complete, independent work. Only the joining-up was missing.
+
+In the privacy case, adding synthesis is wrong. The split itself prevented anyone from doing the work.
+
+So ask this. Did each worker have what it needed to find the answer? If yes, and the answer spans them, add synthesis. If no, change how you split.
+
+Hold on to this line. When the thing you're tracing crosses the lines you would split on, split by question instead.
+
+[beat]
+
+Next, the loop that should never be split.
+
+Question three.
+
+Here's the scenario. A documentation tool has a writer subagent and a reviewer subagent. They pass an A P I guide back and forth until the reviewer approves. Each round trip carries the full draft, and the reviewer's notes.
+
+Costs have tripled in a month, as guides grew. And quality stops improving after the second round.
+
+What's the fix?
+
+Take a second.
+
+An author and an editor in different cities post the whole manuscript back and forth for every change. They pay more postage each time, and re-read the same pages. Sitting at one desk for the revisions is cheaper and faster. The spell check can still be sent out.
+
+The answer. In exam terms, refine and recheck work should not be split across subagents. Every round trip rebuilds context the other side had a moment ago. So cost climbs, while quality plateaus.
+
+Keep revision in one conversation. And delegate only the pieces that can be checked independently, in one pass. Such as validating every link.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: add a third arbiter subagent to decide convergence. Why? That adds a third context to rebuild each round.
+
+Wrong: cap the exchange at three rounds. Why? That bounds cost, but still pays the rebuild every round. And it may stop before the draft is good.
+
+Wrong: move the reviewer to a larger model. Why? That raises the price per round, while the rebuild overhead stays the same.
+
+Hold on to this line. Keep iterative refinement in one conversation. Delegate only the one-pass, independently checkable bits.
+
+[beat]
+
+One more principle to finish this part. Prefer wide and shallow over deep.
+
+Nesting defaults to three layers below the main agent. And every layer adds a handoff where context is lost, and a summary where detail is dropped.
+
+That's why setting Claude C O D E M A X subagent S P A W N D E P T H to one is a defensible default for production coordinators. Your workers do the work themselves, instead of passing it further down, past the point where you can see what happened.
+
+[beat]
+
+That's part six.
+
+If you remember one thing, make it this. Split on context volume, permission differences, and independent checks. Chain known steps, and discover unknown ones. Cut by question, not territory. Never split a refinement loop. And go wide, not deep.
+
+Coming up in part seven: sessions, resumption and forking.
+
+## Part seven: Sessions, resumption and forking
+
+Part seven. Sessions, resumption and forking.
+
+This is task statement one point seven: manage session state, resumption, and forking. By the end of this part, you'll know when to resume, when to fork, when to start fresh, and how to recover from a crash without leaning on a transcript.
+
+[beat]
+
+Let's start with a picture.
+
+Come back to a half-finished job after a week away. Your notes are both the reason you can pick it up, and the reason you can get it badly wrong.
+
+The notes record exactly what you believed when you put them down. They say nothing about the fact that somebody tidied the room. Or that the ladder you left against the wall has been borrowed.
+
+You act on the notes with total confidence. Because from your point of view, no time has passed.
+
+A saved session is that notebook. It holds the conversation. What was said. What was found. What was decided. It holds nothing about the world those statements were about.
+
+[beat]
+
+And there's a second move worth knowing.
+
+Before trying an alternative approach, you can scribble the new plan over the page you have. Or you can photocopy the page, and scribble on the copy. The copy costs almost nothing, and keeps the original safe.
+
+But here the analogy has a sharp edge. Photocopying the notebook gives you two notebooks. And there's still only one room. Two plans acting on the same room still collide.
+
+[beat]
+
+The technical version.
+
+The S D K writes each session to disk as you work. As J S O N L files under tilde slash dot claude slash projects slash, in a folder named after the encoded working directory.
+
+There are three ways back in. One at a time.
+
+One. continue. It's spelled continue: true in type script, and continue conversation equals True in Python. It picks up the most recent session in the current directory, with no id to track.
+
+Two. resume. It takes a specific session id, captured from session id on the result message. It's what you need when several conversations run at once.
+
+Three. fork session in Python, or fork session in type script, used together with resume. It creates a new session that starts with a copy of the original's history, and diverges from there.
+
+In Claude Code, the same three appear as claude dash dash continue, claude dash dash resume, and dash dash fork session, or the slash branch command.
+
+[beat]
+
+The distinction the exam probes.
+
+continue and resume both add to an existing session. So its history grows.
+
+Fork copies the history into a new session id. And it leaves the original untouched.
+
+[beat]
+
+And the caveat the exam loves most.
+
+The documentation says sessions persist the conversation, not the filesystem. And forking branches the conversation history, not the filesystem.
+
+So if a forked agent edits files, those changes are real. And they're visible to any session working in the same directory.
+
+Hold on to this line. Resumption restores what the agent knew, not what is now true.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A developer spent ninety minutes in a named Claude Code session, building an analysis of a large service for a refactoring plan. Two days later, they return to continue.
+
+Meanwhile, only two files changed: auth dot pie and stripe handler dot pie. Both were edited by a colleague.
+
+What should they do?
+
+Take a second.
+
+You return from a week's leave to a half-finished kitchen renovation. A colleague says only the sink and the tap were changed while you were away. So you re-check those two, and carry on. You wouldn't rip out the whole kitchen. And you wouldn't assume nothing changed.
+
+The answer. Resume the session, and state which two files changed. Tell it not to rely on earlier results for them.
+
+When context is still largely valid, and the changes are few and known, resume plus an explicit change notice keeps the expensive baseline. And it triggers targeted re-analysis.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: resume and continue directly, trusting the agent to notice. Why? The agent can't detect external file changes on its own. It trusts its transcript. And it may act on old contents. That's the named anti-pattern of treating resume as a time machine.
+
+Wrong: fork the session, so the updated files are handled separately. Why? Forking is for exploring alternatives, not for handling file updates over time.
+
+Wrong: start fresh, and redo the whole analysis. Why? That throws away ninety minutes of still-valid work, over two files.
+
+Hold on to this line. Resume when the old context is mostly still true. And tell the agent exactly what changed.
+
+[beat]
+
+Question two. This one is pick two.
+
+Here's the scenario. An architect has a session holding a costly two-hour exploration of a monolith. They want to compare two migration strategies, serverless and containerised, from that shared baseline.
+
+Both will involve trial edits to files. They want the original session left intact. And neither strategy's edits contaminating the other.
+
+Which two?
+
+Take a second.
+
+Two architects photocopy the same site survey, to sketch competing designs. Cheap, and the original stays clean. But if both start knocking down walls in the one real building, their plans collide. Copies of the notes still need separate models of the building.
+
+The answers. First. Fork the baseline session once per strategy. So each gets a new session id, with a copy of the history. Second. Give each fork its own working copy of the code. Why? Because forks branch the conversation, not the filesystem.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: resume the baseline for the first strategy, then resume it again for the second. Why? Resuming appends. So the first strategy gets welded into the history the second would start from.
+
+Wrong: start two fresh sessions, and redo the exploration in each. Why? That pays twice for work a fork shares almost for free.
+
+And the key trap. Wrong: rely on the fork to isolate file edits, because each fork keeps a private copy of the repository. Why? It doesn't.
+
+The notes add one more thing. An in-session fork in Claude Code is especially cheap. Its system prompt and tool definitions match the parent's. So its first request reuses the parent's prompt cache.
+
+[beat]
+
+Question three. There's a matching one in the notes.
+
+Here's the scenario. An engineer tried a different fix by resuming the same session with a new prompt. Two hours later, the original thread was no longer usable.
+
+What should they have done?
+
+Take a second.
+
+The answer. fork session with resume.
+
+Now the wrong turns.
+
+Wrong: start fresh. Why? That throws away context.
+
+Wrong: continue. Why? continue appends, just like resume.
+
+Wrong: file checkpointing. Why? It's the wrong subsystem. It snapshots file changes, not conversations.
+
+Hold on to this line. Fork to explore. Resume to continue. And give each fork its own copy of the files.
+
+[beat]
+
+Question four.
+
+Here's the scenario. A weekly security audit in continuous integration resumes last week's session, to avoid re-reading the repository. This week, a large restructuring moved or deleted hundreds of files.
+
+The resumed agent confidently reports vulnerabilities at line numbers, in files that no longer exist. The team still wants to benefit from last week's findings.
+
+What's the fix?
+
+Take a second.
+
+An inspector returns to a building that was gutted and rebuilt since last year. Reading last year's report aloud as if it still applied would be dangerous. Instead, they carry last year's list as things to check. They walk the new building. And they confirm or strike each item.
+
+The answer. In exam terms, when prior tool results are fundamentally stale, resuming is counterproductive. Start a fresh session. Inject last week's findings as a structured summary, framed explicitly as hypotheses to validate. Not facts.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: keep resuming, with a note that the repository changed a lot. Why? A vague note can't correct hundreds of stale file and line references the transcript still asserts.
+
+Wrong: fork last week's session. Why? A fork copies the same stale history into a new id, and isolates nothing.
+
+Wrong: resume with a larger context window, and re-read everything on top. Why? It keeps the stale transcript. It adds cost. And it doesn't tell the agent which beliefs are wrong.
+
+[beat]
+
+So here's the three-way contrast, which the exam loves.
+
+Resume, with an explicit change notice, when the context is still largely valid, and the changes are few and known.
+
+Fork, when you want to compare alternatives from a costly baseline without disturbing it. Remembering that the files are shared.
+
+Start fresh with an injected summary, framed as hypotheses, when the world has changed so much that the old transcript is more misleading than useful.
+
+[beat]
+
+Now crash recovery. That's a different problem again.
+
+In plain words, if a long job dies halfway, you want it to pick up where it left off. Not start over.
+
+The tempting answer is to save the transcript, and resume it. The better answer is to write down, as you go, the small set of facts you'd want on a clean start.
+
+The documentation is direct about this. Don't rely on session resume. Capture the results you need, such as analysis output, decisions and file diffs, as application state. And pass them into a fresh session's prompt.
+
+Why? Session files are local to the machine that created them. That's fatal on containers that get recycled, or on serverless hosts.
+
+There are two supported ways to keep transcripts anyway.
+
+One. Attach a session store adapter, spelled session store in Python. It mirrors transcripts to your own backend, keyed on the working directory.
+
+Two. Move the J S O N L file yourself.
+
+Both are heavier than writing down what you learned.
+
+[beat]
+
+Question five. The notes have the scenario.
+
+Here's the scenario. A nightly job audits forty microservice repositories, one subagent each. The container is preemptible, and recycles about twice a week. And every time, the next run starts from repository one.
+
+The team proposes persisting transcripts to object storage, and resuming.
+
+What's the strongest design?
+
+Take a second.
+
+The answer. A structured state record. Let me take its parts one at a time.
+
+One. One addressable unit per repository.
+
+Two. A status written before each attempt, as well as after. So a unit killed mid-audit is distinguishable from one never started.
+
+Three. A bounded attempt count. Three per unit in the notes, which is a house number, rather than a platform limit. So a unit that fails deterministically is abandoned, instead of retried until the budget dies.
+
+Four. The locked decisions. So a resumed run stays consistent.
+
+Five. Artifact addresses, rather than contents. So the record stays small.
+
+Six. An atomic write. So the crash you're recovering from can't leave a half-written state file.
+
+And on restart, skip every unit already marked done.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: the session store, or the copied transcript. Why? Both work in principle. But they're heavier, and more fragile.
+
+Wrong: raise max turns and max budget usd. Why? That doesn't address recovery at all. It just makes each run longer, and more likely to be interrupted.
+
+[beat]
+
+One last mechanic.
+
+Sessions don't give you a way to undo file changes. If file changes must be revertible, use file checkpointing.
+
+And pin the working directory, so the session lookup and the checkout agree.
+
+The context management chapter returns to the idea of extracting durable facts before they're summarised away.
+
+[beat]
+
+That's part seven.
+
+If you remember one thing, make it this. A session remembers the conversation, not the world. Resume with a change notice when little has changed. Fork to explore, with separate copies of the files. Start fresh with hypotheses when a lot has changed. And recover from crashes with a small state record, not a transcript.
+
+Coming up next: the trap round.
+
+## Trap round
+
+The trap round.
+
+Time for rapid fire. I say what you might see in a question. You think of the answer. We'll go in the order of the parts.
+
+[beat]
+
+First, loops.
+
+If you see a loop that exits when the first content block is text, think: it should branch on stop reason. Text and a tool request can arrive together.
+
+If you see an A P I error right after someone stopped sending the assistant message, think: the A P I is stateless. Every tool result must follow its tool use.
+
+If you see partial Jason stored as complete, think: truncation. max tokens means raise the limit, or continue. model context window exceeded means shrink the context, or move work into fresh subagents.
+
+If you see a server tool, and an answer that stops mid-thought, think: pause turn. Send the content back.
+
+If you see a refusal, think: terminal. Read stop details. Fall back, or escalate. Never loop.
+
+[beat]
+
+Still on loops.
+
+If you see the same tool called with the same arguments, over and over, think: no-progress detection. Not a higher turn cap.
+
+If you see "resolved" with no evidence, think: an acceptance check in code. Not a prompt sentence. And not a keyword scan.
+
+If you see a turn cap used as the finish line, think: stop reason is the primary exit. The cap is a safety valve that reports halted.
+
+If you see an empty result file from an S D K wrapper, think: check the result message subtype before reading result.
+
+[beat]
+
+Now coordinators and subagents.
+
+If you see fixed steps in a fixed order handed to an agent, think: deterministic pipeline. With an agent only where judgment is needed.
+
+If you see subagents talking directly to each other, think: hub and spoke. Everything through the coordinator.
+
+If you see excellent separate summaries that never connect, think: a missing synthesis step.
+
+If you see latency about three times what it should be, think: emit all the independent subagent calls in one response.
+
+If you see a recommender running in parallel with the researchers it depends on, think: dependency on findings means sequential.
+
+[beat]
+
+Still on coordinators.
+
+If you see token use rising after adding subagents, think: the coordinator is redoing its workers' work.
+
+If you see a delegation tree growing deep and expensive, think: max budget usd for the whole tree, and spawn depth one. Or remove Agent from the one subagent that must not delegate.
+
+If you see Claude never delegating at all, think: Agent is missing from allowed tools.
+
+If you see a capped run labelled complete, think: error max budget usd is incomplete. Report the coverage gap.
+
+[beat]
+
+Now spawning and context.
+
+If you see a subagent that can't find a file the parent just read, think: the delegation prompt was not a self-contained work order.
+
+If you see a rule in the coordinator's system prompt that subagents ignore, think: the parent's system prompt never crosses. Use Claude dot M D, or the subagent's own prompt.
+
+If you see identical subagent descriptions and misrouting, think: rewrite each description as a routing rule. Not a coordinator prompt patch.
+
+If you see a subagent that must never call a tool, think: leave it out of that subagent's tools list. Not allowed-tools in a skill. Not read only hint. Not a prompt line.
+
+If you see prose summaries and untraceable claims, think: structured findings, with source metadata and claim-to-source ids.
+
+If you see two sources that disagree, think: record both. Mark unresolved. Escalate.
+
+[beat]
+
+Now enforcement and handoffs.
+
+If you see a step that must happen before another every time, think: a pre tool use gate, with a permission decision reason. Not post tool use, which is too late.
+
+If you see a rule forgotten after compaction, think: Claude dot M D for persistence. A hook for enforcement.
+
+If you see a stage acting on a stale handoff, think: validate run id, next expected, a code-evaluated gate, and the checksum. Then refuse on mismatch.
+
+If you see "validation passed" in prose, think: a claim, not evidence. evaluated by code.
+
+If you see units drifting between stages, think: decisions locked.
+
+If you see humans reading transcripts to act on escalations, think: a structured handoff summary.
+
+[beat]
+
+Now hooks.
+
+If you see raw codes and epoch timestamps being misread, think: normalise in post tool use.
+
+If you see a huge tool result filling the window, think: updated tool output, with a path back to the raw output.
+
+If you see worry about hook order, think: deny beats defer beats ask beats allow. Order does not matter.
+
+If you see an async hook that was supposed to rewrite or block, think: it can't. Async is for logging only.
+
+[beat]
+
+Now decomposition.
+
+If you see a fixed audited checklist versus an unknown investigation, think: prompt chaining versus dynamic decomposition.
+
+If you see subagents split by directory missing cross-boundary flows, think: decompose by question, not territory.
+
+If you see a writer and reviewer subagent ping-ponging with rising cost, think: keep refinement in one conversation.
+
+[beat]
+
+And finally, sessions.
+
+If you see a resumed session with a few known file changes, think: resume, and state what changed.
+
+If you see two alternatives from one expensive baseline, think: fork. And give each fork its own working copy.
+
+If you see a resumed session citing files that no longer exist, think: fresh start, with findings framed as hypotheses.
+
+If you see a job that restarts from zero when the container recycles, think: a structured state record. Not transcript shipping.
+
+[beat]
+
+That's the trap round.
+
+Coming up: the closing recap, ten things to remember.
+
+## Closing recap: ten things to remember
+
+The closing recap. Ten things to remember from this chapter.
+
+For each one, you'll hear the idea in plain words first. Then the technical name that goes with it.
+
+[beat]
+
+One. The model stopping is not the job being done. Read why it stopped, every time. And let your own code judge success.
+
+The technical name is branching on stop reason. With end turn as a candidate, and a code-evaluated acceptance check.
+
+Two. A loop fails by running long, expensive, stuck, or wrong. So it needs four separate guards. And the counter is only the backstop.
+
+The technical name is the four termination guards. Turn cap. Budget cap. No-progress detection. And an acceptance check. With the cap reporting halted.
+
+Three. A cut-off answer looks like a finished one. And a paused answer is not finished at all.
+
+The technical names are max tokens and model context window exceeded as truncation. And pause turn as a continuation.
+
+[beat]
+
+Four. If you can draw the flowchart before the run, write code. Use an agent only where the next step depends on what was just found.
+
+The technical name is choosing between a deterministic pipeline, a single agent, and a coordinator with subagents.
+
+Five. Workers report to the coordinator, never to each other. Independent work runs at the same time. Dependent work waits its turn.
+
+The technical names are hub and spoke. And parallel spawning, by emitting several Agent calls in one response, decided by the dependency test on findings.
+
+Six. Cap the whole tree's spending and depth. And never call a capped run complete.
+
+The technical names are max budget usd. Claude C O D E M A X subagent S P A W N D E P T H set to one. And treating error max budget usd as incomplete, with coverage reported.
+
+[beat]
+
+Seven. A worker knows only what you write down for it. And a worker should simply not be given tools it must never use.
+
+The technical names are the self-contained delegation prompt. The description as a routing rule. And the tools availability list, which restricts. Unlike allowed tools, skill allowed-tools, or read only hint.
+
+Eight. A prompt is a request, and code is a guarantee. So enforce in order. Take the tool away. Block the call. Then check the paperwork at the next stage.
+
+The technical name is the enforcement ladder. Withheld tools. A pre tool use deny with a reason. And a validated handoff record with decisions locked. With Claude dot M D for persistence across compaction.
+
+[beat]
+
+Nine. Hooks are code at the counter. One guards what goes out. One cleans what comes back. A veto always wins. And anything meant to change the outcome must not run in the background.
+
+The technical names are pre tool use. post tool use with updated tool output. The precedence deny, defer, ask, allow. And no async for normalisation.
+
+Ten. A saved session remembers the conversation, not the world. Resume when little has changed, and say what did. Fork to explore, on separate copies of the files. Start fresh with hypotheses when a lot has changed. And survive crashes with a small written record.
+
+The technical names are resume. fork session. A fresh session with injected state. And a structured state record, written atomically.
+
+[beat]
+
+That is Domain one.
+
+It is more than a quarter of your exam. So if you come back to one chapter, come back to this one.

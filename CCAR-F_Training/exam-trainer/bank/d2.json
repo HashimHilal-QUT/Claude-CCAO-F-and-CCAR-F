@@ -1,0 +1,761 @@
+[
+  {
+    "id": "D2-001",
+    "domain": 2,
+    "task": "2.1",
+    "scenario": "customer-support",
+    "type": "single",
+    "stem": "A support agent has an order_status_get tool described as \"Returns order status.\" Transcripts show that when customers ask where a parcel is, the agent calls order_status_get two or three times with rephrased arguments before giving up, even though carrier tracking lives in a separate shipment_tracking_get tool. Tracking is needed in about one conversation in ten, and the carrier API is slow and billed per call. Which change best reduces the redundant calls?",
+    "options": [
+      "Merge the two tools into one order_status_get that always calls the carrier API and returns status plus tracking together.",
+      "Add a system prompt rule stating that tracking questions must be answered with shipment_tracking_get, not order_status_get.",
+      "Rewrite the description to list its return fields, say it excludes tracking and ETA, and point to shipment_tracking_get.",
+      "Set tool_choice to force shipment_tracking_get whenever the customer message contains the words parcel, tracking, or delivery."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "The repeated calls come from a description that never says what the tool leaves out, so the agent keeps hoping the missing data will appear. Stating the return fields, the explicit exclusion, and the next tool fixes the defect where selection actually happens. Merging would put the slow, billed carrier call on the nine conversations in ten that never need it.",
+    "whyWrong": [
+      "Consolidation suits tools that are always called together; tracking is needed in one conversation in ten, so every other conversation would pay the slow, billed carrier call.",
+      "Patches a description defect with prompt text that competes with everything else in context; the description is what the model reads at the moment of choosing.",
+      "Correct: the boundary sentence, saying what the tool does not return and where to go instead, is the part architects omit most and the one that stops hopeful repeat calls.",
+      "tool_choice is a per-request lever, not keyword routing; wrapping keyword logic around it papers over a description problem and misfires on messages that mention delivery for other reasons."
+    ],
+    "concept": "Description boundary: what the tool does not return",
+    "sources": [
+      "fde-enablement-hub-complete.md:2797",
+      "claude-certified-architect-principles.md:153",
+      "claude-certified-architect-principles.md:154",
+      "claude-certified-architect-principles.md:157",
+      "lesson 6.pdf p5",
+      "lesson 6.pdf p6"
+    ],
+    "plainExample": "A shop sign that just says \"Groceries\" leaves you wandering the aisles looking for stamps. A sign that says \"Groceries - no post office counter, that is next door\" sends you to the right place first time. Telling people what you do not do is as useful as telling them what you do.",
+    "technicalExample": "Before: {\"name\": \"order_status_get\", \"description\": \"Returns order status.\"}\nAfter: \"Returns status, placed date, and line items for one order by order ID.\nUse when the customer asks whether an order is confirmed, paid, or shipped.\nIt does not return carrier tracking or delivery ETA:\nfetch those with shipment_tracking_get.\""
+  },
+  {
+    "id": "D2-002",
+    "domain": 2,
+    "task": "2.1",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "An extraction pipeline uses one tool, submit_document_fields, with a doc_type enum of invoice or contract. line_items is required only when doc_type is invoice, and governing_law only when it is contract, so neither can be listed as required in the schema. About 12 percent of calls omit the field their document type needs and fail downstream validation. Which redesign best addresses the root cause?",
+    "options": [
+      "Split it into record_invoice_fields and record_contract_fields, each marking its own type-specific fields required.",
+      "Add a paragraph to the system prompt listing which fields must be supplied for each possible value of doc_type.",
+      "Mark both line_items and governing_law as required on every call so that the schema rejects any omission at all.",
+      "Keep the single tool and add a downstream validator that re-queues any document missing its type-specific field for a retry."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "A parameter that is required only when another parameter takes a specific value is the signal that one tool is doing two jobs. Splitting gives each document type a schema that can enforce its own required fields, so the omission fails at validation instead of downstream. Making both fields always required would push the model to invent a governing law for every invoice.",
+    "whyWrong": [
+      "Correct: conditional requirements signal two jobs in one tool; separate schemas let each required list express its job honestly.",
+      "Prompt text restates the rule but cannot enforce it; the schema still accepts the omission, and the instruction competes with the rest of the context.",
+      "Forces a value for a field that does not apply, pushing the model toward fabricating a governing law for invoices and line items for contracts.",
+      "Catches the failure later and more expensively; it treats the symptom and leaves a schema that cannot express the requirement."
+    ],
+    "concept": "Conditional required parameters signal a split",
+    "sources": [
+      "fde-enablement-hub-complete.md:2809",
+      "claude-certified-architect-principles.md:176",
+      "claude-certified-architect-principles.md:178",
+      "fde-enablement-hub-complete.md:3106"
+    ],
+    "plainExample": "Picture one form for both passport renewals and driving licences, with a note saying \"fill in box 7 only if you ticked driving licence.\" People skip box 7 constantly. Two separate forms, each demanding exactly its own boxes, stop the mistake before the form is handed in.",
+    "technicalExample": "Wrong: one tool whose required fields depend on doc_type\n{\"name\": \"submit_document_fields\",\n \"input_schema\": {\"type\": \"object\",\n   \"properties\": {\"doc_type\": {\"enum\": [\"invoice\", \"contract\"]},\n                  \"line_items\": {\"type\": \"array\"},\n                  \"governing_law\": {\"type\": \"string\"}},\n   \"required\": [\"doc_type\"]}}\n# \"line_items only for invoices\" lives nowhere the schema can enforce\n\nRight: one tool per document shape, with everything it needs required\n{\"name\": \"record_invoice_fields\",\n \"input_schema\": {\"type\": \"object\",\n   \"required\": [\"vendor\", \"invoice_date\", \"line_items\"], ...}}\n{\"name\": \"record_contract_fields\",\n \"input_schema\": {\"type\": \"object\",\n   \"required\": [\"parties\", \"effective_date\", \"governing_law\"], ...}}"
+  },
+  {
+    "id": "D2-003",
+    "domain": 2,
+    "task": "2.1",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "A team built a custom MCP tool, code_semantic_search, described as \"Tool to search through the codebase.\" For intent questions such as \"where do we retry failed payments,\" the agent almost always uses the built-in Grep instead and misses logic that never uses the word retry. The team wants the agent to keep using Grep for exact-string lookups. What should they do first?",
+    "options": [
+      "Remove Grep from the agent's tool set so that code_semantic_search is the only search capability it can select.",
+      "Add a routing subagent that classifies each question as exact or semantic and passes it to the matching search tool.",
+      "Add few-shot examples to the system prompt showing intent questions routed to code_semantic_search and exact lookups to Grep.",
+      "Rewrite the description: finds code by intent, what it returns, when to prefer it over Grep, and not for exact strings."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "Custom tools compete with built-in tools for selection, and a one-line description loses that competition because the model only has what was written. Enhancing the description with purpose, return shape, when to prefer it, and a negative boundary is the first and highest-leverage fix. Examples and routing layers come later, and removing Grep breaks the exact-match lookups the team wants to keep.",
+    "whyWrong": [
+      "Violates the stated constraint: the team wants Grep for exact-string lookups, and withholding it trades one misselection for a lost capability.",
+      "Adds architecture to fix a language problem; the troubleshooting hierarchy puts classifiers last, after descriptions and examples.",
+      "Few-shot examples rank below description repair; they are the second move once the description says when to prefer the tool.",
+      "Correct: stating what it does, what it returns, its negative bounds, and when to prefer it over Grep is the first fix for misselection."
+    ],
+    "concept": "Custom tool vs built-in: fix the description first",
+    "sources": [
+      "lesson_8.pdf p8",
+      "lesson_8.pdf p10",
+      "lesson_8.pdf p11",
+      "lesson 6.pdf p10",
+      "fde-enablement-hub-complete.md:2746"
+    ],
+    "plainExample": "A new restaurant opens next to a famous one, with a sign that reads only \"Food.\" Everybody keeps going to the place they already know. Once the sign says \"slow-cooked stews, better than next door when you want something hearty,\" the right diners start walking in.",
+    "technicalExample": "Weak: \"Tool to search through the codebase.\"\nStrong: \"Semantic code search: finds code by what it does, not by exact words.\nReturns file paths, line numbers, and snippets ranked by relevance.\nUse instead of Grep when the question describes behavior or intent.\nDo not use for exact strings or symbol names: Grep is faster there.\""
+  },
+  {
+    "id": "D2-004",
+    "domain": 2,
+    "task": "2.1",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "A research agent has three tools: search_web (\"Searches for information\"), search_documents (\"Searches documents for information\"), and analyze_content. For questions about the company's internal policy corpus it alternates between search_web and search_documents almost at random, and web results sometimes contradict internal policy. The team has one week and wants the lowest-complexity fix that addresses the cause. What should the architect do first?",
+    "options": [
+      "Move search_web into a public-research subagent and search_documents into an internal-research subagent under a coordinator.",
+      "Rename them search_public_web and search_internal_policies, and give each description its corpus and a pointer to the other.",
+      "Add a routing classifier in front of the agent that labels each question internal or external before any tool is offered.",
+      "Set tool_choice to any on research turns so the agent always calls one of the search tools instead of answering from memory."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "The two descriptions are near-synonyms, so the model effectively picks whichever it reads first. Renaming with semantic weight and writing mutually exclusive boundary statements removes the overlap at the point of selection, which is the highest-leverage and lowest-complexity fix. Subagents and classifiers add architecture to solve a language problem.",
+    "whyWrong": [
+      "Adds a coordination layer and a handoff to fix overlapping wording; the hierarchy says not to add subagents to fix a language problem.",
+      "Correct: self-explanatory names narrow selection before a description is read, and mutually exclusive boundaries end the random alternation.",
+      "A classifier is the high-complexity last resort in the troubleshooting hierarchy, and the one-week, low-complexity constraint rules it out.",
+      "Forcing a call does not make the agent pick the right one; it still chooses between two indistinguishable search tools."
+    ],
+    "concept": "Overlapping descriptions: rename and bound before re-architecting",
+    "sources": [
+      "lesson 6.pdf p8",
+      "lesson 6.pdf p9",
+      "lesson 6.pdf p10",
+      "fde-enablement-hub-complete.md:2799",
+      "claude-certified-architect-principles.md:169"
+    ],
+    "plainExample": "Two kitchen drawers both labelled \"Utensils\" mean you open whichever is nearer and hope. Relabel them \"Cooking spoons and spatulas\" and \"Table cutlery - spatulas are in the other drawer,\" and nobody opens the wrong one again. Hiring someone to stand by the drawers and direct traffic would also work, but it is an expensive answer to a labelling problem.",
+    "technicalExample": "Before:\n  search_web: \"Searches for information\"\n  search_documents: \"Searches documents for information\"\nAfter:\n  search_public_web: \"Searches the public internet only. Does not search company policy:\n    use search_internal_policies for anything about internal rules.\"\n  search_internal_policies: \"Searches the internal policy corpus only. Returns no web results.\""
+  },
+  {
+    "id": "D2-005",
+    "domain": 2,
+    "task": "2.1",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A CI pipeline gives its review agent one tool, manage_deployment, with an action parameter of plan, apply, or rollback. The review stage must run plan on every pull request but must never be able to change production, and the security team insists the guarantee cannot rest on the model following instructions. Which design best meets the requirement?",
+    "options": [
+      "Keep manage_deployment and add a description sentence stating apply and rollback must never be called from the review stage.",
+      "Keep manage_deployment and add a PreToolUse hook in the review stage that denies any call whose action is apply or rollback.",
+      "Split into a read-only deployment_plan tool plus separate apply and rollback tools, and grant review only deployment_plan.",
+      "Keep manage_deployment and have the server declare readOnlyHint: true so the host treats review-stage calls as safe."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "Plan and apply share a resource but carry very different risk, so they should not share one tool, one permission rule, and one audit entry type. Splitting on the destructive path lets the review agent simply not have apply, which is the top rung of the enforcement ladder: withhold the capability. A hook that inspects the action argument is deterministic and defensible, but it ranks below not granting the tool at all.",
+    "whyWrong": [
+      "A description is guidance the model reads, not enforcement; the requirement explicitly rules out relying on the model following instructions.",
+      "Deterministic and far better than a prompt, but second on the enforcement ladder; withholding the capability removes the risk instead of filtering it at call time.",
+      "Correct: splitting on risk lets you withhold the destructive tools from the review agent entirely, the strongest enforcement available.",
+      "Annotations are untrusted hints and never authorization, and labelling a tool that can apply to production as read-only is also false."
+    ],
+    "concept": "Split on risk profile; withhold before you deny",
+    "sources": [
+      "fde-enablement-hub-complete.md:2807",
+      "fde-enablement-hub-complete.md:3196",
+      "claude-certified-architect-principles.md:174",
+      "claude-certified-architect-principles.md:177",
+      "claude-certified-architect-principles.md:16",
+      "fde-enablement-hub-complete.md:3068"
+    ],
+    "plainExample": "A garage gives its trainee one key that opens both the parts cupboard and the car lifts, then pins up a note saying \"trainees must not use the lifts.\" A guard checking every door would work, but the simplest guarantee is a key that only opens the parts cupboard.",
+    "technicalExample": "Before: manage_deployment { action: enum[plan, apply, rollback] }  -> one tool, one permission\nAfter:\n  deployment_plan      (read-only)\n  deployment_apply     (changes production)\n  deployment_rollback  (changes production)\nReview-stage agent tools: mcp__deploy__deployment_plan\n-> apply is not in its session, so there is nothing to deny"
+  },
+  {
+    "id": "D2-006",
+    "domain": 2,
+    "task": "2.2",
+    "scenario": "customer-support",
+    "type": "single",
+    "stem": "A support agent's order_search tool returns an empty list both when a customer genuinely has no orders and when the order database times out. During a database incident the agent told dozens of customers that they had no orders and offered to open new accounts. The team wants outages handled correctly without retrying genuinely empty results. What should order_search return on a timeout?",
+    "options": [
+      "The same empty list, plus a system prompt rule telling the agent to retry twice whenever order_search comes back empty before replying.",
+      "Return isError: true stating a transient timeout, retryable with a short retry hint, while real zero matches stay empty.",
+      "An uncaught exception, so that the agent pipeline stops immediately rather than acting on data that might be wrong.",
+      "A JSON-RPC protocol error, so that the client treats the timeout as a server fault rather than as a normal answer."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "An empty list on failure is ambiguous: the agent cannot tell a timeout from a customer with no orders, so it confidently acts on a false negative. Returning the failure as a tool execution error with isError: true and a transient, retryable classification lets the agent retry within a bound and then report the outage, while genuine empty results stay unambiguous.",
+    "whyWrong": [
+      "Still cannot tell the two cases apart, so it retries every genuine empty result and still misreports a long outage as no orders.",
+      "Correct: the dedicated flag separates failure from a legitimately empty result, and the transient classification says a bounded retry helps.",
+      "Crashing the pipeline leaves the model with no context and no recovery path; ending everything on one failure is an all-or-nothing anti-pattern.",
+      "An upstream timeout is an execution failure; the protocol channel strips the actionable text the model uses to recover."
+    ],
+    "concept": "isError vs empty result",
+    "sources": [
+      "lesson 7.pdf p2",
+      "lesson 7.pdf p3",
+      "lesson 7.pdf p12",
+      "fde-enablement-hub-complete.md:2824",
+      "fde-enablement-hub-complete.md:2899"
+    ],
+    "plainExample": "You ask a colleague to check the stockroom and they come back saying \"nothing there,\" when actually the door was locked. You cancel the order you should have chased. \"I couldn't get in, try again in ten minutes\" is a completely different message, and it leads to the right next step.",
+    "technicalExample": "Wrong on timeout: { \"content\": [{\"type\":\"text\",\"text\":\"[]\"}] }\nRight on timeout:\n{ \"content\": [{\"type\":\"text\",\"text\":\"Order DB timed out after 5000 ms. Transient: retry once shortly, then report an outage.\"}],\n  \"structuredContent\": {\"error_class\":\"transient\",\"retryable\":true,\"retry_after_seconds\":5},\n  \"isError\": true }\nGenuine zero matches: { \"content\": [{\"type\":\"text\",\"text\":\"[]\"}] }   (no isError)"
+  },
+  {
+    "id": "D2-007",
+    "domain": 2,
+    "task": "2.2",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "A research subagent calls fetch_filing on a licensed financial database. For filings outside the organisation's subscription, the server returns isError: true with the text \"Request failed, please try again.\" The subagent retries each such filing six times, exhausting its budget, and the provider's audit log flags hundreds of denied requests. Which change best fixes the behaviour?",
+    "options": [
+      "Classify it as a non-retryable permission error that names the missing entitlement and tells the agent to stop.",
+      "Lower the subagent's retry cap from six attempts to two so that denied filings consume less budget before it moves on.",
+      "Return the denial as a JSON-RPC error so that the client stops the call instead of passing a message to the model.",
+      "Have the server silently leave unsubscribed filings out of its results so the subagent never sees a failure to retry."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "A generic retry message makes a denial look transient, so the agent keeps retrying something that can never succeed. Classifying it as a permission error with retryable false and the required entitlement tells the agent to stop and escalate, and a failure classified non-retryable is never retried however much budget remains. The gap must still reach the coordinator rather than disappear.",
+    "whyWrong": [
+      "Correct: permission errors mean stop and escalate; naming the missing entitlement makes the escalation actionable and ends the retry loop.",
+      "Treats the symptom; two retries of a denial are still two wasted calls and two audit entries, because classification, not the counter, should decide.",
+      "A denial sent through the protocol channel reads as a server fault, strips the actionable text, and invites more retries, not fewer.",
+      "Silent omission is the silent-failure anti-pattern: the coordinator cannot tell coverage is incomplete and reports partial research as complete."
+    ],
+    "concept": "Permission errors are not retryable",
+    "sources": [
+      "fde-enablement-hub-complete.md:2901",
+      "fde-enablement-hub-complete.md:2904",
+      "claude-certified-architect-principles.md:202",
+      "claude-certified-architect-principles.md:204",
+      "claude-certified-architect-principles.md:20",
+      "lesson 7.pdf p4"
+    ],
+    "plainExample": "A courier is told at reception that only the named recipient can sign for a parcel. If the note just says \"didn't work, try again,\" they come back six times and annoy everyone. If it says \"only the recipient can sign, go back to the sender,\" they stop after one visit.",
+    "technicalExample": "Wrong: { \"content\": [{\"type\":\"text\",\"text\":\"Request failed, please try again.\"}], \"isError\": true }\nRight:\n{ \"content\": [{\"type\":\"text\",\"text\":\"Access denied: filing is outside the current subscription. Do not retry. Report it as a coverage gap.\"}],\n  \"structuredContent\": {\"error_class\":\"permission\",\"retryable\":false,\"required_scope\":\"filings:premium\"},\n  \"isError\": true }"
+  },
+  {
+    "id": "D2-008",
+    "domain": 2,
+    "task": "2.2",
+    "scenario": "customer-support",
+    "type": "multi",
+    "stem": "A team is reviewing how its refund-service MCP server reports failures. Most failures come back as results with isError: true, and a teammate asks which, if any, belong in the JSON-RPC protocol error channel instead. The team adopts the rule that anything a well-formed call reached and the server's logic decided belongs in the result. Which TWO failures should be returned as JSON-RPC protocol errors? (Select TWO.)",
+    "options": [
+      "The upstream payments API returns a 503 while the refund is being processed.",
+      "The client invokes a tool name that the server has never registered.",
+      "The refund is rejected because the order shipped outside the 90-day window.",
+      "The request is so malformed that the server cannot parse it as a tool call.",
+      "The session's service account lacks write scope on the payments dataset."
+    ],
+    "correct": [
+      1,
+      3
+    ],
+    "explanation": "Protocol errors are for requests that never made sense as a call, such as an unknown tool name or a malformed request. The other three reached the server's logic, which decided the outcome, so they are tool execution errors returned with isError: true and actionable prose. Routing them through the protocol channel would remove the text the model uses to recover.",
+    "whyWrong": [
+      "An upstream 503 is an API failure met inside the server's logic; it is a transient execution error returned with isError: true and a retry hint.",
+      "Correct: an unknown tool name is a problem with the request itself, which is what the JSON-RPC error channel exists for.",
+      "A refund outside the window is a legitimate business outcome of a well-formed call; it needs isError: true, the rule, and the alternative path.",
+      "Correct: a request the server cannot interpret as a call never reached tool logic, so there is nothing actionable for the model.",
+      "A missing scope is a permission outcome decided by the server's logic; it returns as a non-retryable result telling the agent to stop and escalate."
+    ],
+    "concept": "Protocol error vs tool execution error",
+    "sources": [
+      "fde-enablement-hub-complete.md:2824",
+      "fde-enablement-hub-complete.md:2902",
+      "claude-certified-architect-principles.md:193",
+      "claude-certified-architect-principles.md:195",
+      "fde-enablement-hub-complete.md:3169"
+    ],
+    "plainExample": "A kitchen gets two kinds of bad tickets. Some are unreadable or ask for a dish that is not on the menu, and the cook sends them straight back to the front desk. Others are perfectly clear but ask for something that cannot be done today, and those go back with a note explaining what the diner can have instead.",
+    "technicalExample": "Protocol channel (request never made sense as a call):\n{ \"jsonrpc\":\"2.0\", \"id\":3, \"error\": {\"code\": -32602, \"message\": \"Unknown tool: refund_procss\"} }\nResult channel (the server's logic decided the answer):\n{ \"jsonrpc\":\"2.0\", \"id\":7, \"result\": {\n  \"content\":[{\"type\":\"text\",\"text\":\"Refund rejected: 94 days since shipment, window is 90. Do not retry.\"}],\n  \"isError\": true } }"
+  },
+  {
+    "id": "D2-009",
+    "domain": 2,
+    "task": "2.2",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "An extraction pipeline's orchestrator code must decide, for every failed document, whether to requeue it, send it to a person, or drop it. Today the MCP tools return failures as prose only, such as \"Vendor master lookup timed out, try later,\" and the orchestrator parses that text with regular expressions that break whenever a message is reworded. The model's own recovery from these messages works well. Which change best fixes the orchestrator without hurting the model?",
+    "options": [
+      "Standardise the wording of every error message in a shared template and keep the orchestrator's regular expressions.",
+      "Return every failure as a JSON-RPC error with a distinct numeric code that the orchestrator can switch on directly.",
+      "Replace the prose with a compact JSON code block only, since both the orchestrator and the model can read JSON.",
+      "Keep the prose in the content block and add error_class, retryable, and a retry hint in structuredContent."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "The prose and the classification serve two different readers: the sentence is for the model, which reasons in language, and the machine-readable fields are for orchestration code, which needs something stable to branch on. Adding structuredContent alongside the unchanged prose gives the orchestrator reliable fields and preserves the model recovery that already works.",
+    "whyWrong": [
+      "Keeps the orchestrator coupled to wording; the next rewording breaks it again, and nothing gives it a stable field to branch on.",
+      "Moves transient and business failures into the protocol channel, which strips the actionable text the model is currently recovering from.",
+      "Drops the explanatory sentence the model uses to choose its next step, trading working model behaviour for the orchestrator's convenience.",
+      "Correct: prose for the model plus a machine-readable taxonomy for the orchestrator is the designed error contract."
+    ],
+    "concept": "structuredContent for orchestration alongside prose",
+    "sources": [
+      "fde-enablement-hub-complete.md:2836",
+      "fde-enablement-hub-complete.md:2906",
+      "claude-certified-architect-principles.md:198",
+      "fde-enablement-hub-complete.md:5760"
+    ],
+    "plainExample": "A hospital chart carries a handwritten note for the next nurse and a coloured sticker on the cover for the porter who moves patients. The porter does not read handwriting to decide where to go; they read the sticker. Remove the note and the nurse is lost; remove the sticker and the porter is guessing.",
+    "technicalExample": "{ \"content\": [{\"type\":\"text\",\"text\":\"Vendor master lookup timed out after 5000 ms. Retry this call once shortly.\"}],\n  \"structuredContent\": {\n    \"error_class\": \"transient\", \"retryable\": true,\n    \"retry_after_seconds\": 5, \"correlation_id\": \"b7f1c0e2\" },\n  \"isError\": true }\nOrchestrator: retryable -> requeue; error_class == \"permission\" -> person; business -> route per rule"
+  },
+  {
+    "id": "D2-010",
+    "domain": 2,
+    "task": "2.2",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "In a multi-agent research system, a subagent's web fetch occasionally times out. Today the subagent returns the raw failure to the coordinator on the first timeout, and the coordinator aborts the whole research run, discarding findings the other subagents already returned. The timeouts usually clear within seconds. Which change best improves resilience?",
+    "options": [
+      "Have the coordinator re-run every failed fetch itself, with backoff, so that all recovery logic lives in a single place.",
+      "Raise the subagent's turn cap so that it has more room to keep working after the timeout has occurred.",
+      "Retry transient failures locally in the subagent, bounded, and escalate a structured error only when retries run out.",
+      "Have the subagent return an empty result on timeout so that the coordinator can carry on with the other findings."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "Subagents should handle their own transient failures and involve the coordinator only when local options are exhausted, and then with a structured error it can route on. Aborting the entire run on one failure is an all-or-nothing anti-pattern. The coordinator can then continue with partial results and report the gap instead of discarding everything.",
+    "whyWrong": [
+      "Pushes the work up to a coordinator that then duplicates what the subagent was doing, costing context and turns without adding information.",
+      "The subagent is not short of turns; it lacks a recovery policy, so a higher cap changes nothing about the immediate abort.",
+      "Correct: local bounded retry for transient issues, followed by a structured escalation, keeps one timeout from sinking the whole run.",
+      "A silent empty result hides the failure, so the coordinator reports incomplete research as complete instead of naming the gap."
+    ],
+    "concept": "Local recovery before escalation",
+    "sources": [
+      "lesson 7.pdf p7",
+      "lesson 7.pdf p12",
+      "fde-enablement-hub-complete.md:2899",
+      "fde-enablement-hub-complete.md:5845"
+    ],
+    "plainExample": "A member of a survey team finds a shop closed for lunch. Instead of phoning the manager, who then cancels the whole survey, they wait ten minutes and try again. They only call in if the shop stays shut, and even then the manager keeps everyone else's completed forms.",
+    "technicalExample": "Subagent:\n  on transient error -> retry the same call, max 2, short backoff\n  still failing -> return {\"status\":\"partial\", \"failed\":[{\"url\":\"...\", \"error_class\":\"transient\", \"retryable\":true}],\n                          \"coverage\":\"11 of 12 sources\"}\nCoordinator:\n  merge partial findings and carry the coverage gap into the final report\n  never abort the run on a single failure"
+  },
+  {
+    "id": "D2-011",
+    "domain": 2,
+    "task": "2.3",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "In a research system, the synthesis agent inherits every tool the coordinator has, including web_search and fetch_url. Instead of writing up the findings it was handed, it often launches new searches, which blows its budget and adds sources nobody verified. It still needs verify_fact to check claims against the collected sources. Which change best fixes this?",
+    "options": [
+      "Set disallowedTools: web_search on the synthesis agent so the rest of its inherited tools, including verify_fact, stay available.",
+      "Give the synthesis agent a tools allowlist with verify_fact and what synthesis needs, and nothing that gathers new sources.",
+      "Set tool_choice to none on the synthesis agent's requests so it cannot start any new tool calls at all.",
+      "Add an instruction to the synthesis agent's prompt saying it must not perform new research under any circumstances."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "Surgical scoping keeps the synthesis agent on the data already gathered: an allowlist closes its tool pool by construction, so research tools are simply not there. A denylist over an inherited pool fails by omission, because fetch_url and any tool added later still reach it. Blocking all tool calls would also block the verify_fact calls it genuinely needs.",
+    "whyWrong": [
+      "A denylist over an inherited pool fails by omission: fetch_url stays granted, and any research tool added later silently arrives.",
+      "Correct: an allowlist gives the agent only the tools its job needs, which removes the divergence instead of discouraging it.",
+      "Blocks verify_fact along with the search tools; tool_choice decides whether a call is allowed on a request, not which tools the agent has.",
+      "A prompt instruction is a request, not a guarantee; the tools stay available and the instruction competes with everything else in context."
+    ],
+    "concept": "Allowlist distribution over denylists and prompts",
+    "sources": [
+      "lesson 7.pdf p9",
+      "fde-enablement-hub-complete.md:2933",
+      "claude-certified-architect-principles.md:210",
+      "claude-certified-architect-principles.md:211",
+      "fde-enablement-hub-complete.md:3241"
+    ],
+    "plainExample": "An editor who is meant to polish an article keeps leaving the office to interview new people. Telling them to stop rarely sticks. Handing them only a red pen and the draft keeps them editing. Taking away just their phone still leaves the notebook in their pocket.",
+    "technicalExample": "Wrong (denylist over an inherited pool):\n  disallowedTools: web_search        # fetch_url and future tools still arrive\nRight (allowlist):\n---\nname: synthesis\ntools: mcp__research__verify_fact, Read\n---"
+  },
+  {
+    "id": "D2-012",
+    "domain": 2,
+    "task": "2.3",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "A document-intake pipeline registers three extraction tools, record_invoice, record_receipt, and record_purchase_order, and the document type is only known after the model reads the file. With tool_choice left on auto, about one response in ten is a prose summary instead of a tool call, which the ingestion step cannot parse. Which tool_choice setting best fixes this?",
+    "options": [
+      "any, so the model must call one of the three extraction tools and chooses the one that matches the document type.",
+      "tool with name record_invoice, because invoices are the most common document type arriving in the intake queue.",
+      "auto, plus a prompt instruction telling the model that it must always respond by calling exactly one extraction tool.",
+      "none, with all three schemas pasted into the prompt so that the model writes matching JSON as plain text."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "The requirement is that some structured result is always produced, and any of the three schemas is acceptable because the model has to pick the one that fits the document. any forces a tool call while leaving the choice of tool to the model, which eliminates text-only responses. Forcing one named tool is right only when a single schema is the deliverable.",
+    "whyWrong": [
+      "Correct: any guarantees a tool call and lets the model choose among several acceptable schemas based on what it reads.",
+      "Forces the invoice schema onto receipts and purchase orders; naming one tool is for when that single schema is the deliverable.",
+      "auto still permits a text-only answer, which is the failure being reported, and a prompt line does not change what the request allows.",
+      "none forbids tool calls entirely, falling back to unvalidated JSON in prose, the least reliable option here."
+    ],
+    "concept": "tool_choice any vs tool vs auto",
+    "sources": [
+      "fde-enablement-hub-complete.md:5733",
+      "fde-enablement-hub-complete.md:5734",
+      "fde-enablement-hub-complete.md:2961",
+      "claude-certified-architect-principles.md:183",
+      "lesson 7.pdf p10"
+    ],
+    "plainExample": "A council office tells visitors they must leave with one of three forms filled in, and each person picks the one that matches their errand. Insisting everyone fills in the parking form would be wrong for most of them. Merely asking nicely means some people chat at the counter and leave with nothing.",
+    "technicalExample": "Tools offered: record_invoice, record_receipt, record_purchase_order\n\n\"tool_choice\": {\"type\": \"any\"}\n  # must call a tool; the model picks which schema fits\n\"tool_choice\": {\"type\": \"tool\", \"name\": \"record_invoice\"}\n  # must call exactly that tool, even for a receipt\n\"tool_choice\": {\"type\": \"auto\"}\n  # may still answer in prose"
+  },
+  {
+    "id": "D2-013",
+    "domain": 2,
+    "task": "2.3",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "A team registers an incident-management MCP server with 45 tools in the project's shared configuration. Only the incident-triage subagent ever uses it, but every developer's main session now carries those 45 tool definitions, and the main agent's tool selection has become noticeably less accurate. Which change best targets the cause?",
+    "options": [
+      "Turn on deferred tool loading so the 45 definitions are fetched through tool search only when the main agent needs one.",
+      "Add a line to the project CLAUDE.md telling the main agent to ignore every tool that comes from the incident server.",
+      "Move the server into each triage engineer's user-scope configuration so it stays out of everyone else's sessions.",
+      "Remove the server from the shared configuration and declare it in the incident-triage subagent's own mcpServers field."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "Every registered tool costs context and adds a candidate to every selection decision, so the fix is to put the capability where it is used. Declaring the server inline in the one subagent that needs it moves both the tools and their description cost out of the parent conversation. Deferral reduces context cost but leaves the capability in the wrong agent.",
+    "whyWrong": [
+      "Deferral trims context cost and suits a catalog that genuinely must stay large; here the capability simply belongs in another agent.",
+      "An instruction removes neither the 45 candidates from selection nor their context cost; it adds more text for the agent to weigh.",
+      "User scope is private per machine, so the team loses a shared, versioned definition and each triage engineer configures it by hand.",
+      "Correct: an inline mcpServers entry moves the capability and its context cost into the one agent that needs both."
+    ],
+    "concept": "Inline mcpServers in the subagent that needs it",
+    "sources": [
+      "fde-enablement-hub-complete.md:2918",
+      "fde-enablement-hub-complete.md:2933",
+      "fde-enablement-hub-complete.md:2963",
+      "claude-certified-architect-principles.md:214",
+      "fde-enablement-hub-complete.md:7938"
+    ],
+    "plainExample": "A plumber's whole van of tools gets carried into every flat on the job, including the ones where only the electrician is working. Everyone trips over it. Leaving the plumbing kit with the plumber, and only with the plumber, clears the corridor for everyone else.",
+    "technicalExample": "Before: project .mcp.json -> \"incidents\" server (45 tools) loaded into every session\nAfter:\n  project .mcp.json      -> no incidents entry\n  incident-triage agent  -> declares its own mcpServers entry for incidents\n  main session           -> never sees the 45 definitions\nDeferral would shrink the cost but keep the capability in the wrong agent"
+  },
+  {
+    "id": "D2-014",
+    "domain": 2,
+    "task": "2.3",
+    "scenario": "customer-support",
+    "type": "multi",
+    "stem": "A customer support coordinator agent has 28 tools covering billing, orders, shipping, and outbound messages, and it picks the wrong tool on about one turn in six. Three of its tools, get_order_header, get_order_lines, and get_order_payments, are called in that order on nearly every order question. Which TWO changes most directly reduce misselection? (Select TWO.)",
+    "options": [
+      "Set tool_choice to any on every turn so the coordinator always commits to a tool instead of hesitating.",
+      "Split the work into an order agent and a messaging agent, each with an allowlist of only its role's tools.",
+      "Raise the coordinator's maximum turn count so it has room to recover after picking the wrong tool.",
+      "Add a table to the system prompt mapping common customer intents to the exact tool names to call.",
+      "Consolidate the three order tools that are always called in sequence into a single order_details tool."
+    ],
+    "correct": [
+      1,
+      4
+    ],
+    "explanation": "Consolidation removes candidates outright, and role-based distribution shrinks the set each agent chooses from; together they rank highest for reducing ambiguity. Forcing a call, raising the turn cap, or adding a prompt table all leave 28 near-neighbour candidates in front of a single agent.",
+    "whyWrong": [
+      "Forcing a call makes the agent call something on every turn, including summary turns, without helping it choose the right tool.",
+      "Correct: role-based distribution gives each agent a small, relevant set, which directly improves selection reliability.",
+      "More turns let the agent make more wrong calls; it treats the symptom and does nothing to the size of the candidate set.",
+      "A prompt table patches catalog ambiguity with instructions that compete for attention; selection still happens against 28 tools.",
+      "Correct: tools that are always called in sequence should be one tool, which removes candidates and chaining turns together."
+    ],
+    "concept": "Consolidate and distribute to cut the candidate set",
+    "sources": [
+      "fde-enablement-hub-complete.md:3160",
+      "fde-enablement-hub-complete.md:2805",
+      "claude-certified-architect-principles.md:209",
+      "claude-certified-architect-principles.md:25",
+      "lesson 7.pdf p8"
+    ],
+    "plainExample": "A help desk where one person answers every question from a wall of 28 binders keeps grabbing the wrong one. Merge the three binders that are always read together into one, and give order questions and letter-writing to two people with their own shelves, and the wrong grabs mostly stop.",
+    "technicalExample": "Before: coordinator with 28 tools; header -> lines -> payments on every order question\nAfter:\n  order_details     one call runs header + lines + payments\n  order-agent       tools: order_details, refund_request, shipment_tracking_get\n  messaging-agent   tools: email_send, sms_send\n  coordinator       delegates to the two agents and escalates"
+  },
+  {
+    "id": "D2-015",
+    "domain": 2,
+    "task": "2.4",
+    "scenario": "code-generation",
+    "type": "single",
+    "stem": "A developer connected a shared Postgres MCP server using claude mcp add with no scope flag, and it works well on their machine. Two new teammates who cloned the repository report that the database tools are simply not there. The team wants every contributor to get the same definition from version control without anyone's password being committed. What should the developer do?",
+    "options": [
+      "Re-add the server with the user scope flag so it applies across all of the developer's projects, not just this one.",
+      "Commit their ~/.claude.json file to the repository so that teammates receive exactly the same configuration.",
+      "Define the server in a project-scoped .mcp.json at the repository root, referencing the password as ${DB_PASSWORD}.",
+      "Add a README section telling each teammate to run the same claude mcp add command on their own machine."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "claude mcp add with no scope writes to local scope, which is private to that developer, so teammates never receive it. Project scope lives in .mcp.json at the repository root and is meant for version control, and ${VAR} expansion keeps the secret in each developer's environment instead of in the file.",
+    "whyWrong": [
+      "User scope is still private to the developer's machine; it widens the server across their own projects but never reaches teammates.",
+      "~/.claude.json is a personal file holding private entries and possibly tokens; committing it leaks secrets and other projects' settings.",
+      "Correct: project scope in .mcp.json is the shared, versioned definition, and ${DB_PASSWORD} keeps the secret out of git.",
+      "Works once but relies on manual steps that drift, so each machine ends up with its own slightly different private definition."
+    ],
+    "concept": "Local vs project scope for shared servers",
+    "sources": [
+      "fde-enablement-hub-complete.md:2977",
+      "fde-enablement-hub-complete.md:3000",
+      "claude-certified-architect-principles.md:230",
+      "lesson_8.pdf p3",
+      "lesson_8.pdf p5",
+      "lesson_8.pdf p11"
+    ],
+    "plainExample": "Writing the team's shared phone list in your personal notebook means it works perfectly for you and nobody else has it. Pinning it on the office noticeboard, with each person's private PIN left for them to fill in, gives everyone the same list without exposing anyone's details.",
+    "technicalExample": "claude mcp add db ...        # no --scope flag: local scope, private to you\nProject scope, committed at the repo root as .mcp.json:\n{ \"mcpServers\": { \"db\": {\n    \"type\": \"stdio\", \"command\": \"npx\", \"args\": [\"-y\", \"@example/postgres-mcp\"],\n    \"env\": { \"DB_PASSWORD\": \"${DB_PASSWORD}\" } } } }"
+  },
+  {
+    "id": "D2-016",
+    "domain": 2,
+    "task": "2.4",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A committed .mcp.json passes an issue-tracker token as Bearer ${ISSUE_TOKEN} with no default, and it works on every developer laptop. In the CI job the server loads, claude mcp list prints a warning, and every call to the tracker fails with an authentication error. What is the most likely cause and the right fix?",
+    "options": [
+      "ISSUE_TOKEN is unset in CI, so the literal ${ISSUE_TOKEN} text is sent; inject the token from the CI secret store.",
+      "The headers field does not expand variables in CI; hard-code the token in a CI-only copy of the .mcp.json file.",
+      "The token needs a fallback so fresh environments work; change the value to ${ISSUE_TOKEN:-<shared service token>}.",
+      "Project servers need an interactive approval CI cannot give; add the server to disabledMcpjsonServers in CI."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "When a referenced variable is unset and has no default, the configuration still loads, claude mcp list warns, and the literal placeholder is sent, which surfaces later as an authentication failure. The fix is to supply the secret in CI from its secret store; the missing default on the token is deliberate, so the file never carries a credential.",
+    "whyWrong": [
+      "Correct: an unset variable with no default fails late as an auth error, and wiring the secret into the CI environment fixes it without committing anything.",
+      "Factually wrong: headers support ${VAR} expansion, and a second copy with a hard-coded token commits the secret.",
+      "Defaults belong on endpoints and paths, never on secrets; this commits a credential to version control.",
+      "The server is already loading, so approval is not the blocker; disabling it removes the tracker from CI instead of fixing authentication."
+    ],
+    "concept": "Unset variable fails late as an auth error",
+    "sources": [
+      "fde-enablement-hub-complete.md:3000",
+      "fde-enablement-hub-complete.md:3205",
+      "claude-certified-architect-principles.md:232",
+      "claude-certified-architect-principles.md:234",
+      "fde-enablement-hub-complete.md:7923"
+    ],
+    "plainExample": "A recipe card says \"add the house sauce from your own cupboard.\" In a borrowed kitchen with no house sauce, a literal-minded cook pours in nothing but the label, and the dish fails at the table rather than in the kitchen. The fix is to stock the borrowed kitchen, not to print the sauce on the card.",
+    "technicalExample": "\"headers\": { \"Authorization\": \"Bearer ${ISSUE_TOKEN}\" }     # no default, by design\nCI with ISSUE_TOKEN unset:\n  config loads, claude mcp list warns, literal \"${ISSUE_TOKEN}\" is sent -> auth failure\nFix: expose ISSUE_TOKEN to the job from the pipeline's secret store\nNever: \"Bearer ${ISSUE_TOKEN:-real-token-here}\""
+  },
+  {
+    "id": "D2-017",
+    "domain": 2,
+    "task": "2.4",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "An internal MCP server exposes run_release_checklist as a tool. Release managers want to start the checklist deliberately at a moment they choose, but the agent keeps invoking it on its own whenever a conversation mentions a release, which pages the on-call team. Which change best fits the capability to the right MCP primitive?",
+    "options": [
+      "Keep it as a tool and add a description sentence saying to call it only when a release manager explicitly asks.",
+      "Expose it as an MCP prompt so a person selects it deliberately, for example as a slash command in Claude Code.",
+      "Expose it as an MCP resource so that the host application decides when to include the checklist in context.",
+      "Keep it as a tool and set tool_choice to none on every request so that the agent can never call it by itself."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "Tools are model-controlled, so the model reaches for this one on its own judgment. Prompts are user-controlled and canonically invoked as slash commands, which matches a workflow a person must start deliberately. The capability sits in the wrong primitive, and wording or request-level blocks do not change who is in control.",
+    "whyWrong": [
+      "Leaves a model-controlled primitive in charge of a human decision and relies on wording to hold every single time.",
+      "Correct: prompts are user-controlled workflows invoked deliberately, which is exactly how release managers want to start the checklist.",
+      "Resources are application-driven content with stable URIs, not a workflow a person triggers at a moment they choose.",
+      "Blocks every tool call on every request, disabling the agent's other tools to suppress one capability that sits in the wrong primitive."
+    ],
+    "concept": "Tools vs resources vs prompts: who is in control",
+    "sources": [
+      "fde-enablement-hub-complete.md:3006",
+      "fde-enablement-hub-complete.md:3008",
+      "fde-enablement-hub-complete.md:3004",
+      "claude-certified-architect-principles.md:220",
+      "claude-certified-architect-principles.md:225"
+    ],
+    "plainExample": "A fire alarm button that anyone can lean on goes off whenever someone brushes past it. A glass-fronted box you have to open on purpose is still one step away, but it only goes off when a person decides it should. The fix is the housing, not a sign saying \"please do not lean.\"",
+    "technicalExample": "Tool     -> model-controlled:   tools/list, tools/call (the agent invokes on its own judgment)\nResource -> application-driven: resources/list, resources/read (the host decides)\nPrompt   -> user-controlled:    prompts/list, prompts/get (a person picks it)\nIn Claude Code a server prompt is invoked as /mcp__release__run_release_checklist"
+  },
+  {
+    "id": "D2-018",
+    "domain": 2,
+    "task": "2.4",
+    "scenario": "code-generation",
+    "type": "multi",
+    "stem": "A team connects a third-party MCP server to its code-generation workflow. The server's export_repository tool declares readOnlyHint: true, but an export copies the entire repository to external storage. The team requires a person to confirm every export and wants only the release subagent able to export at all. Which TWO measures provide real enforcement? (Select TWO.)",
+    "options": [
+      "Grant mcp__vendor__export_repository only in the release subagent's tools allowlist and in no other agent.",
+      "Trust the server's readOnlyHint and let the host skip its confirmation prompt for this tool automatically.",
+      "Write a permission rule against the exact tool name that requires a person to approve each export call.",
+      "Add a system prompt instruction telling every agent to ask the user before calling any export tool.",
+      "Ask the vendor to change the annotation to destructiveHint: true so the host starts showing confirmations."
+    ],
+    "correct": [
+      0,
+      2
+    ],
+    "explanation": "Annotations are hints written by the server, and clients must treat them as untrusted, so neither the current hint nor a changed one is a boundary. Real enforcement comes from the tool set each agent is granted and from permission rules written against the exact mcp__server__tool name. A prompt instruction is a request, not a guarantee.",
+    "whyWrong": [
+      "Correct: withholding the tool from every other agent is structural enforcement, keyed on the exact mcp__server__tool string.",
+      "Treats an untrusted server hint as authorization; a server can claim read-only and still send data somewhere you did not intend.",
+      "Correct: a permission rule on the exact tool name is enforced by the host, not by the server's self-description or the model's compliance.",
+      "An instruction competes with everything else in context and can be lost to compaction; it is neither a gate nor a withheld capability.",
+      "Swaps one hint for another; confirmation would still depend on a server's self-description, which is advisory at best."
+    ],
+    "concept": "Annotations are not authorization",
+    "sources": [
+      "fde-enablement-hub-complete.md:3068",
+      "fde-enablement-hub-complete.md:3004",
+      "fde-enablement-hub-complete.md:3250",
+      "claude-certified-architect-principles.md:241",
+      "claude-certified-architect-principles.md:245",
+      "claude-certified-architect-principles.md:22"
+    ],
+    "plainExample": "A box labelled \"fragile, books only\" by the sender tells you how to carry it, not what is inside. If you need to be sure nothing risky leaves the building, you check at the door and decide who may sign for it. The label is the sender's word; the door check is yours.",
+    "technicalExample": "Server says: export_repository declares readOnlyHint: true      # advisory, untrusted\nReal boundaries:\n  release subagent  tools: mcp__vendor__export_repository\n  other agents      tool not listed -> not in their session\n  permission rule   on mcp__vendor__export_repository -> a person approves every call"
+  },
+  {
+    "id": "D2-019",
+    "domain": 2,
+    "task": "2.5",
+    "scenario": "code-generation",
+    "type": "single",
+    "stem": "A code-generation agent must replace every call to a deprecated legacyAuth() function in a monorepo of about 4,000 files. Its current approach globs every source file and reads each one in full before planning, and it runs out of context before touching the first call site. Which approach should the architect specify?",
+    "options": [
+      "Read every file under src/ first so the agent has complete context before it plans any of the changes.",
+      "Run grep -r through Bash, save the output to a file, and then Read that whole file to plan the changes.",
+      "Glob for all TypeScript files, then Read each match in turn until all of the call sites have been found.",
+      "Grep for legacyAuth( to list the files, Read only the relevant regions, then Edit each call site."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "The incremental pattern lets Grep say what to read: find the call sites by content, load only those files or regions, then make targeted edits. Bulk reading consumes the context window before any reasoning happens, and Glob matches names rather than contents, so it cannot locate call sites.",
+    "whyWrong": [
+      "Bulk reading is the named anti-pattern: irrelevant files fill the window and quality degrades before any reasoning starts.",
+      "Routes a search through the unconstrained shell and loses Grep's structured output, truncation signal, and precise permission matching.",
+      "Glob matches file names and paths and never looks inside files, so reading every TypeScript file is still bulk reading.",
+      "Correct: Grep finds contents, Read loads only the targets, and Edit patches in place, which preserves the context window."
+    ],
+    "concept": "Incremental exploration: Grep, then Read",
+    "sources": [
+      "lesson_9.pdf p7",
+      "lesson_9.pdf p12",
+      "lesson_9.pdf p14",
+      "fde-enablement-hub-complete.md:3080",
+      "claude-certified-architect-principles.md:251"
+    ],
+    "plainExample": "To find every page of a thick manual that mentions a recalled part, you use the index and open only those pages. Reading the whole manual first leaves you too tired to fix anything, and flipping through the chapter titles will not show you where the part is mentioned.",
+    "technicalExample": "1. Grep  pattern: \"legacyAuth\\(\"  output_mode: files_with_matches   -> matching paths\n2. Grep  pattern: \"legacyAuth\\(\"  output_mode: content   -> file and line hits\n3. Read  only those files, with offset/limit around each hit\n4. Edit  each call site with a unique old_string\nAnti-pattern: for f in glob('**/*'): read(f)"
+  },
+  {
+    "id": "D2-020",
+    "domain": 2,
+    "task": "2.5",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "An agent must change timeout: 30 to timeout: 60 in the payments handler of a 2,500-line configuration module. The Edit call fails because timeout: 30 appears seven times in the file, and only the payments handler should change. On earlier tasks, full-file rewrites of this module silently dropped unrelated blocks. What should the agent do?",
+    "options": [
+      "Retry Edit with old_string widened to include the payments handler's surrounding lines so it matches exactly once.",
+      "Retry Edit with replace_all set to true so that every occurrence of timeout: 30 is updated in a single call.",
+      "Read the full module, then use Write to regenerate it with the new value placed only in the payments handler.",
+      "Use Bash to run sed with a regular expression that targets timeout: 30 across the whole file."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "Edit requires old_string to match exactly once, so the fix is to widen the anchor with surrounding context until it is unique, which keeps the change surgical in a large file. Regenerating the module with Write reintroduces the dropped-code risk the stem describes, and replace_all or a file-wide sed would change handlers that must stay at 30.",
+    "whyWrong": [
+      "Correct: widening old_string with nearby unique lines passes the uniqueness check and changes only the intended handler.",
+      "replace_all updates all seven occurrences, changing six handlers that were supposed to keep their 30-second timeout.",
+      "Full-file regeneration of this module is what dropped code before; Read plus Write is the fallback only when no unique anchor can be built.",
+      "A file-wide sed also hits all seven occurrences, and it moves a file edit into the shell, where permission rules match strings rather than intent."
+    ],
+    "concept": "Edit uniqueness: widen the anchor",
+    "sources": [
+      "fde-enablement-hub-complete.md:3082",
+      "fde-enablement-hub-complete.md:3084",
+      "claude-certified-architect-principles.md:252",
+      "claude-certified-architect-principles.md:253",
+      "lesson_9.pdf p10",
+      "lesson_9.pdf p11"
+    ],
+    "plainExample": "Telling a painter to \"repaint the blue door\" on a street with seven blue doors gets you confusion, or seven red doors. \"Repaint the blue door next to the bakery\" gets exactly one done. Knocking the house down and rebuilding it to change one door is the other way to go wrong.",
+    "technicalExample": "Fails (7 matches):\n  old_string: \"timeout: 30\"\nWorks (1 match):\n  old_string: \"payments:\\n    handler: charge_card\\n    timeout: 30\"\n  new_string: \"payments:\\n    handler: charge_card\\n    timeout: 60\"\nreplace_all: true would change all seven"
+  },
+  {
+    "id": "D2-021",
+    "domain": 2,
+    "task": "2.5",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A CI job's agent must list every file named *.env.example in the repository, including files under a generated/ directory that is listed in .gitignore, and find every line in tracked source that mentions API_KEY. The security team wants permission rules that name capabilities precisely rather than match shell command strings. Which tool plan best meets both needs?",
+    "options": [
+      "Use Grep for both tasks, since Grep can match file names as well as file contents across the repository.",
+      "Use Bash with find for the file list and grep -rn for the API_KEY lines, since the shell covers every directory.",
+      "Use Glob with **/*.env.example for the file list, and Grep for API_KEY in content mode for the source lines.",
+      "Use Glob for both tasks, first finding the files by name and then matching API_KEY with a second pattern."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "Glob matches names and paths and ignores .gitignore by default, so it sees the generated/ directory; Grep searches contents and respects .gitignore, which suits tracked source. Both are narrow, read-only tools that a permission rule can name directly. Bash would find the files too, but it trades that precision for rules that must pattern-match command strings.",
+    "whyWrong": [
+      "Grep searches file contents, not names, and it respects .gitignore, so it would also miss the generated/ directory.",
+      "Gets results but fails the security constraint: rules against Bash must match command strings, and the output has no structured mode or truncation flag.",
+      "Correct: Glob for names, which also sees gitignored generated/ files, and Grep for contents; both can be named precisely in permission rules.",
+      "Glob never looks inside files, so it cannot find the lines that mention API_KEY."
+    ],
+    "concept": "Grep vs Glob and the gitignore asymmetry",
+    "sources": [
+      "fde-enablement-hub-complete.md:3086",
+      "fde-enablement-hub-complete.md:3088",
+      "fde-enablement-hub-complete.md:3092",
+      "claude-certified-architect-principles.md:255",
+      "lesson_9.pdf p7",
+      "lesson_9.pdf p15"
+    ],
+    "plainExample": "In a records room, one clerk reads the labels on the folders and another reads the documents inside. Ask the label reader to find every letter that mentions a customer and they cannot. Ask the document reader to find folders by name and they are the wrong person too. Each is fast and trustworthy at their own job.",
+    "technicalExample": "Glob  pattern: \"**/*.env.example\"               # names; ignores .gitignore -> sees generated/\nGrep  pattern: \"API_KEY\"  output_mode: content   # contents; respects .gitignore\nPermission rules can name Grep and Glob directly.\nBash: find . -name '*.env.example'; grep -rn API_KEY .   # rules must match command strings"
+  },
+  {
+    "id": "D2-022",
+    "domain": 2,
+    "task": "2.5",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "A developer-productivity agent runs export DEPLOY_ENV=staging in one Bash call, then runs ./preflight.sh in the next Bash call. The script reports that it is checking production, its default when DEPLOY_ENV is unset. An earlier cd into the scripts/ directory did carry over between the same two calls. What is the most likely cause and the right fix?",
+    "options": [
+      "Bash output was truncated and hid an earlier error; raise the output limit and run the two commands again.",
+      "Each Bash call runs in a separate process, so the export is lost; set the variable in the same command as the script.",
+      "The working directory also reset between the calls, so the script ran from the wrong folder; use an absolute path.",
+      "Shell startup aliases and functions are not loaded in Claude Code, so export behaved differently; define the variable in an alias."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "Claude Code runs each Bash command in a separate process: the working directory carries over within the project, but environment variables do not, so an export is gone by the next call. Setting the variable inline with the command, or chaining both in one call, keeps it in the same process.",
+    "whyWrong": [
+      "Nothing points to truncation; output is bounded, but the script ran and clearly reported which environment it used.",
+      "Correct: environment variables do not persist between Bash calls while the working directory does, so put the variable and the script in one command.",
+      "The stem shows the cd carried over, and the working directory does persist within the project; the variable is what was lost.",
+      "Claude Code sources the shell startup file at session start, so aliases are available; that is not why the export disappeared."
+    ],
+    "concept": "Bash: working directory persists, environment does not",
+    "sources": [
+      "fde-enablement-hub-complete.md:3090",
+      "claude-certified-architect-principles.md:256",
+      "fde-enablement-hub-complete.md:5859"
+    ],
+    "plainExample": "Each time you ring a call centre you reach a different agent. The branch recorded on your account carries over, but whatever you told the last agent out loud is gone. If the next agent needs to know it, say it in the same call.",
+    "technicalExample": "Call 1: export DEPLOY_ENV=staging      # set in process A, which then exits\nCall 2: ./preflight.sh                  # process B: DEPLOY_ENV unset -> production\nFix:    DEPLOY_ENV=staging ./preflight.sh\n  or:   export DEPLOY_ENV=staging && ./preflight.sh\nThe earlier cd carries over; environment variables do not"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "part": "Part one: Designing tool interfaces with clear descriptions and boundaries",
+    "questions": ["D2-001", "D2-002", "D2-003", "D2-004", "D2-005"],
+    "concepts": ["description is the interface", "three to four sentence floor", "negative boundary and named next tool", "do not merge rarely needed or billed tools", "prompt rule vs description fix", "namespacing and naming pattern", "mutually exclusive boundaries", "lookup vs lookup_v2 retire legacy", "custom tool vs built-in Grep", "misrouting ladder: rename, describe, examples, classifiers", "decision-shaped tools vs endpoint mirroring", "consolidate always-sequenced tools and action parameter", "split on conditional required parameters", "split on risk profile", "enforcement ladder: withhold, deny, validate", "schema habits: enum, bounds, additionalProperties, required"]
+  },
+  {
+    "part": "Part two: Implementing structured error responses for MCP tools",
+    "questions": ["D2-006", "D2-007", "D2-008", "D2-009", "D2-010"],
+    "concepts": ["protocol error vs tool execution error", "reached-my-logic test", "isError vs is_error", "business error names rule and next_action", "isError false anti-pattern", "silent failure: empty list on timeout", "error classes: transient, validation, business, permission", "classification overrides retry counter", "never widen scope automatically", "transient 429 under-signalled as unavailable", "structuredContent alongside prose", "one error vocabulary across layers", "local bounded retry then structured escalation", "partial results and coverage gap"]
+  },
+  {
+    "part": "Part three: Distributing tools across agents and configuring tool choice",
+    "questions": ["D2-011", "D2-012", "D2-013", "D2-014"],
+    "concepts": ["three levers: distribution, permission, forcing", "every tool costs context and a candidate", "consolidate and distribute to cut the candidate set", "ranking: consolidation, distribution, descriptions, deferral", "reconciling the two ladders", "tools allowlist vs disallowedTools denylist", "disallowedTools applies first, mcp__ patterns", "Bash deny rules and OS sandbox", "allowed-tools vs tools vs allowedTools", "inline mcpServers in subagent", "deferred loading via ToolSearch and alwaysLoad (source disagreement)", "tool_choice auto, any, tool, none and defaults", "disable_parallel_tool_use per mode", "any vs named tool for structured output (source disagreement)", "any on every loop turn anti-pattern", "none to suppress one tool anti-pattern"]
+  },
+  {
+    "part": "Part four: Integrating MCP servers into Claude Code and agent workflows",
+    "questions": ["D2-015", "D2-016", "D2-017", "D2-018"],
+    "concepts": ["local, project, user scopes", ".mcp.json for shared servers", "precedence without merging", "variable expansion and defaults", "no default on secrets", "unset variable fails late as auth error", "CLAUDE_PROJECT_DIR default", "HTTP entry needs type", "project server approval and disabledMcpjsonServers", "tools vs resources vs prompts by control", "catalogs as resources with URI templates", "subscribe and listChanged", "mcp__server__tool naming and plugin prefix", "annotations are untrusted hints", "readOnlyHint affects scheduling only", "requiresUserInteraction", "stateless MCP specification of July 2026"]
+  },
+  {
+    "part": "Part five: Selecting and applying the built-in tools effectively",
+    "questions": ["D2-019", "D2-020", "D2-021", "D2-022"],
+    "concepts": ["Read, Write, Edit, Grep, Glob, Bash behaviours", "incremental exploration: Grep then Read then Edit", "bulk reading anti-pattern", "Edit uniqueness: widen old_string", "replace_all and Write fallback (source disagreement)", "Grep vs Glob", "gitignore asymmetry", "four reasons Bash for search is a smell", "Bash working directory persists, environment does not", "Claude Code built-ins vs Developer Platform built-ins"]
+  },
+  {
+    "part": "Trap round",
+    "questions": ["D2-001", "D2-002", "D2-003", "D2-004", "D2-005", "D2-006", "D2-007", "D2-008", "D2-009", "D2-010", "D2-011", "D2-012", "D2-013", "D2-014", "D2-015", "D2-016", "D2-017", "D2-018", "D2-019", "D2-020", "D2-021", "D2-022"],
+    "concepts": ["recurring distractors across the domain"]
+  }
+]

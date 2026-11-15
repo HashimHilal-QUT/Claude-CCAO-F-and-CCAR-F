@@ -1,0 +1,1854 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCAR-F Exam Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+<style>
+/* Layout: an exam-console app on the DXC brand. A fixed midnight sidebar holds the logo and the
+   modes; on phones it folds into a top bar with a menu button. One working column (question sheet)
+   with a narrow meta rail that stacks under it on phones.
+   Colours and type come from the DXC brand tokens (tokens.json v3.1.0): midnight/canvas/white carry
+   the page, gold marks the current place, royal carries links and actions. GT Standard is used only
+   when already installed on the viewer's machine (web embedding needs its own licence); Arial backs it. */
+:root {
+  --dxc-midnight: #0E1020; --dxc-canvas: #F6F3F0; --dxc-white: #FFFFFF;
+  --dxc-peach: #FFC982; --dxc-gold: #FFAE41; --dxc-melon: #FF7E51; --dxc-red: #D14600;
+  --dxc-royal: #004AAC; --dxc-true-blue: #4995FF; --dxc-sky: #A1E6FF;
+  --bg: var(--dxc-canvas);
+  --surface: var(--dxc-white);
+  --surface-2: #FBF9F7;
+  --ink: var(--dxc-midnight);
+  --muted: #55586A;
+  --line: #E2DDD7;
+  --accent: var(--dxc-royal);
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E3ECF8;
+  --ok: #11734B;
+  --ok-soft: #E2F3EA;
+  --bad: var(--dxc-red);
+  --bad-soft: #FBEAE0;
+  --warn: #8A5300;
+  --warn-soft: #FFF1DC;
+  --code-bg: #F0ECE7;
+  --code-ink: var(--dxc-midnight);
+  --side-bg: var(--dxc-white); --side-ink: var(--dxc-midnight); --side-muted: #55586A; --side-hover: var(--dxc-canvas); --side-on: linear-gradient(180deg, var(--dxc-gold), var(--dxc-melon));
+  --d1: var(--dxc-gold); --d2: var(--dxc-melon); --d3: var(--dxc-royal); --d4: var(--dxc-true-blue); --d5: var(--dxc-sky);
+  --f-hero: "GT Standard L Extended", "GT Standard", Arial, sans-serif;
+  --f-display: "Inter", Arial, sans-serif;
+  --f-body: "Inter", Arial, sans-serif;
+  --f-mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+  --r: 14px;
+  --top-gap: 16px;
+}
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+button, select, input { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: var(--f-hero); line-height: 1.2; text-wrap: balance; margin: 0; font-weight: 700; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; }
+a { color: var(--accent); }
+.label { font-family: var(--f-display); font-size: .72rem; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--f-mono); }
+.num { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* app shell: sidebar + content */
+.app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+.side { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--side-bg); color: var(--side-ink); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 18px; padding: 22px 16px 18px; }
+
+.logo { display: block; width: 120px; color: var(--side-ink); padding: 6px 0; border-radius: 4px; }
+.logo svg { display: block; width: 100%; height: auto; }
+.brand { display: grid; gap: 3px; }
+.brand h1 { font-size: 1.02rem; letter-spacing: .01em; color: var(--side-ink); }
+.brand .code { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--side-muted); line-height: 1.4; }
+.tabs { display: grid; gap: 2px; }
+.tab { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; border-left: 3px solid transparent; background: transparent; padding: 9px 12px; border-radius: 0 7px 7px 0; cursor: pointer; font-family: var(--f-display); font-weight: 500; font-size: .94rem; color: var(--side-muted); }
+.tab svg { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.tab:hover { background: var(--side-hover); color: var(--side-ink); }
+.tab[aria-selected="true"] { background: var(--side-hover); color: var(--side-ink); font-weight: 600; }
+.tab[aria-selected="true"] svg { stroke: var(--dxc-melon); }
+.side-foot { margin-top: auto; display: grid; gap: 10px; font-size: .72rem; color: var(--side-muted); }
+.side-foot .sens { display: inline-block; justify-self: start; border: 1px solid var(--line); border-radius: 4px; padding: 1px 7px; letter-spacing: .08em; text-transform: uppercase; }
+.save { font-size: .78rem; color: var(--side-muted); display: flex; align-items: center; gap: 6px; }
+.save .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--side-muted); flex: none; }
+.save[data-mode="account"] .dot { background: var(--ok); }
+.save[data-mode="browser"] .dot { background: var(--dxc-gold); }
+.linkish { justify-self: start; border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; font-size: .76rem; text-align: left; }
+.menu-btn { display: none; }
+.content { min-width: 0; display: flex; flex-direction: column; }
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { position: sticky; top: 0; z-index: 6; height: auto; border-right: 0; border-bottom: 1px solid var(--line); flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 16px; padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+  .logo { width: 68px; }
+  .brand { margin-right: auto; min-width: 0; flex: 1 1 0; }
+  .brand h1 { font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand .code { display: none; }
+  .menu-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--dxc-midnight); background: transparent; color: var(--side-ink); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-weight: 500; flex: none; }
+  .tabs { display: none; flex-basis: 100%; }
+  .side.open .tabs { display: grid; }
+  .side-foot { display: none; flex-basis: 100%; }
+  .side.open .side-foot { display: grid; }
+  :root { --top-gap: 68px; }
+}
+
+main { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 64px; }
+.view { display: grid; gap: 20px; }
+.lede { color: var(--muted); max-width: 68ch; }
+
+/* generic surfaces */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 12px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { border: 1px solid var(--dxc-midnight); background: var(--surface); padding: 9px 18px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: .93rem; }
+.btn:hover { background: var(--dxc-canvas); }
+.btn.primary { background: var(--dxc-midnight); border-color: var(--dxc-midnight); color: var(--dxc-canvas); }
+
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.ghost:hover { color: var(--ink); background: var(--surface-2); }
+.btn:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+select, input[type="number"] { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; max-width: 100%; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.chip.dom { color: var(--ink); border-color: color-mix(in srgb, var(--dc) 40%, transparent); background: color-mix(in srgb, var(--dc) 10%, transparent); }
+.chip.gen { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); background: var(--warn-soft); }
+
+/* exam facts strip */
+.facts { display: flex; flex-wrap: wrap; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.fact { flex: 1 1 140px; background: var(--surface); padding: 12px 14px; display: grid; gap: 2px; }
+.fact b { font-family: var(--f-hero); font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* domain picker */
+.domains { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.dcard { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 14px 12px; display: grid; gap: 8px; cursor: pointer; }
+.dcard:has(input:checked) { border-color: var(--dc); box-shadow: inset 0 0 0 1px var(--dc); }
+.dcard input { position: absolute; top: 14px; right: 14px; accent-color: var(--dc); width: 18px; height: 18px; }
+.dcard .dn { font-family: var(--f-display); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.dcard h3 { padding-right: 26px; }
+.dcard .meta { display: flex; justify-content: space-between; gap: 8px; font-size: .82rem; color: var(--muted); }
+.meter { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; position: relative; }
+.meter i { position: absolute; inset: 0 auto 0 0; background: var(--dc, var(--accent)); border-radius: 3px; }
+.resume { border-left: 3px solid var(--accent); }
+
+/* quiz */
+.quiz { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .quiz { grid-template-columns: minmax(0, 1fr); } }
+.qhead { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.qhead .count { font-family: var(--f-mono); font-size: .85rem; color: var(--muted); margin-right: auto; }
+.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; display: grid; gap: 18px; min-width: 0; }
+.stem { font-size: 1.06rem; line-height: 1.6; max-width: 72ch; }
+.stem .select-n { font-weight: 600; }
+.opts { display: grid; gap: 8px; }
+.opt { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: start; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 11px 12px; cursor: pointer; line-height: 1.5; }
+.opt:hover:not(:disabled) { border-color: var(--muted); }
+.opt .key { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--line); display: grid; place-items: center; font-family: var(--f-mono); font-size: .8rem; font-weight: 500; color: var(--muted); }
+.opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.opt[aria-pressed="true"] .key { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.opt.is-right { border-color: var(--ok); background: var(--ok-soft); }
+.opt.is-right .key { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.opt.is-wrong { border-color: var(--bad); background: var(--bad-soft); }
+.opt.is-wrong .key { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.opt:disabled { cursor: default; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.actions .spacer { margin-right: auto; }
+.hint { font-size: .8rem; color: var(--muted); }
+
+/* feedback */
+.verdict { display: flex; gap: 10px; align-items: center; font-family: var(--f-display); font-weight: 600; font-size: 1.1rem; }
+.verdict.ok { color: var(--ok); }
+.verdict.bad { color: var(--bad); }
+.coach { display: grid; gap: 14px; border-top: 1px solid var(--line); padding-top: 16px; }
+.coach-step { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; }
+.coach-step .n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-mono); font-size: .8rem; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); }
+.coach-step .body { display: grid; gap: 6px; min-width: 0; max-width: 72ch; }
+.coach-step.pick .n { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.coach-step.win .n { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+pre.tech { margin: 0; background: var(--code-bg); color: var(--code-ink); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-family: var(--f-mono); font-size: .82rem; line-height: 1.55; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+details.all { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--surface-2); }
+details.all summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
+.whylist { display: grid; gap: 8px; margin-top: 10px; }
+.whylist div { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; font-size: .9rem; }
+.whylist .k { font-family: var(--f-mono); color: var(--muted); }
+.whylist .k.good { color: var(--ok); font-weight: 600; }
+.sources { font-size: .78rem; color: var(--muted); font-family: var(--f-mono); overflow-wrap: anywhere; }
+
+/* rail */
+.rail { display: grid; gap: 12px; position: sticky; top: var(--top-gap); }
+@media (max-width: 860px) { .rail { position: static; } }
+.timer { font-family: var(--f-mono); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.timer.low { color: var(--bad); }
+.timer.is-paused { color: var(--muted); }
+.paused { display: grid; gap: 12px; justify-items: center; text-align: center; padding-block: 36px; }
+.paused .lede { max-width: 52ch; }
+.paused-time { font-family: var(--f-mono); font-size: 3rem; line-height: 1; }
+.grid-nav { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 4px; }
+.grid-nav button { height: 30px; border: 1px solid var(--line); background: var(--surface); border-radius: 5px; font-family: var(--f-mono); font-size: .72rem; cursor: pointer; padding: 0; color: var(--muted); }
+.grid-nav button.done { background: var(--surface-2); color: var(--ink); }
+.grid-nav button.right { border-color: var(--ok); color: var(--ok); }
+.grid-nav button.wrong { border-color: var(--bad); color: var(--bad); }
+.grid-nav button.flag { box-shadow: inset 0 -3px 0 var(--warn); }
+.grid-nav button.cur { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* progress */
+.bars { display: grid; gap: 14px; }
+.brow { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr) 64px; gap: 12px; align-items: center; }
+@media (max-width: 560px) { .brow { grid-template-columns: minmax(0, 1fr) 56px; } .brow .track { grid-column: 1 / -1; order: 3; } }
+.brow .nm { font-size: .9rem; min-width: 0; }
+.brow .nm small { display: block; color: var(--muted); font-size: .76rem; }
+.track { position: relative; height: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; }
+.track i { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--dc, var(--accent)); }
+.track .line { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); opacity: .55; left: 75%; }
+.pct { text-align: right; font-family: var(--f-mono); font-size: .88rem; font-variant-numeric: tabular-nums; }
+.pct.below { color: var(--bad); }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-display); font-weight: 600; font-size: .76rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.missed { display: grid; gap: 8px; }
+.missed details { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 10px 12px; }
+.missed summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+.missed summary span { min-width: 0; }
+.term { text-decoration: underline dotted; text-decoration-color: color-mix(in srgb, var(--accent) 75%, transparent); text-decoration-thickness: 1.5px; text-underline-offset: 3px; cursor: help; border-radius: 3px; }
+.term:hover, .term:focus-visible { color: var(--accent); background: var(--accent-soft); }
+.termtip { position: absolute; z-index: 30; width: max-content; max-width: min(320px, calc(100vw - 16px)); background: var(--ink); color: var(--bg); border-radius: 8px; padding: 10px 12px; font-size: .86rem; line-height: 1.45; display: grid; gap: 4px; box-shadow: 0 8px 28px rgba(0, 0, 0, .22); pointer-events: none; }
+.termtip b { font-family: var(--f-display); font-weight: 600; letter-spacing: .02em; }
+.fault { border: 1px solid var(--bad); background: var(--bad-soft); color: var(--bad); border-radius: 8px; padding: 10px 12px; font-size: .9rem; }
+.confirm { border: 1px solid var(--bad); background: var(--bad-soft); border-radius: 8px; padding: 12px; display: grid; gap: 10px; }
+
+/* generate */
+.genform { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.genform label { display: grid; gap: 4px; min-width: 0; }
+.genform select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.stream { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); max-height: 160px; overflow: auto; white-space: pre-wrap; background: var(--surface-2); border-radius: 8px; padding: 10px; }
+.status { font-size: .88rem; }
+.status.err { color: var(--bad); }
+.status.ok { color: var(--ok); }
+.genlist { display: grid; gap: 8px; }
+.genitem { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; background: var(--surface); }
+.genitem p { font-size: .9rem; }
+
+/* podcast */
+.player { position: sticky; top: var(--top-gap); z-index: 4; }
+.player audio { width: 100%; }
+.episodes { display: grid; gap: 12px; }
+.episode { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--dc); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 10px; }
+.episode .meta { font-size: .82rem; color: var(--muted); }
+.parts { display: grid; gap: 4px; }
+.pt { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; border: 1px solid transparent; background: transparent; border-radius: 7px; padding: 7px 8px; cursor: pointer; }
+.pt:hover:not(:disabled) { background: var(--surface-2); }
+.pt:disabled { cursor: default; color: var(--muted); }
+.pt .ic { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); font-size: .7rem; color: var(--muted); }
+.pt.cur { border-color: var(--accent); background: var(--accent-soft); }
+.pt.cur .ic { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.ptrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.ptrow .btn { padding: 5px 10px; font-size: .8rem; white-space: nowrap; }
+.subs { position: relative; max-height: 13.5em; overflow-y: auto; margin: 2px 0 8px 36px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; line-height: 1.6; overscroll-behavior: contain; }
+.subs p { margin: 0 0 .55em; }
+.subs p.beat { border-top: 1px dashed var(--line); padding-top: .55em; }
+.subs .cue { cursor: pointer; border-radius: 4px; padding: 1px 2px; color: var(--muted); transition: background .2s, color .2s; }
+.subs .cue:hover { background: var(--accent-soft); }
+.subs .cue.now { color: var(--ink); background: var(--accent-soft); box-shadow: inset 0 -2px 0 var(--accent); }
+.subs code { font-family: var(--f-mono); font-size: .88em; background: var(--code-bg); color: var(--code-ink); padding: 0 3px; border-radius: 3px; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .subs { margin-left: 0; max-height: 11em; } }
+@media (max-width: 560px) { .ptrow .btn { font-size: .74rem; padding: 4px 8px; } }
+
+/* glossary */
+.glossary { display: grid; gap: 14px; }
+.gdom { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--dc); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 8px; scroll-margin-top: calc(var(--top-gap) + 8px); }
+.gtask { border-top: 1px solid var(--line); padding-top: 8px; }
+.gtask summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; font-weight: 600; }
+.gtask summary .mono { color: var(--muted); font-size: .8rem; }
+.gtask summary .hint { margin-left: auto; font-weight: 400; }
+.gterms { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 10px; }
+.gterm { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.gterm b { font-family: var(--f-display); font-weight: 600; overflow-wrap: anywhere; }
+.gterm p { font-size: .9rem; }
+.gterm .also { font-size: .76rem; color: var(--muted); }
+.pt .len { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* home: light hero with a soft sunrise wash, as on dxc.com */
+.hero { background: linear-gradient(120deg, #FFF1DF 0%, var(--dxc-canvas) 42%, #E4F4FC 100%); color: var(--dxc-midnight); border: 1px solid var(--line); border-radius: 20px; padding: clamp(24px, 5vw, 56px); display: grid; gap: 16px; justify-items: start; }
+.hero .label { color: var(--muted); }
+.hero-title, .home h2, .card b { text-transform: uppercase; letter-spacing: .02em; }
+.hero-title { font-size: clamp(1.9rem, 4.6vw, 3rem); line-height: 1.08; color: var(--dxc-midnight); max-width: 20ch; }
+.hero .lede { color: #3A3D52; max-width: 68ch; font-size: 1.04rem; }
+.home h2 { font-size: 1.25rem; }.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.card { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 6px; align-content: start; cursor: pointer; }
+.card:hover { border-color: var(--accent); }
+.card b { font-family: var(--f-hero); font-size: 1rem; }
+.card p { font-size: .9rem; color: var(--muted); }
+.card .stat { font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.author-row { display: flex; gap: 14px; align-items: center; }
+.avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--dxc-gold), var(--dxc-melon) 45%, var(--dxc-true-blue)); color: var(--dxc-midnight); display: grid; place-items: center; font-family: var(--f-hero); font-weight: 700; flex: none; }
+.author p { max-width: 72ch; }
+
+.welcome { display: grid; gap: 6px; }
+.byline { font-size: .86rem; color: var(--muted); }
+.byline b { color: var(--ink); font-weight: 600; }
+.byline .sep { color: var(--line); padding-inline: 4px; }
+footer p + p { margin-top: 4px; }
+footer .credit b { color: var(--ink); font-weight: 600; }
+footer { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 0 32px; color: var(--muted); font-size: .78rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .coach, .verdict { animation: rise .22s ease-out; }
+  @keyframes rise { from { transform: translateY(4px); opacity: .6; } to { transform: none; opacity: 1; } }
+}
+</style>
+
+<div class="app">
+<aside class="side" id="side">
+  <a class="logo" href="#" id="logo-home" aria-label="DXC Technology, go to Home">
+    <svg viewBox="0 0 312 51" role="img" aria-hidden="true"><defs><linearGradient id="dxc-grad" x1="0" y1="0" x2="312" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFAE41"/><stop offset=".38" stop-color="#FF7E51"/><stop offset="1" stop-color="#4995FF"/></linearGradient></defs><path fill="url(#dxc-grad)" d="M67.334 0C81.2409 1.73247e-05 92.5596 11.4368 92.5596 25.5C92.5595 39.5631 81.2409 51 67.334 51H0V40.5918H67.334C75.5753 40.5918 82.2812 33.8203 82.2812 25.5C82.2812 17.1797 75.5754 10.4082 67.334 10.4082H0V0H67.334ZM312 10.4082H244.666C236.425 10.4082 229.719 17.1796 229.719 25.5C229.719 33.8203 236.425 40.5918 244.666 40.5918H312V51H244.666C230.753 51 219.441 39.5631 219.44 25.5C219.44 11.4368 230.759 0 244.666 0H312V10.4082ZM209.597 10.4082C198.592 10.4082 190.864 15.3365 182.684 20.5527C180.029 22.2486 177.338 23.957 174.532 25.4814C177.338 27.0059 180.029 28.7142 182.684 30.4102C190.864 35.6264 198.592 40.5547 209.597 40.5547V50.9629C195.623 50.9629 185.839 44.7238 177.205 39.2197C170.028 34.6464 163.83 30.6915 156.236 30.6914C148.642 30.6914 142.444 34.6402 135.267 39.2197C126.632 44.7237 116.849 50.9627 102.876 50.9629V40.5547C113.88 40.5545 121.607 35.6263 129.788 30.4102C132.443 28.7142 135.134 27.0059 137.939 25.4814C135.134 23.957 132.443 22.2486 129.788 20.5527C121.607 15.3366 113.88 10.4083 102.876 10.4082V0C116.849 0.00014534 126.632 6.23892 135.267 11.749C142.444 16.3225 148.642 20.2773 156.236 20.2773V20.2715C163.83 20.2714 170.028 16.3226 177.205 11.7432C185.839 6.23911 195.623 0 209.597 0V10.4082Z"/></svg>
+  </a>
+  <div class="brand"><h1>CCAR-F Exam Trainer</h1><span class="code">Claude Certified Architect · Foundations</span></div>
+  <button class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="side-nav">Menu</button>
+  <nav class="tabs" id="side-nav" role="tablist" aria-orientation="vertical" aria-label="Sections">
+    <button class="tab" role="tab" id="tab-home" data-view="home" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Home</button>
+    <button class="tab" role="tab" id="tab-practice" data-view="practice" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6"/></svg>Practise</button>
+    <button class="tab" role="tab" id="tab-mock" data-view="mock" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2"/><path d="M9 2h6"/></svg>Mock exam</button>
+    <button class="tab" role="tab" id="tab-podcast" data-view="podcast" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg>Podcast</button>
+    <button class="tab" role="tab" id="tab-glossary" data-view="glossary" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg>Glossary</button>
+    <button class="tab" role="tab" id="tab-generate" data-view="generate" aria-selected="false" hidden><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></svg>Generate</button>
+    <button class="tab" role="tab" id="tab-progress" data-view="progress" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>Progress</button>
+  </nav>
+  <div class="side-foot">
+    <div class="save" id="save" data-mode="none" title="Where your progress is kept"><span class="dot"></span><span id="save-text">Connecting…</span></div>
+    <button class="linkish" id="move-progress" type="button">Move progress to another computer</button>
+    <span class="sens">DXC Internal</span>
+  </div>
+</aside>
+<div class="content">
+<main id="main">
+  <!-- HOME -->
+  <section class="view home" id="view-home">
+    <div class="hero">
+      <span class="label">Claude Certified Architect · Foundations</span>
+      <h2 class="hero-title">Prepare for the CCAR-F exam</h2>
+      <p class="lede">The exam tests design judgment across agentic systems, tools, Claude Code, prompting and reliability. This trainer builds that judgment three ways: scenario questions weighted to the official blueprint with coaching on every answer, a narrated course in five episodes, and a plain-English glossary of every key term.</p>
+      <div class="row">
+        <button class="btn primary" data-go="practice">Start practising</button>
+        <button class="btn" data-go="podcast">Listen to the podcast</button>
+        <button class="btn" data-go="mock">Take a mock exam</button>
+      </div>
+    </div>
+    <div class="panel resume" id="home-progress" hidden></div>
+    <div class="facts" aria-label="Exam at a glance">
+      <div class="fact"><span class="label">Items</span><b>60</b></div>
+      <div class="fact"><span class="label">Time</span><b>120 min</b></div>
+      <div class="fact"><span class="label">Pass mark</span><b>720 / 1000</b></div>
+      <div class="fact"><span class="label">Domains</span><b>5</b></div>
+      <div class="fact"><span class="label">Scenarios</span><b>6 in pool</b></div>
+    </div>
+    <div style="display:grid;gap:10px">
+      <h2>What's inside</h2>
+      <div class="cards" id="home-cards"></div>
+    </div>
+    <div class="panel author">
+      <span class="label">About the author</span>
+      <div class="author-row">
+        <div class="avatar" aria-hidden="true">MV</div>
+        <div style="display:grid;gap:4px;min-width:0">
+          <h3>Matthew Varone</h3>
+          <p>Senior Forward-Deployed Engineer</p>
+          <p class="hint">Global SAP Center of Excellence, DXC Technology</p>
+        </div>
+      </div>
+      <p>Built as an independent study aid for DXC colleagues preparing for the Claude Certified Architect, Foundations exam. It draws on the course notes, lesson decks and transcripts; it is not affiliated with Anthropic and contains no real exam questions.</p>
+    </div>
+  </section>
+
+  <!-- PRACTISE -->
+  <section class="view" id="view-practice" hidden>
+    <div class="panel resume" id="practice-resume" hidden></div>
+    <div class="welcome">
+      <p class="lede">Scenario-based practice for the Claude Certified Architect, Foundations exam, weighted to the official blueprint, with coaching on every answer.</p>
+    </div>
+    <div class="facts" aria-label="Exam at a glance">
+      <div class="fact"><span class="label">Items</span><b>60</b></div>
+      <div class="fact"><span class="label">Time</span><b>120 min</b></div>
+      <div class="fact"><span class="label">Pass mark</span><b>720 / 1000</b></div>
+      <div class="fact"><span class="label">Scenarios</span><b>6 in pool</b></div>
+      <div class="fact"><span class="label">Question bank</span><b id="bank-count">–</b></div>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <div style="display:grid;gap:4px">
+        <h2>Practise by domain</h2>
+        <p class="lede">Pick one or more domains. Every answer is marked on the spot, and a wrong answer opens the coaching panel.</p>
+      </div>
+    </div>
+    <div class="domains" id="domain-cards"></div>
+    <div class="row">
+      <label class="row" for="practice-n"><span class="label">Questions</span>
+        <select id="practice-n"><option value="10">10</option><option value="15" selected>15</option><option value="25">25</option><option value="40">40</option></select>
+      </label>
+      <label class="row" for="practice-focus"><span class="label">Focus</span>
+        <select id="practice-focus">
+          <option value="smart" selected>Smart mix (new, then weak)</option>
+          <option value="missed">Only ones I got wrong</option>
+          <option value="unseen">Only ones I have not seen</option>
+          <option value="any">Anything, random</option>
+        </select>
+      </label>
+      <button class="btn primary" id="practice-start">Start practice</button>
+      <span class="status" id="practice-msg"></span>
+    </div>
+  </section>
+
+  <!-- MOCK -->
+  <section class="view" id="view-mock" hidden>
+    <div class="panel resume" id="mock-resume" hidden></div>
+    <div style="display:grid;gap:6px">
+      <h2>Full mock exam</h2>
+      <p class="lede">60 items drawn to the blueprint weights: 16 from Domain 1, 11 from Domain 2, 12 each from Domains 3 and 4, and 9 from Domain 5. Questions lean toward four randomly chosen scenarios, the way the real exam draws a subset of the six. The clock runs only while the exam is open, and pausing saves your place.</p>
+    </div>
+    <div class="panel">
+      <div class="row">
+        <label class="row" for="mock-feedback"><input type="checkbox" id="mock-feedback" checked> <span>Coach me as I go (show feedback after each answer)</span></label>
+      </div>
+      <p class="hint">Turn this off for exam conditions: no feedback until you finish, then a full review of every miss.</p>
+      <div class="row"><button class="btn primary" id="mock-start">Start a new mock</button><span class="status" id="mock-msg"></span></div>
+    </div>
+    <div class="panel">
+      <span class="label">Weights and item counts</span>
+      <div class="bars" id="mock-weights"></div>
+    </div>
+  </section>
+
+  <!-- GENERATE -->
+  <section class="view" id="view-generate" hidden>
+    <div style="display:grid;gap:6px">
+      <h2>Generate fresh questions</h2>
+      <p class="lede">Claude writes new scenario questions from a summary of the course material for the domain you pick. Each one arrives with the same coaching: an everyday example, a technical example and a full explanation. Generated questions are saved with your progress and marked as not reviewed, so treat a surprising answer as something to check against the study notes.</p>
+    </div>
+    <div class="panel">
+      <div class="genform">
+        <label for="gen-domain"><span class="label">Domain</span><select id="gen-domain"></select></label>
+        <label for="gen-task"><span class="label">Task statement</span><select id="gen-task"></select></label>
+        <label for="gen-scenario"><span class="label">Scenario</span><select id="gen-scenario"></select></label>
+        <label for="gen-n"><span class="label">How many</span><select id="gen-n"><option>2</option><option selected>3</option><option>5</option></select></label>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="gen-go">Generate</button>
+        <button class="btn" id="gen-weak" title="Targets the task statement where your accuracy is lowest">Target my weakest area</button>
+        <button class="btn ghost" id="gen-stop" hidden>Stop</button>
+        <span class="status" id="gen-status"></span>
+      </div>
+      <div class="stream" id="gen-stream" hidden></div>
+    </div>
+    <div class="panel">
+      <div class="row" style="justify-content:space-between"><h3>Your generated questions</h3><button class="btn" id="gen-practice" disabled>Practise generated questions</button></div>
+      <div class="genlist" id="gen-list"></div>
+    </div>
+  </section>
+
+  <!-- PODCAST -->
+  <section class="view" id="view-podcast" hidden>
+    <div style="display:grid;gap:6px">
+      <h2>Listen</h2>
+      <p class="lede">One episode per domain, narrated end to end. Each part covers one task statement, so you can listen to the part that matches your weakest area. Playback carries on while you switch to practice, and each part remembers where you stopped.</p>
+    </div>
+    <div class="panel player" id="pod-player">
+      <div class="row" style="justify-content:space-between">
+        <div style="display:grid;gap:2px;min-width:0"><span class="label" id="pod-now-ch">Nothing playing</span><b id="pod-now-part">Choose a part below</b></div>
+        <label class="row hint" style="gap:6px"><input type="checkbox" id="pod-subs"> Read along</label>
+        <label class="row hint" style="gap:6px">Speed
+          <select id="pod-speed"><option value="1">1×</option><option value="1.15">1.15×</option><option value="1.3">1.3×</option><option value="1.5">1.5×</option></select>
+        </label>
+      </div>
+      <audio id="pod-audio" controls preload="none"></audio>
+    </div>
+    <div class="episodes" id="pod-list"></div>
+  </section>
+
+  <!-- GLOSSARY -->
+  <section class="view" id="view-glossary" hidden>
+    <div style="display:grid;gap:6px">
+      <h2>Glossary</h2>
+      <p class="lede">Every key term in the question bank, in plain English. Terms that turn up across three or more domains are grouped first as course-wide vocabulary; the rest sit under the domain and task statement where the questions use them most. Switch to A–Z for one alphabetical list, or search either view.</p>
+    </div>
+    <div class="panel">
+      <div class="row">
+        <input type="search" id="gl-search" placeholder="Search terms and definitions" aria-label="Search the glossary" style="flex:1 1 260px">
+        <label class="row hint" style="gap:6px">View
+          <select id="gl-mode"><option value="topic">By topic</option><option value="az">A–Z</option></select>
+        </label>
+        <span class="hint num" id="gl-count"></span>
+      </div>
+      <div class="row" id="gl-jump" aria-label="Jump to a domain"></div>
+    </div>
+    <div class="glossary" id="gl-list"></div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section class="view" id="view-progress" hidden>
+    <div style="display:grid;gap:6px">
+      <h2>Your progress</h2>
+      <p class="lede">Accuracy by domain against a 75% line. The pass mark is a scaled 720, which cannot be converted exactly from a raw score, so treat three quarters correct per domain as the working target. Any domain under 70% is a repair target whatever your total.</p>
+    </div>
+    <div class="facts" id="prog-facts"></div>
+    <div class="panel"><span class="label">By domain</span><div class="bars" id="prog-domains"></div></div>
+    <div class="panel"><span class="label">By task statement, weakest first</span><div class="tablewrap"><table id="prog-tasks"></table></div></div>
+    <div class="panel">
+      <div class="row" style="justify-content:space-between"><span class="label">Questions you last got wrong</span><button class="btn" id="prog-retry" disabled>Retry these</button></div>
+      <div class="missed" id="prog-missed"></div>
+    </div>
+    <div class="panel">
+      <span class="label">Past mock exams</span>
+      <div class="tablewrap"><table id="prog-mocks"></table></div>
+    </div>
+    <div class="panel">
+      <div class="row">
+        <button class="btn" id="prog-export">Download my progress</button>
+        <button class="btn" id="prog-import">Load progress from file</button>
+        <input type="file" id="prog-file" accept=".json,application/json" hidden>
+        <button class="btn ghost" id="prog-reset">Reset all progress…</button>
+      </div>
+      <p class="hint">The file stays on your device. Loading reads it here in the browser; nothing is uploaded.</p>
+      <p class="status" id="prog-io-msg" role="status" hidden></p>
+      <div class="confirm" id="prog-import-confirm" hidden>
+        <p id="prog-import-summary"></p>
+        <p>Replace swaps this browser's progress for the file's. Merge keeps the higher attempt count for each question and every mock exam from both.</p>
+        <div class="row"><button class="btn" id="prog-import-replace">Replace</button><button class="btn" id="prog-import-merge">Merge</button><button class="btn ghost" id="prog-import-cancel">Cancel</button></div>
+      </div>
+      <div class="confirm" id="prog-confirm" hidden>
+        <p>This clears every answer, both saved sessions and your mock history. Generated questions are kept. It cannot be undone.</p>
+        <div class="row"><button class="btn" id="prog-reset-yes">Clear my progress</button><button class="btn ghost" id="prog-reset-no">Keep it</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUIZ RUNNER -->
+  <section class="view" id="view-quiz" hidden>
+    <div class="quiz">
+      <div class="sheet" id="sheet"></div>
+      <aside class="rail" id="rail"></aside>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="view" id="view-results" hidden></section>
+</main>
+
+<footer><p class="credit">Created by <b>Matthew Varone</b>, Senior Forward-Deployed Engineer, Global SAP Center of Excellence.</p><p>Independent study aid built from the course notes, lesson decks and transcripts. Not affiliated with Anthropic and contains no real exam questions.</p><p>DXC Internal · © 2026 DXC Technology Company. All rights reserved.</p></footer>
+</div>
+</div>
+
+<script id="bank-data" type="application/json">__BANK_JSON__</script>
+<script id="digest-data" type="application/json">__DIGESTS_JSON__</script>
+<script id="glossary-data" type="application/json">__GLOSSARY_JSON__</script>
+<script id="podcast-data" type="application/json">__PODCAST_JSON__</script>
+<script>
+(() => {
+"use strict";
+
+/* ---------- static exam model ---------- */
+const DOMAINS = [
+  { n: 1, name: "Agentic Architecture and Orchestration", weight: 27, items: 16, tasks: {
+    "1.1": "Agentic loops for autonomous task execution",
+    "1.2": "Coordinator-subagent orchestration",
+    "1.3": "Subagent invocation, context passing and spawning",
+    "1.4": "Multi-step workflows with enforcement and handoffs",
+    "1.5": "Agent SDK hooks for interception and normalisation",
+    "1.6": "Task decomposition strategies",
+    "1.7": "Session state, resumption and forking" } },
+  { n: 2, name: "Tool Design and MCP Integration", weight: 18, items: 11, tasks: {
+    "2.1": "Tool interfaces, descriptions and boundaries",
+    "2.2": "Structured error responses for MCP tools",
+    "2.3": "Tool distribution across agents and tool choice",
+    "2.4": "Integrating MCP servers into Claude Code and agents",
+    "2.5": "Built-in tools: Read, Write, Edit, Bash, Grep, Glob" } },
+  { n: 3, name: "Claude Code Configuration and Workflows", weight: 20, items: 12, tasks: {
+    "3.1": "CLAUDE.md hierarchy, scoping and modular organisation",
+    "3.2": "Custom slash commands and skills",
+    "3.3": "Path-specific rules for conditional conventions",
+    "3.4": "Plan mode vs direct execution",
+    "3.5": "Iterative refinement techniques",
+    "3.6": "Claude Code in CI/CD pipelines" } },
+  { n: 4, name: "Prompt Engineering and Structured Output", weight: 20, items: 12, tasks: {
+    "4.1": "Explicit criteria to cut false positives",
+    "4.2": "Few-shot prompting for consistency",
+    "4.3": "Structured output via tool use and JSON schemas",
+    "4.4": "Validation, retry and feedback loops",
+    "4.5": "Batch processing strategies",
+    "4.6": "Multi-instance and multi-pass review" } },
+  { n: 5, name: "Context Management and Reliability", weight: 15, items: 9, tasks: {
+    "5.1": "Preserving critical information in long interactions",
+    "5.2": "Escalation and ambiguity resolution",
+    "5.3": "Error propagation across multi-agent systems",
+    "5.4": "Context in large codebase exploration",
+    "5.5": "Human review workflows and confidence calibration",
+    "5.6": "Provenance and uncertainty in multi-source synthesis" } },
+];
+const SCENARIOS = {
+  "customer-support": "Customer support resolution agent",
+  "code-generation": "Code generation with Claude Code",
+  "multi-agent-research": "Multi-agent research system",
+  "developer-productivity": "Developer productivity tools",
+  "ci-cd": "Claude Code in CI/CD",
+  "structured-extraction": "Structured data extraction",
+};
+const KEYS = "ABCDE";
+const MOCK_MINUTES = 120;
+const GEN_CAP = 60;
+
+function readJson(id, fallback) {
+  try { return JSON.parse(document.getElementById(id).textContent); } catch { return fallback; }
+}
+const BANK = readJson("bank-data", []);
+const DIGESTS = readJson("digest-data", {});
+
+/* ---------- plain-English term cards ---------- */
+const GLOSSARY = readJson("glossary-data", []);
+const TERM_INDEX = new Map();                     // lower-cased term or alias -> entry
+for (const g of GLOSSARY) for (const f of [g.term, ...(g.aliases || [])]) if (f) TERM_INDEX.set(String(f).toLowerCase(), g);
+const escRe = x => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/* Shapes explained generically, so invented names in any question (including generated ones) get a card. */
+const SHAPES = [
+  ["func",  String.raw`[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*\([^()\s]{0,24}\)`],
+  ["path",  String.raw`[~.@]?\/?(?:[\w.*-]+\/)+[\w.*-]*[\w*]\.[A-Za-z]{1,5}|[~.@]\/(?:[\w.*-]+\/?)+|(?:[\w.*-]+\/){2,}[\w.*-]*[\w*]|[\w-]+\.(?:md|json|py|ts|tsx|js|jsx|sh|ya?ml|tf|env|txt|csv|toml|lock|log)|\.[a-z][\w-]*(?:\.[a-z]{1,8})?`],
+  ["flag",  String.raw`--[A-Za-z][A-Za-z0-9-]*[A-Za-z0-9]`],
+  ["slash", String.raw`\/[a-z][a-z0-9-]*[a-z0-9](?![\w\/.])`],
+  ["const", String.raw`[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+`],
+  ["field", String.raw`[a-z][a-z0-9]*(?:_[a-z0-9]+)+|[a-z]+(?:[A-Z][a-z0-9]*)+`],
+];
+// Case-sensitive overall, because the shapes depend on capitals; glossary terms accept either case letter by letter.
+const anyCase = x => escRe(x).replace(/[a-z]/gi, c => "[" + c.toLowerCase() + c.toUpperCase() + "]");
+const GLOSS_ALT = [...TERM_INDEX.keys()].sort((a, b) => b.length - a.length).map(anyCase).join("|");
+const TERM_RE = new RegExp("(?<![\\w.\\-/])(?:" + (GLOSS_ALT ? "(?<g>" + GLOSS_ALT + ")|" : "") +
+  SHAPES.map(([k, src]) => "(?<" + k + ">" + src + ")").join("|") + ")(?![\\w\\-])", "g");
+const EXT = { md: "a text document", json: "structured data", py: "Python code", ts: "TypeScript code", tsx: "TypeScript code for a web page", js: "JavaScript code", jsx: "JavaScript code for a web page", sh: "a script of terminal commands", yml: "a settings file", yaml: "a settings file", tf: "Terraform code that sets up cloud infrastructure", env: "settings and secrets for the program", txt: "plain text", csv: "a table of data", toml: "a settings file", lock: "a record of exact installed versions", log: "a log of what happened" };
+function wordsOf(tok) {
+  return tok.replace(/\(.*\)$/, "").replace(/^[-\/.~@]+/, "").replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[_\-.]+/g, " ").trim().toLowerCase();
+}
+function shapeCard(kind, tok) {
+  if (kind === "func") return ["Function name", `A named piece of program code that does one job, here roughly "${wordsOf(tok)}". Scenarios invent names like this, so focus on what it does in the story, not the name itself.`];
+  if (kind === "flag") return ["Command option", `Extra text typed after a command to change how it runs, like ticking a box on a form. Read it as "${wordsOf(tok)}".`];
+  if (kind === "slash") return ["Slash command", "Typed into Claude Code with a leading slash to run a built-in action, or a saved team instruction, by name."];
+  if (kind === "const") return ["Capitalised name", `Usually a setting supplied from outside the program (an environment variable) or a named error code. Read it as "${wordsOf(tok)}".`];
+  if (kind === "field") return ["Name in code", `The name of something in code, such as a tool, field, setting or value, written without spaces so a program can read it. Read it as "${wordsOf(tok)}".`];
+  const ext = (tok.match(/\.([A-Za-z]{1,5})$/) || [])[1];
+  let t = "A file or folder location. Slashes separate folders";
+  t += ext && EXT[ext.toLowerCase()] ? `, and the ending .${ext} marks ${EXT[ext.toLowerCase()]}.` : ".";
+  if (tok.includes("*")) t += " The stars are wildcards: * stands for any name within one folder, and ** for any number of folders deep, so one pattern can match many files.";
+  if (/^~\//.test(tok)) t += " The ~ means your own home folder, so this is personal and is not shared with the team.";
+  else if (/(^|\/)\.claude(\/|$)/.test(tok)) t += " A .claude folder holds Claude Code settings; inside a project it is committed and shared with the team.";
+  return ["File or folder", t];
+}
+let termsOn = true;
+try { termsOn = localStorage.getItem("ccarf-terms") !== "off"; } catch {}
+/* Wraps the first mention of each term or shape (per screen, tracked in `seen`) in a hoverable span. */
+function annotate(text, seen, inButton) {
+  const frag = document.createDocumentFragment();
+  text = text == null ? "" : String(text);
+  if (!termsOn) { frag.append(text); return frag; }
+  let last = 0;
+  for (const m of text.matchAll(TERM_RE)) {
+    const grp = m.groups || {};
+    const kind = grp.g ? "g" : SHAPES.map(([k]) => k).find(k => grp[k]);
+    if (!kind) continue;
+    if (kind === "path" && /^[\d\/.\-]+$/.test(m[0])) continue;   // dates and version numbers are not paths
+    const g = kind === "g" ? TERM_INDEX.get(m[0].toLowerCase()) : null;
+    if (kind === "g" && !g) continue;
+    const key = kind === "g" ? g.term : kind + ":" + m[0].toLowerCase();
+    if (seen && seen.has(key)) continue;
+    if (seen) seen.add(key);
+    const attrs = { class: "term", "data-term": kind === "g" ? g.term : m[0], "data-kind": kind };
+    if (!inButton) Object.assign(attrs, { tabindex: "0", role: "button", "aria-label": m[0] + ", show plain-English meaning" });
+    frag.append(text.slice(last, m.index), el("span", attrs, m[0]));
+    last = m.index + m[0].length;
+  }
+  frag.append(text.slice(last));
+  return frag;
+}
+
+/* ---------- state ---------- */
+const blank = () => ({ v: 1, history: {}, sessions: { practice: null, mock: null }, mocks: [] });
+let S = blank();
+let GEN = [];                       // generated questions (own document)
+let ui = { view: "home", run: null, selected: [] };
+
+const byId = new Map();
+function reindex() { byId.clear(); for (const q of BANK) byId.set(q.id, q); for (const q of GEN) byId.set(q.id, q); }
+reindex();
+
+/* ---------- persistence: private account record, browser fallback ---------- */
+const LS_KEY = "ccarf-trainer-v1";
+const Store = {
+  mode: "none", db: null, uid: null, busy: false, again: false, timer: null, genDirty: false,
+  async init() {
+    let local = null;
+    try { local = JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch {}
+    try {
+      if (window.claude && window.claude.use) {
+        const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+        const uid = user ? await user.id() : null;
+        if (db && uid) {
+          this.db = db; this.uid = uid;
+          const [p, g] = await Promise.all([db.doc(this.path("progress")).get(), db.doc(this.path("generated")).get()]);
+          // Snapshot bodies are frozen by the store; work on deep copies so answers can be recorded.
+          if (p.exists) { S = normalize(thaw(p.data())); }
+          else if (local && local.S) { S = normalize(local.S); this.dirtyAll(); }
+          if (g.exists) { GEN = cleanGen(thaw(g.data()).items); }
+          else if (local && local.GEN && local.GEN.length) { GEN = cleanGen(local.GEN); this.genDirty = true; }
+          this.mode = "account";
+        }
+      }
+    } catch (e) { this.db = null; }
+    if (this.mode !== "account") {
+      if (local) { S = normalize(local.S); GEN = cleanGen(local.GEN); }
+      this.mode = canLocal() ? "browser" : "none";
+    }
+    reindex();
+    showSaveMode();
+    if (this.genDirty || this.pending) this.save();
+  },
+  path(name) { return "data/users/" + this.uid + "/" + name; },
+  dirtyAll() { this.pending = true; this.genDirty = true; },
+  save(opts = {}) {
+    if (opts.gen) this.genDirty = true;
+    this.pending = true;
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ S, GEN })); } catch {}
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.flush(), opts.now ? 0 : 600);
+  },
+  async flush() {
+    if (this.mode !== "account" || !this.db) { this.pending = false; setSaveText(); return; }
+    if (this.busy) { this.again = true; return; }
+    this.busy = true;
+    setSaveText("Saving…");
+    try {
+      if (this.pending) { this.pending = false; await this.db.doc(this.path("progress")).set(JSON.parse(JSON.stringify(S))); }
+      if (this.genDirty) { this.genDirty = false; await this.db.doc(this.path("generated")).set({ items: GEN }); }
+      setSaveText();
+    } catch (e) {
+      if (e && (e.code === "invalid_argument" || e.code === "revoked" || e.code === "not_granted")) {
+        this.mode = canLocal() ? "browser" : "none"; this.db = null; showSaveMode();
+      } else { setSaveText("Save failed, will retry on your next answer"); this.pending = true; }
+    } finally {
+      this.busy = false;
+      if (this.again) { this.again = false; this.flush(); }
+    }
+  },
+};
+function thaw(o) { return o == null ? o : JSON.parse(JSON.stringify(o)); }
+function canLocal() { try { localStorage.setItem("__t", "1"); localStorage.removeItem("__t"); return true; } catch { return false; } }
+function normalize(o) {
+  const b = blank();
+  if (!o || typeof o !== "object") return b;
+  b.history = o.history && typeof o.history === "object" ? o.history : {};
+  b.sessions = Object.assign(b.sessions, o.sessions || {});
+  b.mocks = Array.isArray(o.mocks) ? o.mocks : [];
+  return b;
+}
+function cleanGen(items) { return Array.isArray(items) ? items.filter(q => validateQ(q)).slice(-GEN_CAP) : []; }
+function showSaveMode() {
+  const el = document.getElementById("save");
+  el.dataset.mode = Store.mode;
+  setSaveText();
+}
+function setSaveText(t) {
+  const txt = document.getElementById("save-text");
+  if (t) { txt.textContent = t; return; }
+  txt.textContent = Store.mode === "account" ? "Saved to your account"
+    : Store.mode === "browser" ? "Saved in this browser only" : "Progress is not being saved";
+}
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+function el(tag, attrs = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === "class") n.className = v;
+    else if (k === "text") n.textContent = v;
+    else if (k === "style") n.setAttribute("style", v);
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) n.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return n;
+}
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const domColor = n => `var(--d${n})`;
+function domChip(n) { return el("span", { class: "chip dom", style: `--dc:${domColor(n)}` }, "Domain " + n); }
+function fmtTime(ms) { const s = Math.max(0, Math.round(ms / 1000)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); }
+function pct(c, a) { return a ? Math.round(100 * c / a) : null; }
+function taskName(t) { const d = DOMAINS[Number(String(t)[0]) - 1]; return d ? d.tasks[t] || t : t; }
+
+/* ---------- validation (bank and generated) ---------- */
+function validateQ(q) {
+  if (!q || typeof q !== "object") return false;
+  const d = Number(q.domain);
+  if (!(d >= 1 && d <= 5)) return false;
+  if (typeof q.stem !== "string" || q.stem.length < 30) return false;
+  if (!Array.isArray(q.options) || q.options.length < 4 || q.options.length > 5) return false;
+  if (!q.options.every(o => typeof o === "string" && o.trim())) return false;
+  if (!Array.isArray(q.correct)) return false;
+  const want = q.type === "multi" ? 2 : 1;
+  if (q.correct.length !== want) return false;
+  if (!q.correct.every(i => Number.isInteger(i) && i >= 0 && i < q.options.length)) return false;
+  if (new Set(q.correct).size !== q.correct.length) return false;
+  if (!Array.isArray(q.whyWrong) || q.whyWrong.length !== q.options.length) return false;
+  for (const f of ["explanation", "plainExample", "technicalExample"]) if (typeof q[f] !== "string" || !q[f].trim()) return false;
+  return true;
+}
+
+/* ---------- history ---------- */
+function record(q, ok, pick) {
+  const h = S.history[q.id] || { a: 0, c: 0 };
+  h.a += 1; if (ok) h.c += 1;
+  h.last = Date.now(); h.ok = ok; h.pick = pick;
+  S.history[q.id] = h;
+}
+function stats(filter) {
+  let a = 0, c = 0, seen = 0;
+  for (const [id, h] of Object.entries(S.history)) {
+    const q = byId.get(id); if (!q || (filter && !filter(q))) continue;
+    a += h.a; c += h.c; seen += 1;
+  }
+  return { a, c, seen, p: pct(c, a) };
+}
+
+/* ---------- question selection ---------- */
+/*
+ * Builds a practice set of up to n questions from `pool`.
+ * history[id] = { a: attempts, c: correct, ok: was the LAST attempt right, last: timestamp }
+ * focus is one of "smart" | "missed" | "unseen" | "any".
+ */
+function choosePracticeSet(pool, history, n, focus) {
+  const unseen = pool.filter(q => !history[q.id]);
+  const missed = pool.filter(q => history[q.id] && history[q.id].ok === false);
+  if (focus === "missed") return shuffle(missed).slice(0, n);
+  if (focus === "unseen") return shuffle(unseen).slice(0, n);
+  if (focus === "any") return shuffle(pool).slice(0, n);
+  // TODO(human): "smart" mix. The default below serves unseen questions first,
+  // then misses, then everything else. Replace it with the study strategy you want.
+  const rest = pool.filter(q => history[q.id] && history[q.id].ok !== false);
+  return [...shuffle(unseen), ...shuffle(missed), ...shuffle(rest)].slice(0, n);
+}
+
+function buildMock() {
+  const scen = shuffle(Object.keys(SCENARIOS)).slice(0, 4);
+  const ids = [];
+  for (const d of DOMAINS) {
+    const pool = BANK.filter(q => q.domain === d.n);
+    const pref = shuffle(pool.filter(q => scen.includes(q.scenario)));
+    const other = shuffle(pool.filter(q => !scen.includes(q.scenario)));
+    ids.push(...[...pref, ...other].slice(0, d.items).map(q => q.id));
+  }
+  // group by scenario so the paper reads like scenario blocks
+  const order = new Map(scen.map((s, i) => [s, i]));
+  ids.sort((a, b) => (order.get(byId.get(a).scenario) ?? 9) - (order.get(byId.get(b).scenario) ?? 9));
+  return { ids, scen };
+}
+
+/* ---------- sessions ---------- */
+function newSession(mode, ids, extra = {}) {
+  const orders = {};
+  for (const id of ids) orders[id] = shuffle([...byId.get(id).options.keys()]);
+  return Object.assign({ mode, ids, orders, idx: 0, answers: {}, flags: [], elapsed: 0, feedback: true, started: Date.now() }, extra);
+}
+function startRun(key) {
+  const s = S.sessions[key];
+  if (!s) return;
+  s.ids = s.ids.filter(id => byId.has(id));
+  ui.run = { key, s, since: Date.now() };
+  ui.selected = [];
+  go("quiz");
+  renderQuiz();
+  tick();
+}
+function pauseRun() {
+  if (!ui.run) return;
+  bankTime();
+  Store.save({ now: true });
+  const key = ui.run.key;
+  ui.run = null;
+  go(key === "mock" ? "mock" : "practice");
+}
+function bankTime() {
+  if (!ui.run || ui.run.paused) return;
+  const now = Date.now();
+  ui.run.s.elapsed += now - ui.run.since;
+  ui.run.since = now;
+}
+
+/* ---------- navigation ---------- */
+function go(view) {
+  ui.view = view;
+  for (const v of ["home", "practice", "mock", "podcast", "glossary", "generate", "progress", "quiz", "results"]) $("#view-" + v).hidden = v !== view;
+  $("#side").classList.remove("open"); $("#menu-btn").setAttribute("aria-expanded", "false");
+  for (const t of document.querySelectorAll(".tab")) {
+    const on = t.dataset.view === view || (view === "quiz" && ui.run && t.dataset.view === (ui.run.key === "mock" ? "mock" : "practice"));
+    t.setAttribute("aria-selected", on ? "true" : "false");
+  }
+  if (view === "home") renderHome();
+  if (view === "practice") renderPractice();
+  if (view === "mock") renderMock();
+  if (view === "podcast") renderPodcast();
+  if (view === "glossary") renderGlossary();
+  if (view === "generate") renderGenerate();
+  if (view === "progress") renderProgress();
+  window.scrollTo({ top: 0 });
+}
+for (const t of document.querySelectorAll(".tab")) t.addEventListener("click", () => { if (ui.run) pauseRun(); go(t.dataset.view); });
+$("#logo-home").addEventListener("click", e => { e.preventDefault(); if (ui.run) pauseRun(); go("home"); });
+$("#menu-btn").addEventListener("click", () => {
+  const open = $("#side").classList.toggle("open");
+  $("#menu-btn").setAttribute("aria-expanded", open ? "true" : "false");
+});
+document.addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) { if (ui.run) pauseRun(); go(b.dataset.go); } });
+$("#move-progress").addEventListener("click", () => {
+  if (ui.run) pauseRun();
+  go("progress");
+  const b = $("#prog-export");
+  b.scrollIntoView({ block: "center" });
+  b.focus({ preventScroll: true });
+});
+
+/* ---------- home view ---------- */
+function renderHome() {
+  const all = stats();
+  const box = $("#home-progress");
+  box.hidden = !all.a;
+  if (all.a) box.replaceChildren(
+    el("span", { class: "label", text: "Welcome back" }),
+    el("p", { text: `You have seen ${all.seen} of ${BANK.length + GEN.length} questions, with ${all.p}% of answers correct${S.mocks.length ? ` and ${S.mocks.length} mock exam${S.mocks.length === 1 ? "" : "s"} finished` : ""}.` }),
+    el("div", { class: "row" }, el("button", { class: "btn primary", "data-go": "practice" }, S.sessions.practice ? "Resume practice" : "Keep practising"),
+      el("button", { class: "btn", "data-go": "progress" }, "See your progress")));
+  const secs = PODCAST.chapters.reduce((a, c) => a + c.parts.reduce((b, p) => b + (p.seconds || 0), 0), 0);
+  const cards = [
+    ["practice", "Practise", `${BANK.length} questions`, "Pick domains and get coaching on every answer, including why each wrong option is wrong."],
+    ["mock", "Mock exam", "60 items · 120 min", "A timed run weighted like the real exam, marked at the end with a breakdown by domain."],
+    ["podcast", "Podcast", secs ? `${Math.round(secs / 3600)} hours · ${podParts.length} parts` : "Coming soon", "One narrated episode per domain, one part per task statement, with a test after each part."],
+    ["glossary", "Glossary", `${GLOSSARY.length} terms`, "Every key term in plain English, grouped by where it matters, or A to Z."],
+    ["generate", "Generate", "Fresh questions", "New practice questions on demand, aimed at your weakest task statement."],
+    ["progress", "Progress", "By domain and task", "Accuracy against the pass line, what to repair first, and a progress file to take to another computer."],
+  ].filter(([v]) => v !== "generate" || sampleFn);
+  $("#home-cards").replaceChildren(...cards.map(([v, name, stat, text]) =>
+    el("button", { class: "card", "data-go": v }, el("span", { class: "stat", text: stat }), el("b", { text: name }), el("p", { text }))));
+}
+
+/* ---------- practise view ---------- */
+function resumeCard(host, key) {
+  const s = S.sessions[key];
+  host.replaceChildren();
+  host.hidden = !s;
+  if (!s) return;
+  const done = Object.keys(s.answers).length;
+  const right = Object.entries(s.answers).filter(([id, a]) => a.ok).length;
+  host.append(
+    el("div", { class: "row", style: "justify-content:space-between" },
+      el("div", { style: "display:grid;gap:2px" },
+        el("h3", { text: key === "mock" ? "Mock exam in progress" : "Practice session in progress" }),
+        el("p", { class: "hint num", text: `${done} of ${s.ids.length} answered · ${right} correct · ${key === "mock" ? fmtTime(MOCK_MINUTES * 60000 - s.elapsed) + " left" : fmtTime(s.elapsed) + " spent"}` })),
+      el("div", { class: "row" },
+        el("button", { class: "btn primary", onclick: () => startRun(key) }, "Resume"),
+        el("button", { class: "btn ghost", onclick: () => { S.sessions[key] = null; Store.save(); key === "mock" ? renderMock() : renderPractice(); } }, "Discard"))));
+}
+function renderPractice() {
+  $("#bank-count").textContent = BANK.length + (GEN.length ? " + " + GEN.length : "");
+  resumeCard($("#practice-resume"), "practice");
+  const host = $("#domain-cards");
+  const checked = new Set([...host.querySelectorAll("input:checked")].map(i => Number(i.value)));
+  const first = !host.children.length;
+  host.replaceChildren(...DOMAINS.map(d => {
+    const count = BANK.filter(q => q.domain === d.n).length;
+    const st = stats(q => q.domain === d.n);
+    const input = el("input", { type: "checkbox", value: d.n, id: "dom-" + d.n, "aria-label": "Include Domain " + d.n });
+    input.checked = first || checked.has(d.n);
+    return el("label", { class: "dcard", for: "dom-" + d.n, style: `--dc:${domColor(d.n)}` },
+      input,
+      el("span", { class: "dn", text: `DOMAIN ${d.n} · ${d.weight}%` }),
+      el("h3", { text: d.name }),
+      el("div", { class: "meter" }, el("i", { style: `width:${st.p ?? 0}%` })),
+      el("div", { class: "meta num" },
+        el("span", { text: `${st.seen} of ${count} seen` }),
+        el("span", { text: st.p == null ? "no attempts yet" : `${st.p}% correct` })));
+  }));
+}
+$("#practice-start").addEventListener("click", () => {
+  const doms = [...document.querySelectorAll("#domain-cards input:checked")].map(i => Number(i.value));
+  const msg = $("#practice-msg");
+  if (!doms.length) { msg.className = "status err"; msg.textContent = "Pick at least one domain."; return; }
+  const pool = BANK.filter(q => doms.includes(q.domain));
+  const n = Number($("#practice-n").value), focus = $("#practice-focus").value;
+  const set = choosePracticeSet(pool, S.history, n, focus);
+  if (!set.length) { msg.className = "status err"; msg.textContent = focus === "missed" ? "Nothing missed in those domains yet." : "No questions match that focus."; return; }
+  msg.textContent = "";
+  S.sessions.practice = newSession("practice", set.map(q => q.id), { label: doms.map(d => "D" + d).join(" ") });
+  Store.save();
+  startRun("practice");
+});
+
+/* ---------- mock view ---------- */
+function renderMock() {
+  resumeCard($("#mock-resume"), "mock");
+  $("#mock-weights").replaceChildren(...DOMAINS.map(d => el("div", { class: "brow", style: `--dc:${domColor(d.n)}` },
+    el("div", { class: "nm" }, `Domain ${d.n}`, el("small", { text: d.name })),
+    el("div", { class: "track" }, el("i", { style: `width:${d.weight / 27 * 100}%` })),
+    el("div", { class: "pct", text: `${d.weight}% · ${d.items}` }))));
+}
+$("#mock-start").addEventListener("click", () => {
+  const { ids, scen } = buildMock();
+  S.sessions.mock = newSession("mock", ids, { feedback: $("#mock-feedback").checked, scen });
+  Store.save();
+  startRun("mock");
+});
+
+/* ---------- quiz runner ---------- */
+function curQ() { const s = ui.run.s; return byId.get(s.ids[s.idx]); }
+function renderQuiz() {
+  const s = ui.run.s, q = curQ();
+  if (!q) { finishRun(); return; }
+  if (ui.run.paused) { renderPaused(); return; }
+  const order = s.orders[q.id] || [...q.options.keys()];
+  const ans = s.answers[q.id];
+  const reveal = ans && (s.mode !== "mock" || s.feedback);
+  const locked = !!ans;
+  if (!locked) ui.selected = ui.selected.filter(i => i < order.length);
+  const need = q.type === "multi" ? 2 : 1;
+
+  const head = el("div", { class: "qhead" },
+    el("span", { class: "count", text: `${s.mode === "mock" ? "MOCK" : "PRACTICE"} · ${s.idx + 1} / ${s.ids.length}` }),
+    domChip(q.domain),
+    el("span", { class: "chip", title: taskName(q.task), text: "Task " + q.task }),
+    el("span", { class: "chip", text: SCENARIOS[q.scenario] || q.scenario }),
+    q.generated ? el("span", { class: "chip gen", text: "Generated · not reviewed" }) : null);
+
+  const stemText = q.stem.replace(/\s*\(Select TWO\.?\)\s*$/i, "");
+  const seen = new Set();
+  const stem = el("p", { class: "stem" }, annotate(stemText, seen), q.type === "multi" ? el("span", { class: "select-n", text: " (Select TWO.)" }) : null);
+
+  const opts = el("div", { class: "opts", role: q.type === "multi" ? "group" : "radiogroup", "aria-label": "Answer options" });
+  order.forEach((orig, i) => {
+    const chosen = locked ? ans.pick.includes(orig) : ui.selected.includes(i);
+    const b = el("button", { class: "opt", type: "button", "aria-pressed": chosen ? "true" : "false", disabled: locked || null },
+      el("span", { class: "key", text: KEYS[i] }), el("span", {}, annotate(q.options[orig], seen, true)));
+    if (reveal) {
+      if (q.correct.includes(orig)) b.classList.add("is-right");
+      else if (ans.pick.includes(orig)) b.classList.add("is-wrong");
+    }
+    b.addEventListener("click", () => pick(i));
+    opts.append(b);
+  });
+
+  const actions = el("div", { class: "actions" });
+  if (!locked) {
+    actions.append(
+      el("button", { class: "btn primary", id: "check", disabled: ui.selected.length !== need || null, onclick: check }, s.mode === "mock" && !s.feedback ? "Submit answer" : "Check answer"),
+      el("span", { class: "hint spacer", text: need === 2 ? "Choose two, then check. Keys 1-5 select." : "Keys 1-5 select, Enter checks." }));
+  } else {
+    actions.append(el("span", { class: "spacer" }));
+  }
+  if (s.idx > 0) actions.append(el("button", { class: "btn ghost", onclick: () => move(-1) }, "Previous"));
+  if (locked || s.mode === "mock") actions.append(el("button", { class: "btn" + (locked ? " primary" : ""), id: "next", onclick: () => move(1) }, s.idx + 1 >= s.ids.length ? "Finish" : (locked ? "Next question" : "Skip")));
+
+  const parts = [head, stem, opts, actions];
+  if (reveal) parts.push(feedbackBlock(q, ans, order, seen));
+  else if (locked) parts.push(el("p", { class: "hint", text: "Answer recorded. Feedback is held until you finish." }));
+  $("#sheet").replaceChildren(...parts);
+  renderRail();
+}
+function renderPaused() {
+  const s = ui.run.s;
+  const answered = Object.keys(s.answers).length;
+  const isMock = s.mode === "mock";
+  $("#sheet").replaceChildren(el("div", { class: "paused" },
+    el("span", { class: "label", text: isMock ? "Mock exam paused" : "Practice paused" }),
+    el("div", { class: "paused-time num", text: isMock ? fmtTime(MOCK_MINUTES * 60000 - s.elapsed) : fmtTime(s.elapsed) }),
+    el("p", { class: "hint", text: isMock ? "time left on the clock" : "time spent so far" }),
+    el("p", { class: "lede", text: `The clock is stopped and the question is hidden. You are on question ${s.idx + 1} of ${s.ids.length}, with ${answered} answered. Your place is saved, so you can also close this page and resume later from the ${isMock ? "Mock exam" : "Practise"} tab.` }),
+    el("div", { class: "row", style: "justify-content:center" },
+      el("button", { class: "btn primary", id: "resume-btn", onclick: resumeInPlace }, "Resume"),
+      el("button", { class: "btn", onclick: () => { resumeInPlace(); pauseRun(); } }, "Save and exit"))));
+  renderRail();
+  const b = $("#resume-btn"); if (b) b.focus();
+}
+function pick(i) {
+  const q = curQ(), s = ui.run.s;
+  if (s.answers[q.id]) return;
+  if (q.type === "multi") {
+    ui.selected = ui.selected.includes(i) ? ui.selected.filter(x => x !== i) : [...ui.selected, i].slice(-2);
+  } else ui.selected = [i];
+  renderQuiz();
+}
+function check() {
+  const q = curQ(), s = ui.run.s;
+  const need = q.type === "multi" ? 2 : 1;
+  if (ui.selected.length !== need || s.answers[q.id]) return;
+  const order = s.orders[q.id] || [...q.options.keys()];
+  const pickOrig = ui.selected.map(i => order[i]);
+  const ok = pickOrig.length === q.correct.length && pickOrig.every(p => q.correct.includes(p));
+  record(q, ok, pickOrig);
+  s.answers[q.id] = { pick: pickOrig, ok };
+  bankTime();
+  ui.selected = [];
+  Store.save();
+  renderQuiz();
+  const fb = $("#sheet .verdict");
+  if (fb && !ok) fb.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+}
+function move(d) {
+  const s = ui.run.s;
+  const nx = s.idx + d;
+  if (nx >= s.ids.length) { finishRun(); return; }
+  s.idx = Math.max(0, nx);
+  ui.selected = [];
+  bankTime();
+  Store.save();
+  renderQuiz();
+  window.scrollTo({ top: 0 });
+}
+function jump(i) { ui.run.s.idx = i; ui.selected = []; bankTime(); Store.save(); renderQuiz(); }
+
+function feedbackBlock(q, ans, order, seen = new Set()) {
+  const letter = orig => KEYS[order.indexOf(orig)];
+  const right = q.correct.map(letter).join(" and ");
+  const wrap = el("div", { class: "coach" });
+  if (ans.ok) {
+    wrap.append(el("div", { class: "verdict ok" }, "Correct"),
+      el("p", { text: q.explanation }));
+    wrap.append(el("details", { class: "all" }, el("summary", { text: "See the everyday and technical examples" }),
+      el("div", { style: "display:grid;gap:10px;margin-top:10px" },
+        el("p", { text: q.plainExample }), el("pre", { class: "tech", text: q.technicalExample }))));
+  } else {
+    const wrongPicks = ans.pick.filter(p => !q.correct.includes(p));
+    wrap.append(el("div", { class: "verdict bad" }, `Not quite. The best answer is ${right}.`));
+    if (wrongPicks.length) wrap.append(el("div", { class: "coach-step pick" }, el("span", { class: "n", text: "!" }),
+      el("div", { class: "body" }, el("span", { class: "label", text: "Why your pick loses" }),
+        ...wrongPicks.map(p => el("p", {}, el("b", { text: letter(p) + ". " }), annotate(q.whyWrong[p], seen))))));
+    wrap.append(el("div", { class: "coach-step" }, el("span", { class: "n", text: "1" }),
+      el("div", { class: "body" }, el("span", { class: "label", text: "In everyday terms" }), el("p", { text: q.plainExample }))));
+    wrap.append(el("div", { class: "coach-step" }, el("span", { class: "n", text: "2" }),
+      el("div", { class: "body" }, el("span", { class: "label", text: "The technical picture" }), el("pre", { class: "tech", text: q.technicalExample }))));
+    wrap.append(el("div", { class: "coach-step win" }, el("span", { class: "n", text: "3" }),
+      el("div", { class: "body" }, el("span", { class: "label", text: `Why ${right} wins` }), el("p", { text: q.explanation }),
+        ...q.correct.map(c => el("p", { class: "hint" }, el("b", { text: letter(c) + ". " }), annotate(q.whyWrong[c], seen))))));
+  }
+  wrap.append(el("details", { class: "all" }, el("summary", { text: "Every option explained" }),
+    el("div", { class: "whylist" }, ...order.map((orig, i) => el("div", {},
+      el("span", { class: "k" + (q.correct.includes(orig) ? " good" : ""), text: KEYS[i] }), el("span", {}, annotate(q.whyWrong[orig], seen)))))));
+  const meta = [q.concept ? "Concept: " + q.concept : null, q.sources && q.sources.length ? "Sources: " + q.sources.join(" · ") : null].filter(Boolean).join("   ");
+  if (meta) wrap.append(el("p", { class: "sources", text: meta }));
+  return wrap;
+}
+
+function renderRail() {
+  const s = ui.run.s;
+  const rail = $("#rail");
+  const parts = [];
+  const paused = !!ui.run.paused;
+  parts.push(el("div", { class: "panel" },
+    el("span", { class: "label", text: (s.mode === "mock" ? "Time left" : "Time on this session") + (paused ? " · paused" : "") }),
+    el("div", { class: "timer" + (paused ? " is-paused" : ""), id: "timer" }),
+    paused ? el("button", { class: "btn primary", onclick: resumeInPlace }, "Resume")
+           : el("button", { class: "btn", id: "pause-btn", title: "Stop the clock and hide the question (key P)", onclick: pauseInPlace }, "Pause")));
+  if (paused) { rail.replaceChildren(...parts); paintTimer(); return; }
+  const done = Object.values(s.answers);
+  const showMarks = s.mode !== "mock" || s.feedback;
+  parts.push(el("div", { class: "panel" },
+    el("span", { class: "label", text: "Questions" }),
+    el("div", { class: "grid-nav" }, ...s.ids.map((id, i) => {
+      const a = s.answers[id];
+      const cls = [a ? "done" : "", a && showMarks ? (a.ok ? "right" : "wrong") : "", s.flags.includes(id) ? "flag" : "", i === s.idx ? "cur" : ""].join(" ");
+      return el("button", { class: cls, "aria-label": `Question ${i + 1}${a ? ", answered" : ""}`, onclick: () => jump(i) }, String(i + 1));
+    })),
+    el("p", { class: "hint num", text: `${done.length} answered${showMarks ? ` · ${done.filter(a => a.ok).length} correct` : ""}` })));
+  const q = curQ();
+  const flagged = s.flags.includes(q.id);
+  parts.push(el("div", { class: "panel" },
+    el("button", { class: "btn", onclick: () => { s.flags = flagged ? s.flags.filter(x => x !== q.id) : [...s.flags, q.id]; Store.save(); renderRail(); } }, flagged ? "Unflag question" : "Flag for review"),
+    el("button", { class: "btn", onclick: pauseRun }, "Save and exit"),
+    el("button", { class: "btn ghost", onclick: finishRun }, "End and see results")));
+  if (TERM_RE) {
+    const box = el("input", { type: "checkbox", id: "terms-toggle" });
+    box.checked = termsOn;
+    box.addEventListener("change", () => { termsOn = box.checked; try { localStorage.setItem("ccarf-terms", termsOn ? "on" : "off"); } catch {} hideTip(); renderQuiz(); });
+    parts.push(el("div", { class: "panel" }, el("label", { class: "row", for: "terms-toggle" }, box, el("span", { text: "Underline technical terms (hover or tap for a plain-English meaning)" }))));
+  }
+  rail.replaceChildren(...parts);
+  paintTimer();
+}
+function liveElapsed() { return !ui.run ? 0 : ui.run.paused ? ui.run.s.elapsed : ui.run.s.elapsed + (Date.now() - ui.run.since); }
+function pauseInPlace() {
+  if (!ui.run || ui.run.paused) return;
+  bankTime();
+  ui.run.paused = true;
+  ui.selected = [];
+  Store.save({ now: true });
+  renderQuiz();
+  window.scrollTo({ top: 0 });
+}
+function resumeInPlace() {
+  if (!ui.run || !ui.run.paused) return;
+  ui.run.paused = false;
+  ui.run.since = Date.now();
+  renderQuiz();
+}
+function paintTimer() {
+  const t = $("#timer"); if (!t || !ui.run) return;
+  if (ui.run.s.mode === "mock") {
+    const left = MOCK_MINUTES * 60000 - liveElapsed();
+    t.textContent = fmtTime(left);
+    t.classList.toggle("low", left < 10 * 60000);
+    if (left <= 0) finishRun();
+  } else t.textContent = fmtTime(liveElapsed());
+}
+let tickHandle = null;
+function tick() { clearInterval(tickHandle); tickHandle = setInterval(() => { if (ui.run && !document.hidden) paintTimer(); }, 1000); }
+document.addEventListener("visibilitychange", () => {
+  if (!ui.run) return;
+  if (document.hidden) { bankTime(); Store.save({ now: true }); }
+  else if (!ui.run.paused) ui.run.since = Date.now();
+});
+
+function finishRun() {
+  if (!ui.run) return;
+  bankTime();
+  const { key, s } = ui.run;
+  ui.run = null;
+  clearInterval(tickHandle);
+  if (key === "mock") {
+    const byDom = {};
+    for (const d of DOMAINS) byDom[d.n] = { a: 0, c: 0, n: 0 };
+    for (const id of s.ids) { const q = byId.get(id); if (!q) continue; byDom[q.domain].n++; const a = s.answers[id]; if (a) { byDom[q.domain].a++; if (a.ok) byDom[q.domain].c++; } }
+    S.mocks.push({ at: Date.now(), n: s.ids.length, answered: Object.keys(s.answers).length, correct: Object.values(s.answers).filter(a => a.ok).length, elapsed: s.elapsed, byDom });
+    S.mocks = S.mocks.slice(-20);
+  }
+  S.sessions[key] = null;
+  Store.save({ now: true });
+  renderResults(key, s);
+  go("results");
+}
+
+/* ---------- results ---------- */
+function domainBars(rows) {
+  return el("div", { class: "bars" }, ...rows.map(r => {
+    const p = pct(r.c, r.n);
+    return el("div", { class: "brow", style: `--dc:${domColor(r.d.n)}` },
+      el("div", { class: "nm" }, `Domain ${r.d.n}`, el("small", { text: r.d.name })),
+      el("div", { class: "track" }, el("i", { style: `width:${p ?? 0}%` }), el("span", { class: "line", title: "75% working target" })),
+      el("div", { class: "pct" + (p != null && p < 70 ? " below" : ""), text: p == null ? "–" : `${p}%` }));
+  }));
+}
+function renderResults(key, s) {
+  const host = $("#view-results");
+  const answered = Object.keys(s.answers).length;
+  const correct = Object.values(s.answers).filter(a => a.ok).length;
+  const rows = DOMAINS.map(d => {
+    const ids = s.ids.filter(id => byId.get(id)?.domain === d.n);
+    return { d, n: ids.length, c: ids.filter(id => s.answers[id]?.ok).length };
+  }).filter(r => r.n);
+  const missed = s.ids.filter(id => s.answers[id] && !s.answers[id].ok).map(id => byId.get(id)).filter(Boolean);
+  const skipped = s.ids.filter(id => !s.answers[id]).length;
+  const weakest = rows.filter(r => r.n).sort((a, b) => a.c / a.n - b.c / b.n)[0];
+  host.replaceChildren(
+    el("div", { style: "display:grid;gap:6px" },
+      el("h2", { text: key === "mock" ? "Mock exam results" : "Practice results" }),
+      el("p", { class: "lede", text: `${correct} of ${s.ids.length} correct (${pct(correct, s.ids.length) ?? 0}%), ${skipped} unanswered, in ${fmtTime(s.elapsed)}. ${weakest && weakest.c / weakest.n < 0.75 ? `Your weakest area here was Domain ${weakest.d.n}, ${weakest.d.name}. Start your next session there.` : "Every domain in this set cleared the 75% working target."}` })),
+    el("div", { class: "panel" }, el("span", { class: "label", text: "Score by domain (line marks 75%)" }), domainBars(rows)),
+    el("div", { class: "panel" },
+      el("span", { class: "label", text: missed.length ? `Review your ${missed.length} miss${missed.length > 1 ? "es" : ""}` : "No misses to review" }),
+      missedList(missed, s)),
+    el("div", { class: "row" },
+      missed.length ? el("button", { class: "btn primary", onclick: () => { S.sessions.practice = newSession("practice", missed.map(q => q.id), { label: "retry" }); Store.save(); startRun("practice"); } }, "Retry the misses now") : null,
+      el("button", { class: "btn", onclick: () => go("progress") }, "See overall progress"),
+      el("button", { class: "btn ghost", onclick: () => go(key === "mock" ? "mock" : "practice") }, "Back")));
+}
+function missedList(qs, s) {
+  return el("div", { class: "missed" }, ...qs.map(q => {
+    const order = (s && s.orders[q.id]) || [...q.options.keys()];
+    const h = S.history[q.id];
+    const ans = (s && s.answers[q.id]) || { pick: (h && Array.isArray(h.pick)) ? h.pick : [], ok: false };
+    const seen = new Set();
+    const body = el("div", { style: "display:grid;gap:12px;margin-top:10px" },
+      el("p", { class: "stem" }, annotate(q.stem, seen)),
+      el("div", { class: "whylist" }, ...order.map((o, i) => el("div", {},
+        el("span", { class: "k" + (q.correct.includes(o) ? " good" : ""), text: KEYS[i] }),
+        el("span", { text: q.options[o] + (ans.pick.includes(o) ? "  (your answer)" : "") })))));
+    body.append(feedbackBlock(q, ans, order, seen));
+    return el("details", {}, el("summary", {}, domChip(q.domain), el("span", { text: q.stem.slice(0, 120) + (q.stem.length > 120 ? "…" : "") })), body);
+  }));
+}
+
+/* ---------- progress ---------- */
+/* ---------- podcast view ---------- */
+const PODCAST = readJson("podcast-data", { base: "", chapters: [] });
+const POD_KEY = "ccarf-podcast";                   // per-viewer convenience only: last part and resume points
+let pod = { last: null, at: {} };
+try { pod = Object.assign(pod, JSON.parse(localStorage.getItem(POD_KEY) || "{}")); } catch {}
+function podSave() { try { localStorage.setItem(POD_KEY, JSON.stringify(pod)); } catch {} }
+const podParts = PODCAST.chapters.flatMap(c => c.parts.filter(p => p.file).map(p => ({ ...p, ch: c })));
+const podAudio = $("#pod-audio");
+function podLoad(file, autoplay) {
+  const p = podParts.find(x => x.file === file);
+  if (!p) return;
+  pod.last = file; podSave();
+  if (podAudio.dataset.file !== file) {
+    podAudio.src = PODCAST.base + file;
+    podAudio.dataset.file = file;
+    podAudio.addEventListener("loadedmetadata", () => { const t = pod.at[file] || 0; if (t < podAudio.duration - 5) podAudio.currentTime = t; }, { once: true });
+  }
+  podAudio.playbackRate = Number($("#pod-speed").value);
+  $("#pod-now-ch").textContent = "Domain " + p.ch.n + " · " + p.ch.title;
+  $("#pod-now-part").textContent = p.title;
+  if (autoplay) podAudio.play().catch(() => {});
+  renderPodcast();
+}
+let podTick = 0;
+podAudio.addEventListener("timeupdate", () => {
+  const f = podAudio.dataset.file;
+  if (!f || Date.now() - podTick < 5000) return;
+  podTick = Date.now(); pod.at[f] = Math.floor(podAudio.currentTime); podSave();
+});
+podAudio.addEventListener("ended", () => {
+  const f = podAudio.dataset.file;
+  pod.at[f] = 0; podSave();
+  const i = podParts.findIndex(x => x.file === f);
+  if (i >= 0 && i + 1 < podParts.length) podLoad(podParts[i + 1].file, true);
+});
+podAudio.addEventListener("pause", () => { const f = podAudio.dataset.file; if (f && !podAudio.ended) { pod.at[f] = Math.floor(podAudio.currentTime); podSave(); } });
+$("#pod-speed").addEventListener("change", e => { podAudio.playbackRate = Number(e.target.value); });
+function renderPodcast() {
+  const cur = podAudio.dataset.file || pod.last;
+  if (cur && !podAudio.dataset.file && podParts.some(x => x.file === cur)) { podLoad(cur, false); return; }
+  $("#pod-list").replaceChildren(...PODCAST.chapters.map(c => {
+    const ready = c.parts.filter(p => p.file);
+    const secs = ready.reduce((a, p) => a + (p.seconds || 0), 0);
+    return el("div", { class: "episode", style: `--dc:${domColor(c.n)}` },
+      el("div", { class: "row" }, domChip(c.n), el("h3", { text: c.title })),
+      el("p", { class: "meta", text: ready.length === c.parts.length ? `${c.parts.length} parts · ${fmtTime(secs * 1000)}`
+        : ready.length ? `${ready.length} of ${c.parts.length} parts ready · ${fmtTime(secs * 1000)} so far` : `${c.parts.length} parts · recording soon` }),
+      el("div", { class: "parts" }, c.parts.flatMap(p => [el("div", { class: "ptrow" },
+        el("button", {
+          class: "pt" + (p.file && p.file === cur ? " cur" : ""), disabled: !p.file,
+          onclick: () => podLoad(p.file, true) },
+          el("span", { class: "ic", "aria-hidden": "true", text: p.file ? "▶" : "·" }),
+          el("span", { text: p.title }),
+          el("span", { class: "len", text: p.file ? (pod.at[p.file] ? fmtTime(pod.at[p.file] * 1000) + " / " : "") + fmtTime((p.seconds || 0) * 1000) : "soon" })),
+        testMeButton(c.n, p.task)), subsOn && p.file && p.file === cur ? subsPanel(p) : null])));
+  }));
+}
+
+/* Read along: the written script for the playing part, following the audio sentence by sentence.
+   Each part's timings come from a small file beside its audio, fetched only when that part is shown. */
+const SUBS_KEY = "ccarf-subtitles";               // per-viewer convenience only
+let subsOn = true;
+try { subsOn = localStorage.getItem(SUBS_KEY) !== "off"; } catch {}
+$("#pod-subs").checked = subsOn;
+$("#pod-subs").addEventListener("change", e => {
+  subsOn = e.target.checked;
+  try { localStorage.setItem(SUBS_KEY, subsOn ? "on" : "off"); } catch {}
+  renderPodcast();
+});
+const subsCache = new Map();
+let subsBox = null, subsCues = [], subsIdx = -1, subsUserScroll = 0;
+function subsFetch(p) {
+  if (!subsCache.has(p.subs)) subsCache.set(p.subs, fetch(PODCAST.base + p.subs).then(r => r.ok ? r.json() : null).catch(() => null));
+  return subsCache.get(p.subs);
+}
+function codeSpans(text) { return text.split("`").map((x, i) => i % 2 ? el("code", { text: x }) : x); }
+function subsPanel(p) {
+  const box = el("div", { class: "subs", role: "region", "aria-label": "Read along with " + p.title });
+  subsBox = box; subsCues = []; subsIdx = -1;
+  const mark = () => { subsUserScroll = Date.now(); };
+  box.addEventListener("wheel", mark, { passive: true });
+  box.addEventListener("touchmove", mark, { passive: true });
+  if (!p.subs) { box.append(el("p", { class: "hint", text: "Read-along text is not available for this part yet." })); return box; }
+  box.append(el("p", { class: "hint", text: "Loading the read-along text…" }));
+  subsFetch(p).then(d => {
+    if (subsBox !== box) return;                 // the list was redrawn while this part's text was loading
+    if (!d) { box.replaceChildren(el("p", { class: "hint", text: "Read-along text could not be loaded." })); return; }
+    const cues = [];
+    box.replaceChildren(...d.paras.map(para => el("p", { class: para.beat ? "beat" : null }, para.s.flatMap(([t, text]) => {
+      const s = el("span", { class: "cue", title: "Play from here", onclick: () => { podAudio.currentTime = t; podAudio.play().catch(() => {}); } }, codeSpans(text));
+      cues.push([t, s]);
+      return [s, " "];
+    }))));
+    subsCues = cues;
+    subsSync(true);
+  });
+  return box;
+}
+function subsSync(force) {
+  if (!subsBox || !subsCues.length || !subsBox.isConnected) return;
+  const now = podAudio.currentTime;
+  let lo = 0, hi = subsCues.length - 1;          // last cue that has started
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (subsCues[mid][0] <= now + 0.05) lo = mid; else hi = mid - 1; }
+  if (lo === subsIdx && !force) return;
+  if (subsIdx >= 0) subsCues[subsIdx][1].classList.remove("now");
+  subsIdx = lo;
+  const s = subsCues[lo][1];
+  s.classList.add("now");
+  if (Date.now() - subsUserScroll > 4000) subsBox.scrollTo({ top: Math.max(0, s.offsetTop - subsBox.clientHeight / 3), behavior: force ? "auto" : "smooth" });
+}
+podAudio.addEventListener("timeupdate", () => subsSync(false));
+podAudio.addEventListener("seeked", () => { subsUserScroll = 0; subsSync(true); });
+/* "Test me on this": a practice set drawn only from the part's task statement (or the whole domain for an introduction). */
+function testPool(domain, task) { return [...byId.values()].filter(q => task ? q.task === task : q.domain === domain); }
+function testMeButton(domain, task) {
+  const n = testPool(domain, task).length;
+  return el("button", { class: "btn", disabled: !n, title: task ? `Task ${task}: ${taskName(task)} (${n} questions)` : `All of domain ${domain} (${n} questions)`,
+    onclick: () => testMe(domain, task) }, "Test me on this");
+}
+function testMe(domain, task) {
+  const ids = choosePracticeSet(testPool(domain, task), S.history, task ? 10 : 15, "smart").map(q => q.id);
+  if (!ids.length) return;
+  if (!podAudio.paused) podAudio.pause();
+  S.sessions.practice = newSession("practice", ids, { label: task ? "task " + task : "domain " + domain });
+  Store.save();
+  startRun("practice");
+}
+
+/* ---------- glossary view ---------- */
+// Uses the same match as the underlines. A term used in three or more domains is course-wide vocabulary;
+// any other term is filed under the task statement whose bank questions mention it most.
+const WIDE_DOMAINS = 3;
+let GL = null;
+function glossaryIndex() {
+  if (GL) return GL;
+  const re = new RegExp("(?<![\\w.\\-/])(?:" + GLOSS_ALT + ")(?![\\w\\-])", "g");
+  const counts = new Map();                        // term -> Map(task -> mentions)
+  for (const q of BANK) {
+    const text = [q.stem, q.explanation, q.concept, q.plainExample, q.technicalExample, ...(q.options || []), ...(q.whyWrong || [])].join("\n");
+    for (const m of text.matchAll(re)) {
+      const g = TERM_INDEX.get(m[0].toLowerCase());
+      if (!g) continue;
+      const byTask = counts.get(g.term) || new Map();
+      byTask.set(q.task, (byTask.get(q.task) || 0) + 1);
+      counts.set(g.term, byTask);
+    }
+  }
+  const byAlpha = (a, b) => a.g.term.localeCompare(b.g.term, undefined, { sensitivity: "base" });
+  const tasks = new Map(), all = [];               // tasks: home -> entries ("wide" and "other" are special homes)
+  for (const g of GLOSSARY) {
+    const ranked = [...(counts.get(g.term) || new Map())].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], undefined, { numeric: true }));
+    const doms = [...new Set(ranked.map(r => Number(r[0][0])))].sort();
+    const home = !ranked.length ? "other" : doms.length >= WIDE_DOMAINS ? "wide" : ranked[0][0];
+    const e = { g, doms, also: home === "wide" ? [] : ranked.slice(1, 4).map(r => r[0]) };
+    if (!tasks.has(home)) tasks.set(home, []);
+    tasks.get(home).push(e);
+    all.push(e);
+  }
+  for (const list of tasks.values()) list.sort(byAlpha);
+  all.sort(byAlpha);
+  return (GL = { tasks, all });
+}
+function glTerm(e, showDoms) {
+  const { g, also, doms } = e;
+  return el("div", { class: "gterm" },
+    el("b", { text: g.term }),
+    el("p", { text: g.plain }),
+    g.aliases && g.aliases.length ? el("span", { class: "also", text: "Also written: " + g.aliases.join(", ") }) : null,
+    showDoms && doms.length ? el("div", { class: "row", style: "gap:4px" }, doms.map(domChip)) : null,
+    !showDoms && also.length ? el("span", { class: "also", text: "Also comes up in " + also.map(t => t + " " + taskName(t)).join("; ") }) : null);
+}
+function glGroup(title, items, open, showDoms) {
+  return el("details", { class: "gtask", open },
+    el("summary", {}, el("span", { text: title }), el("span", { class: "hint num", text: items.length + (items.length === 1 ? " term" : " terms") })),
+    el("div", { class: "gterms" }, items.map(e => glTerm(e, showDoms))));
+}
+function renderGlossary() {
+  const { tasks: idx, all } = glossaryIndex();
+  const needle = $("#gl-search").value.trim().toLowerCase();
+  const hit = e => !needle || [e.g.term, e.g.plain, ...(e.g.aliases || [])].some(s => String(s).toLowerCase().includes(needle));
+  const list = $("#gl-list");
+  let shown = 0;
+  if ($("#gl-mode").value === "az") {
+    $("#gl-jump").replaceChildren();
+    const letters = new Map();
+    for (const e of all.filter(hit)) {
+      const L = /^[a-z]/i.test(e.g.term) ? e.g.term[0].toUpperCase() : "#";
+      if (!letters.has(L)) letters.set(L, []);
+      letters.get(L).push(e);
+      shown += 1;
+    }
+    $("#gl-jump").replaceChildren(...[...letters.keys()].map(L => el("a", { class: "chip", href: "#gl-l" + L }, L)));
+    list.replaceChildren(...[...letters].map(([L, items]) => el("div", { class: "gdom", id: "gl-l" + L, style: "--dc:var(--accent)" },
+      el("h3", { text: L }), el("div", { class: "gterms" }, items.map(e => glTerm(e, true))))));
+  } else {
+    const wide = (idx.get("wide") || []).filter(hit);
+    shown += wide.length;
+    $("#gl-jump").replaceChildren(el("a", { class: "chip", href: "#gl-wide" }, "Across the course"),
+      ...DOMAINS.map(d => el("a", { class: "chip dom", href: "#gl-d" + d.n, style: `--dc:${domColor(d.n)}` }, "Domain " + d.n)));
+    list.replaceChildren(wide.length ? el("div", { class: "gdom", id: "gl-wide", style: "--dc:var(--accent)" },
+      el("h3", { text: "Used across the course" }),
+      el("p", { class: "hint", text: `Vocabulary that turns up in ${WIDE_DOMAINS} or more of the five domains. Worth knowing first.` }),
+      glGroup("A to Z", wide, !!needle, true)) : "");
+    list.append(...DOMAINS.map(d => {
+      const sections = Object.keys(d.tasks).map(t => {
+        const items = (idx.get(t) || []).filter(hit);
+        shown += items.length;
+        if (!items.length) return null;
+        return el("details", { class: "gtask", open: !!needle },
+          el("summary", {}, el("span", { class: "mono", text: t }), el("span", { text: d.tasks[t] }), el("span", { class: "hint num", text: items.length + (items.length === 1 ? " term" : " terms") })),
+          el("div", { class: "gterms" }, items.map(e => glTerm(e, false))));
+      }).filter(Boolean);
+      if (!sections.length) return null;
+      return el("div", { class: "gdom", id: "gl-d" + d.n, style: `--dc:${domColor(d.n)}` },
+        el("div", { class: "row" }, domChip(d.n), el("h3", { text: d.name })), ...sections);
+    }).filter(Boolean));
+    const other = (idx.get("other") || []).filter(hit);
+    shown += other.length;
+    if (other.length) list.append(el("div", { class: "gdom", style: "--dc:var(--muted)" }, el("h3", { text: "General" }), el("div", { class: "gterms" }, other.map(e => glTerm(e, true)))));
+  }
+  $("#gl-count").textContent = needle ? `${shown} of ${GLOSSARY.length} terms match` : `${GLOSSARY.length} terms`;
+  if (!shown) list.replaceChildren(el("p", { class: "hint", text: "No term matches that search." }));
+}
+$("#gl-search").addEventListener("input", renderGlossary);
+$("#gl-mode").addEventListener("change", renderGlossary);
+
+function renderProgress() {
+  const all = stats();
+  const mocks = S.mocks;
+  const lastMock = mocks[mocks.length - 1];
+  $("#prog-facts").replaceChildren(
+    el("div", { class: "fact" }, el("span", { class: "label", text: "Questions seen" }), el("b", { text: `${all.seen} / ${BANK.length + GEN.length}` })),
+    el("div", { class: "fact" }, el("span", { class: "label", text: "Answers given" }), el("b", { text: String(all.a) })),
+    el("div", { class: "fact" }, el("span", { class: "label", text: "Accuracy" }), el("b", { text: all.p == null ? "–" : all.p + "%" })),
+    el("div", { class: "fact" }, el("span", { class: "label", text: "Last mock" }), el("b", { text: lastMock ? `${pct(lastMock.correct, lastMock.n)}%` : "none yet" })));
+  const rows = DOMAINS.map(d => { const st = stats(q => q.domain === d.n); return { d, n: st.a, c: st.c }; });
+  $("#prog-domains").replaceChildren(domainBars(rows));
+
+  const tasks = [];
+  for (const d of DOMAINS) for (const [t, name] of Object.entries(d.tasks)) {
+    const st = stats(q => q.task === t);
+    tasks.push({ d, t, name, ...st, total: BANK.filter(q => q.task === t).length });
+  }
+  tasks.sort((a, b) => (a.p ?? 101) - (b.p ?? 101) || b.a - a.a);
+  $("#prog-tasks").replaceChildren(
+    el("thead", {}, el("tr", {}, el("th", { text: "Task" }), el("th", { text: "Statement" }), el("th", { text: "Seen" }), el("th", { text: "Accuracy" }))),
+    el("tbody", {}, ...tasks.map(r => el("tr", {},
+      el("td", { class: "n" }, domChip(r.d.n), " ", r.t),
+      el("td", { text: r.name }),
+      el("td", { class: "n", text: `${r.seen}/${r.total}` }),
+      el("td", { class: "n" + (r.p != null && r.p < 70 ? " below" : ""), style: r.p != null && r.p < 70 ? "color:var(--bad)" : null, text: r.p == null ? "–" : r.p + "%" })))));
+
+  const missed = Object.entries(S.history).filter(([id, h]) => h.ok === false && byId.has(id)).sort((a, b) => b[1].last - a[1].last).map(([id]) => byId.get(id));
+  $("#prog-missed").replaceChildren(missed.length ? missedList(missed.slice(0, 30), null) : el("p", { class: "hint", text: "Nothing outstanding. Questions you miss show up here until you answer them correctly." }));
+  const retry = $("#prog-retry");
+  retry.disabled = !missed.length;
+  retry.onclick = () => { S.sessions.practice = newSession("practice", shuffle(missed).slice(0, 25).map(q => q.id), { label: "missed" }); Store.save(); startRun("practice"); };
+
+  $("#prog-mocks").replaceChildren(mocks.length
+    ? el("tbody", {}, el("tr", {}, el("th", { text: "Date" }), el("th", { text: "Score" }), ...DOMAINS.map(d => el("th", { text: "D" + d.n })), el("th", { text: "Time" })),
+        ...mocks.slice().reverse().map(m => el("tr", {},
+          el("td", { class: "n", text: new Date(m.at).toLocaleDateString(undefined, { day: "numeric", month: "short" }) }),
+          el("td", { class: "n", text: `${m.correct}/${m.n} (${pct(m.correct, m.n)}%)` }),
+          ...DOMAINS.map(d => { const x = m.byDom[d.n]; const p = x ? pct(x.c, x.n) : null; return el("td", { class: "n", style: p != null && p < 70 ? "color:var(--bad)" : null, text: p == null ? "–" : p + "%" }); }),
+          el("td", { class: "n", text: fmtTime(m.elapsed) }))))
+    : el("tbody", {}, el("tr", {}, el("td", { class: "hint", text: "No finished mocks yet." }))));
+}
+$("#prog-reset").addEventListener("click", () => { $("#prog-confirm").hidden = false; });
+$("#prog-reset-no").addEventListener("click", () => { $("#prog-confirm").hidden = true; });
+$("#prog-reset-yes").addEventListener("click", () => { S = blank(); Store.save({ now: true }); $("#prog-confirm").hidden = true; renderProgress(); });
+
+/* ---------- progress file: export and import (read in the browser, never uploaded) ---------- */
+const EXPORT_APP = "ccarf-trainer", EXPORT_V = 1;
+let pendingImport = null;
+function ioMsg(text, kind) { const m = $("#prog-io-msg"); m.hidden = !text; m.textContent = text || ""; m.className = "status" + (kind ? " " + kind : ""); }
+function cleanHistory(h) {
+  const out = {};
+  for (const [id, e] of Object.entries(h || {})) {
+    if (!e || typeof e !== "object") continue;
+    const a = Math.max(0, Math.floor(Number(e.a) || 0)), c = Math.min(a, Math.max(0, Math.floor(Number(e.c) || 0)));
+    if (a) out[id] = { ...e, a, c };
+  }
+  return out;
+}
+function cleanPod(p) {
+  const at = {};
+  if (p && p.at && typeof p.at === "object") for (const [f, t] of Object.entries(p.at)) if (Number.isFinite(t) && t >= 0) at[f] = Math.floor(t);
+  return { last: p && typeof p.last === "string" ? p.last : null, at };
+}
+$("#prog-export").addEventListener("click", () => {
+  const d = new Date(), day = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+  const body = JSON.stringify({ app: EXPORT_APP, v: EXPORT_V, exportedAt: d.toISOString(), S, GEN, podcast: pod }, null, 1);
+  const a = el("a", { href: URL.createObjectURL(new Blob([body], { type: "application/json" })), download: `ccarf-progress-${day}.json` });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  ioMsg(`Saved ccarf-progress-${day}.json with ${Object.keys(S.history).length} answered questions and ${S.mocks.length} mock exams.`, "ok");
+});
+$("#prog-import").addEventListener("click", () => { $("#prog-file").value = ""; $("#prog-file").click(); });
+$("#prog-file").addEventListener("change", async e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  $("#prog-import-confirm").hidden = true; pendingImport = null;
+  let o;
+  try { o = JSON.parse(await f.text()); } catch { ioMsg(`${f.name} is not a progress file: it is not valid JSON.`, "err"); return; }
+  if (!o || o.app !== EXPORT_APP || o.v !== EXPORT_V) { ioMsg(`${f.name} is not a progress file from this trainer, so nothing was loaded.`, "err"); return; }
+  const s = normalize(o.S);
+  s.history = cleanHistory(s.history);
+  pendingImport = { S: s, GEN: cleanGen(o.GEN), pod: cleanPod(o.podcast) };
+  const when = Date.parse(o.exportedAt);
+  $("#prog-import-summary").textContent = `${f.name}${isNaN(when) ? "" : ", saved " + new Date(when).toLocaleString()}: ${Object.keys(s.history).length} answered questions, ${s.mocks.length} mock exams, ${pendingImport.GEN.length} generated questions. Loading it will replace the progress kept in this browser.`;
+  ioMsg("");
+  $("#prog-import-confirm").hidden = false;
+});
+function applyImport(merge) {
+  const inc = pendingImport;
+  if (!inc) return;
+  if (merge) {
+    const hist = { ...S.history };
+    for (const [id, e] of Object.entries(inc.S.history)) {
+      const cur = hist[id];
+      if (!cur || e.a > cur.a || (e.a === cur.a && (e.last || 0) > (cur.last || 0))) hist[id] = e;
+    }
+    const seen = new Set(), mocks = [];
+    for (const m of [...S.mocks, ...inc.S.mocks].sort((x, y) => (x.at || 0) - (y.at || 0))) {
+      const k = JSON.stringify([m.at, m.n, m.correct, m.elapsed]);
+      if (!seen.has(k)) { seen.add(k); mocks.push(m); }
+    }
+    S = { ...S, history: hist, mocks: mocks.slice(-20),
+      sessions: { practice: S.sessions.practice || inc.S.sessions.practice, mock: S.sessions.mock || inc.S.sessions.mock } };
+    const ids = new Set(GEN.map(q => q.id));
+    GEN = cleanGen([...GEN, ...inc.GEN.filter(q => !ids.has(q.id))]);
+    pod = { last: pod.last || inc.pod.last, at: { ...inc.pod.at, ...pod.at } };
+  } else {
+    S = inc.S; GEN = inc.GEN; pod = inc.pod;
+  }
+  pendingImport = null;
+  reindex();
+  Store.save({ gen: true, now: true });
+  podSave();
+  $("#prog-import-confirm").hidden = true;
+  ioMsg(merge ? "Merged the file into this browser's progress." : "Replaced this browser's progress with the file.", "ok");
+  renderProgress();
+}
+$("#prog-import-replace").addEventListener("click", () => applyImport(false));
+$("#prog-import-merge").addEventListener("click", () => applyImport(true));
+$("#prog-import-cancel").addEventListener("click", () => { pendingImport = null; $("#prog-import-confirm").hidden = true; ioMsg("Nothing was loaded."); });
+
+/* ---------- live generation ---------- */
+let sampleFn = null, genCtl = null;
+function fillGenSelects() {
+  const dSel = $("#gen-domain");
+  if (!dSel.options.length) {
+    for (const d of DOMAINS) dSel.append(el("option", { value: d.n, text: `Domain ${d.n}: ${d.name}` }));
+    const sSel = $("#gen-scenario");
+    sSel.append(el("option", { value: "", text: "Any scenario" }));
+    for (const [k, v] of Object.entries(SCENARIOS)) sSel.append(el("option", { value: k, text: v }));
+    dSel.addEventListener("change", fillTasks);
+  }
+  fillTasks();
+}
+function fillTasks() {
+  const d = DOMAINS[Number($("#gen-domain").value) - 1];
+  const tSel = $("#gen-task"), keep = tSel.value;
+  tSel.replaceChildren(el("option", { value: "", text: "Spread across tasks" }), ...Object.entries(d.tasks).map(([k, v]) => el("option", { value: k, text: `${k} ${v}` })));
+  if ([...tSel.options].some(o => o.value === keep)) tSel.value = keep;
+}
+function renderGenerate() {
+  fillGenSelects();
+  const list = $("#gen-list");
+  list.replaceChildren(...(GEN.length ? GEN.slice().reverse().map(q => el("div", { class: "genitem" },
+    el("div", { class: "row" }, domChip(q.domain), el("span", { class: "chip", text: "Task " + q.task }), el("span", { class: "chip", text: SCENARIOS[q.scenario] || q.scenario }),
+      S.history[q.id] ? el("span", { class: "chip", text: S.history[q.id].ok ? "answered correctly" : "missed" }) : null),
+    el("p", { text: q.stem }))) : [el("p", { class: "hint", text: "None yet. Generated questions appear here and are saved with your progress." })]));
+  $("#gen-practice").disabled = !GEN.length;
+  if (!sampleFn) { $("#gen-go").disabled = $("#gen-weak").disabled = true; }
+}
+function weakestTask() {
+  let best = null;
+  for (const d of DOMAINS) for (const t of Object.keys(d.tasks)) {
+    const st = stats(q => q.task === t);
+    const score = st.a >= 2 ? st.c / st.a : (st.a === 0 ? 0.5 : 0.6);
+    if (!best || score < best.score) best = { d: d.n, t, score };
+  }
+  return best;
+}
+function genPrompt(domain, task, scenario, n) {
+  const d = DOMAINS[domain - 1];
+  const examples = shuffle(BANK.filter(q => q.domain === domain)).slice(0, 2).map(q => ({
+    domain: q.domain, task: q.task, scenario: q.scenario, type: q.type, stem: q.stem, options: q.options, correct: q.correct,
+    explanation: q.explanation, whyWrong: q.whyWrong, plainExample: q.plainExample, technicalExample: q.technicalExample, concept: q.concept }));
+  const avoid = [...BANK.filter(q => q.domain === domain), ...GEN.filter(q => q.domain === domain)].map(q => "- " + q.stem.slice(0, 110)).slice(-40).join("\n");
+  return [
+    "You write practice questions for the Claude Certified Architect, Foundations exam (CCAR-F). The exam is 60 scenario-based items that test design judgment and trade-offs, not recall. Most items have four options where two or three are defensible and exactly one is best for a constraint stated in the stem (latency tolerance, cost ceiling, review capacity, compliance, team sharing).",
+    "",
+    `DOMAIN ${d.n}: ${d.name} (${d.weight}% of the exam). Task statements:`,
+    ...Object.entries(d.tasks).map(([k, v]) => `${k} ${v}`),
+    "",
+    "SCENARIOS (use these slugs): " + Object.entries(SCENARIOS).map(([k, v]) => `${k} (${v})`).join("; "),
+    "",
+    "GROUNDING. Use only facts consistent with these study notes. Do not invent flags, field names, limits or product behaviour that the notes do not state:",
+    DIGESTS[domain] || DIGESTS[String(domain)] || "",
+    "",
+    `WRITE ${n} NEW QUESTIONS for Domain ${d.n}` + (task ? `, all on task ${task} (${d.tasks[task]})` : ", spread across different task statements") + (scenario ? `, all framed in the ${scenario} scenario.` : ", using varied scenarios."),
+    "Rules:",
+    "- Stem: 2-5 sentences describing a concrete production situation with a deciding constraint, ending with the question (for example 'Which change best…', 'What is the most likely root cause…', 'What should the architect do first…').",
+    "- Four options for single-answer items. At most one of your questions may be type 'multi' with five options, two correct, and the stem ending '(Select TWO.)'.",
+    "- Distractors must be tempting and drawn from the anti-patterns in the notes. Options of similar length and form. Never 'all of the above' or 'none of the above'. Put the correct answer at varied positions.",
+    "- explanation: 2-4 sentences on why the best answer wins under the constraint.",
+    "- whyWrong: one entry per option in the same order; for a correct option say why it is right.",
+    "- plainExample: 2-4 sentences, an everyday non-technical analogy that makes the principle click for someone who chose wrong. No jargon or tool names.",
+    "- technicalExample: 3-8 lines of concrete code, config, JSON or a precise walk-through contrasting the right pattern with the tempting wrong one. Use \\n for line breaks.",
+    "- concept: a short tag naming the tested idea.",
+    "Do not reuse these existing scenarios:",
+    avoid,
+    "",
+    "Two examples of the house style (write different scenarios):",
+    JSON.stringify(examples),
+    "",
+    `Reply with only a JSON array of ${n} objects, each with exactly these fields: domain (number), task (string like "${d.n}.2"), scenario (slug), type ("single" or "multi"), stem, options (array of strings, no letter prefixes), correct (array of zero-based indexes), explanation, whyWrong (array), plainExample, technicalExample, concept.`,
+  ].join("\n");
+}
+async function generate(domain, task, scenario) {
+  if (!sampleFn || genCtl) return;
+  const n = Number($("#gen-n").value);
+  const status = $("#gen-status"), stream = $("#gen-stream");
+  genCtl = new AbortController();
+  $("#gen-go").disabled = $("#gen-weak").disabled = true;
+  $("#gen-stop").hidden = false;
+  status.className = "status"; status.textContent = "Thinking… this usually takes 20 to 60 seconds.";
+  stream.hidden = true; stream.textContent = "";
+  try {
+    const out = await sampleFn.json(genPrompt(domain, task, scenario, n), {
+      signal: genCtl.signal, cache: false, modelTier: "default",
+      onText: ({ text }) => { stream.hidden = false; stream.textContent = text.slice(-1500); stream.scrollTop = stream.scrollHeight; status.textContent = "Writing questions…"; },
+    });
+    const arr = Array.isArray(out) ? out : (out && Array.isArray(out.questions) ? out.questions : []);
+    const stamp = Date.now().toString(36);
+    const good = [];
+    arr.forEach((raw, i) => {
+      const q = Object.assign({}, raw, { domain: Number(raw && raw.domain) || domain, generated: true, id: `G-${stamp}-${i}`, sources: ["Generated live from the Domain " + domain + " study digest"] });
+      if (q.type !== "multi") q.type = "single";
+      if (!q.task || !String(q.task).startsWith(domain + ".")) q.task = task || Object.keys(DOMAINS[domain - 1].tasks)[0];
+      if (!SCENARIOS[q.scenario]) q.scenario = scenario || "customer-support";
+      if (validateQ(q)) good.push(q);
+    });
+    if (!good.length) throw { code: "invalid_json", message: "no valid questions" };
+    GEN = [...GEN, ...good].slice(-GEN_CAP);
+    reindex();
+    Store.save({ gen: true });
+    status.className = "status ok";
+    status.textContent = `${good.length} new question${good.length > 1 ? "s" : ""} ready${good.length < arr.length ? ` (${arr.length - good.length} failed the format check and were dropped)` : ""}.`;
+    stream.hidden = true;
+    renderGenerate();
+    S.sessions.practice = newSession("practice", good.map(q => q.id), { label: "generated" });
+    Store.save();
+    const start = el("button", { class: "btn primary", onclick: () => startRun("practice") }, "Answer them now");
+    status.append(" ", start);
+  } catch (e) {
+    const code = e && e.code;
+    status.className = "status err";
+    status.textContent = code === "cancelled" ? "Stopped."
+      : code === "not_granted" || code === "sampling_disabled" || code === "not_declared" || code === "capability_disabled" || code === "capability_removed" ? "Live generation is not available in this view. The fixed question bank still works."
+      : code === "rate_limited" ? "Claude is busy for your account right now. Try again in a minute."
+      : code === "invalid_json" ? "The reply did not come back in a usable format. Try again, or ask for fewer questions."
+      : code === "session_expired" ? "Your sign-in expired. Reload the page and try again."
+      : "Something went wrong reaching Claude. Try again.";
+    if (code === "not_granted" || code === "sampling_disabled" || code === "not_declared") sampleFn = null;
+  } finally {
+    genCtl = null;
+    $("#gen-stop").hidden = true;
+    $("#gen-go").disabled = $("#gen-weak").disabled = !sampleFn;
+  }
+}
+$("#gen-go").addEventListener("click", () => generate(Number($("#gen-domain").value), $("#gen-task").value, $("#gen-scenario").value));
+$("#gen-weak").addEventListener("click", () => {
+  const w = weakestTask();
+  $("#gen-domain").value = w.d; fillTasks(); $("#gen-task").value = w.t;
+  generate(w.d, w.t, $("#gen-scenario").value);
+});
+$("#gen-stop").addEventListener("click", () => genCtl && genCtl.abort());
+$("#gen-practice").addEventListener("click", () => {
+  const ids = choosePracticeSet(GEN, S.history, 15, "smart").map(q => q.id);
+  if (!ids.length) return;
+  S.sessions.practice = newSession("practice", ids, { label: "generated" });
+  Store.save();
+  startRun("practice");
+});
+
+/* ---------- keyboard ---------- */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { hideTip(); return; }
+  if (e.target instanceof Element && e.target.closest(".term") && (e.key === "Enter" || e.key === " ")) { showTip(e.target.closest(".term")); e.preventDefault(); return; }
+  if (ui.view !== "quiz" || !ui.run) return;
+  if (e.target instanceof Element && e.target.closest("select, input, textarea")) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "p" || e.key === "P") { ui.run.paused ? resumeInPlace() : pauseInPlace(); e.preventDefault(); return; }
+  if (ui.run.paused) return;
+  const q = curQ(); if (!q) return;
+  const n = Number(e.key);
+  if (n >= 1 && n <= q.options.length) { pick(n - 1); e.preventDefault(); return; }
+  if (e.key === "Enter") {
+    if (!ui.run.s.answers[q.id]) { const c = $("#check"); if (c && !c.disabled) { check(); e.preventDefault(); } }
+    else { move(1); e.preventDefault(); }
+  }
+});
+
+/* ---------- term card (one shared floating element) ---------- */
+const tip = el("div", { class: "termtip", id: "termtip", role: "tooltip" });
+tip.hidden = true;
+document.body.append(tip);
+let tipFor = null;
+function showTip(span) {
+  const kind = span.dataset.kind || "g";
+  let head, body;
+  if (kind === "g") {
+    const g = TERM_INDEX.get(String(span.dataset.term || "").toLowerCase());
+    if (!g) return;
+    head = g.term; body = g.plain;
+  } else {
+    const [label, text] = shapeCard(kind, span.dataset.term || "");
+    head = span.dataset.term + "  ·  " + label; body = text;
+  }
+  if (tipFor && tipFor !== span) tipFor.removeAttribute("aria-describedby");
+  tip.replaceChildren(el("b", { text: head }), el("span", { text: body }));
+  tip.hidden = false;
+  tipFor = span;
+  span.setAttribute("aria-describedby", "termtip");
+  const r = span.getBoundingClientRect(), vw = document.documentElement.clientWidth;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  const left = Math.min(Math.max(8, r.left + r.width / 2 - tw / 2), vw - tw - 8);
+  let top = r.bottom + 8;
+  if (top + th > window.innerHeight - 8 && r.top - th - 8 > 0) top = r.top - th - 8;
+  tip.style.left = (left + window.scrollX) + "px";
+  tip.style.top = (top + window.scrollY) + "px";
+}
+function hideTip() { if (tipFor) tipFor.removeAttribute("aria-describedby"); tipFor = null; tip.hidden = true; }
+const termOf = t => (t instanceof Element ? t.closest(".term") : null);
+document.addEventListener("mouseover", e => { const t = termOf(e.target); if (t) showTip(t); });
+document.addEventListener("mouseout", e => { const t = termOf(e.target); if (t && !(e.relatedTarget instanceof Node && t.contains(e.relatedTarget))) hideTip(); });
+document.addEventListener("focusin", e => { const t = termOf(e.target); if (t) showTip(t); else if (tipFor) hideTip(); });
+// Capture phase: a tap on a term inside an answer option shows the card and does not select the option.
+document.addEventListener("click", e => {
+  const t = termOf(e.target);
+  if (t) { e.preventDefault(); e.stopPropagation(); showTip(t); }
+  else if (tipFor) hideTip();
+}, true);
+window.addEventListener("scroll", () => { if (tipFor) hideTip(); }, { passive: true });
+
+/* ---------- visible failures ---------- */
+function showFault(msg) {
+  let bar = document.getElementById("fault");
+  if (!bar) {
+    bar = el("div", { id: "fault", role: "alert", class: "fault" });
+    document.getElementById("main").prepend(bar);
+  }
+  bar.textContent = "Something went wrong: " + msg + ". Your saved progress is safe. Reload the page to continue, and report this message if it repeats.";
+}
+window.addEventListener("error", e => showFault(e.message || "unknown error"));
+window.addEventListener("unhandledrejection", e => showFault((e.reason && (e.reason.message || e.reason.code)) || "unknown error"));
+
+/* ---------- boot ---------- */
+go(ui.view);
+Store.init().then(() => go(ui.view));
+(async () => {
+  try {
+    const s = window.claude && window.claude.use ? await window.claude.use("sample") : null;
+    sampleFn = s;
+    if (!s) $("#gen-status").textContent = "Live generation is not available in this view. The fixed question bank still works.";
+  } catch { sampleFn = null; }
+  // Generate only works where Claude can be asked live (Claude hosting). Elsewhere, such as the DXC site, the section is withheld.
+  $("#tab-generate").hidden = !sampleFn;
+  if (ui.view === "home") renderHome();
+  if (ui.view === "generate") sampleFn ? renderGenerate() : go("home");
+  else { $("#gen-go").disabled = $("#gen-weak").disabled = !sampleFn; }
+})();
+})();
+</script>

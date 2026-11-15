@@ -1,0 +1,1903 @@
+# Chapter four: Prompt Engineering and Structured Output
+
+## Cold open
+
+Chapter four. Before we start, a short story.
+
+An accounts team runs a pipeline. It reads supplier invoices and writes the figures into their ledger.
+
+They add a check. If the invoice total doesn't match the sum of the line items, the pipeline tells the model the two don't agree. And it asks the model to fix the record.
+
+The pass rate jumps. Ninety-one percent, up to ninety-nine percent. Everyone is pleased.
+
+Three months later, the auditors arrive. They find invoices where the ledger total is not the total printed on the paper.
+
+What happened? The model had been doing exactly what it was asked. When the numbers disagreed, it quietly changed the printed total to match its own sum. Usually, the thing it had missed was a discount line.
+
+The check passed. The evidence was gone. And a mistake the system had caught became one nobody could see.
+
+[beat]
+
+That story holds this whole chapter in miniature.
+
+A model's output can be neat, complete, perfectly formatted, and wrong. This domain is about the gap between those two things.
+
+So, two questions. How do you make the shape of an answer reliable? And separately, how do you find out whether the content is true, before anyone trusts it?
+
+[beat]
+
+This is Domain four, Prompt Engineering and Structured Output. It's twenty percent of the exam. That's one question in every five.
+
+It has six task statements, and we'll take them in order.
+
+Part one. Writing criteria that stop a model from flagging everything.
+
+Part two. Choosing examples that teach a boundary.
+
+Part three. Forcing the output into a fixed shape.
+
+Part four. Checking what comes back, and sending good correction feedback.
+
+Part five. When to use the cheaper overnight batch service.
+
+And part six. Designing review passes that actually catch errors.
+
+[beat]
+
+One idea runs underneath all six. So let me give it to you now.
+
+Hold on to this line. A schema guarantees shape, never truth.
+
+Keep that sentence in your pocket. Most wrong answers in this domain try to fix a truth problem with a shape tool. Or a shape problem with a polite request.
+
+[beat]
+
+One last thing before we begin. The exam style here is diagnostic.
+
+You get a pipeline failing in a specific, named way. And you get one tempting remedy that sounds right, but fixes the wrong thing.
+
+Your job is to name the cause. Then choose the fix that addresses it, at the lowest cost.
+
+Coming up in part one: explicit criteria that improve precision and reduce false positives.
+
+## Part one: Explicit criteria that improve precision and reduce false positives
+
+Part one. Explicit criteria.
+
+By the end of this part, you'll know why a model flags far too much, the named techniques that fix it, and the tempting fixes that don't.
+
+[beat]
+
+Let's start with a smoke alarm.
+
+Picture one that goes off every time someone makes toast. Within a week, somebody pulls the battery out. Then the real fire comes. And nothing happens.
+
+Now, does telling that alarm to "be more careful" help? No. It does nothing.
+
+What fixes it is telling it what counts as smoke, and what counts as toast.
+
+[beat]
+
+That's the first failure pattern in this domain.
+
+A model is asked to review or flag things. It flags far too many. People stop reading its output. And then a real problem slips through, precisely because everyone learned to ignore it.
+
+The course has a name for the human side of this. The car alarm effect. Or trust collapse.
+
+The practical consequence? A noisy reviewer is worse than no reviewer. Because it trains people to look away.
+
+[beat]
+
+So why does it happen?
+
+You give a model a vague standard. Something like "flag anything risky." Or "be thorough and conservative."
+
+The model still has to decide where the line sits. You didn't draw it, so it draws its own. And it usually draws a generous one.
+
+So the output catches almost every real issue, and buries them under noise.
+
+Here's the key insight. This is not a reasoning failure. The model is correctly answering a question you didn't mean to ask.
+
+[beat]
+
+Now the technical name.
+
+The problem is low precision with high recall.
+
+Precision is the share of flags that were real.
+
+Recall is the share of real issues that got flagged.
+
+And the cause is an underspecified criterion. A boundary you left undrawn.
+
+[beat]
+
+Now the fix, in plain words.
+
+You write down the test you actually apply when you make this call yourself. You name the things to report. You name the things to ignore. And you give the model a place to put the cases it genuinely can't decide.
+
+In exam terms, there are a handful of named techniques. There are six, so I'll take them one at a time.
+
+[beat]
+
+One. Categorical criteria.
+
+You replace a vague adjective with named report categories and named skip categories.
+
+Take an infrastructure review. The report list might be: public exposure of storage or endpoints. Wildcard permissions in identity and access management. And unencrypted data at rest.
+
+The skip list might be: tag naming style. Formatting the linter already accepts. And minor reordering.
+
+And each finding comes back as one structured object, with the file, the line, the severity, the issue, and a suggested fix.
+
+[beat]
+
+Two. A conjunctive test.
+
+Conjunctive just means every condition must hold.
+
+So instead of "flag potential escalation risk," you write this. Flag a conversation only if the customer has contacted us two or more times about the same issue, and a promised fix or date has already been missed.
+
+Both must be true.
+
+This turns a judgment into a procedure. One the model can apply, and you can audit.
+
+[beat]
+
+Three. An exclusion list.
+
+A positive definition always leaves near misses ambiguous. So you name the most common wrong flags outright.
+
+In a contract review, "mutual indemnities" might be the most common false alarm. And naming it costs you one line.
+
+[beat]
+
+Four. Grounding in quotes.
+
+You require the model to quote the passage it relied on, for each finding.
+
+Why does that work? A model that must reproduce the supporting text can't flag a clause that doesn't exist. And it can't clear a claim without showing where it found it.
+
+[beat]
+
+Five. An abstention channel.
+
+You add a required third outcome, alongside flag and don't flag. It's usually called needs_human_review. And you ask the model to name the specific test it couldn't verify.
+
+Anthropic's own guidance on reducing hallucinations says this. Giving the model permission to say it doesn't know substantially reduces false information.
+
+Architecturally, the course says, treat that bucket as a queue, not a failure.
+
+Why? Uncertainty that lands in a visible queue can be measured and improved. Uncertainty hidden inside confident answers can't.
+
+[beat]
+
+Six. Permission to find nothing.
+
+You say out loud that an empty result is valid and expected.
+
+Without that sentence, the model feels an implicit pressure to produce at least one finding.
+
+[beat]
+
+Two smaller moves round this out.
+
+First. Frame whose side the reviewer is on. For example, "reviewing on behalf of the supplier." That decides which way directional tests point.
+
+Second. Define severity levels with concrete code examples, rather than adjectives.
+
+And for extraction work, the same idea reads like this. Always extract what is stated. Never fabricate. And if a value is absent, it is null, not inferred.
+
+[beat]
+
+Quick recap before the questions.
+
+Noise comes from a line you never drew. So name what to report, name what to skip, list the common near misses, demand quotes, give "not sure" a place to go, and say that finding nothing is fine.
+
+Right. Four practice questions, because they test these moves against each other.
+
+[beat]
+
+Question one.
+
+Here's the scenario. It's a continuous integration step. That means an automated check that runs on every code change.
+
+It reviews each Terraform infrastructure plan, with the instruction "be thorough and conservative."
+
+It posts about forty-five comments per pull request. Almost all of them are on tag naming, and formatting the linter already accepts.
+
+Engineers stopped reading within two weeks. And a plan that made a storage bucket public got merged.
+
+What is the most effective first change?
+
+Take a second.
+
+The answer. Replace the instruction with named report and skip categories, with one structured finding per issue.
+
+The course names categorical criteria as the most effective first step for false positives.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: change the words to "be more conservative and only raise what truly matters." Why? It's still an adjective with no boundary. The course example shows exactly this, trimming forty-seven flags to thirty-five, while trust stays at zero.
+
+Wrong: filter on the model's self-reported confidence, above zero point nine. Why? That confidence reflects its training data, not your standards. A confident style nitpick is still noise. And a genuinely new risk can score lower.
+
+Wrong: lower the sampling temperature. That's the setting that controls randomness. Why? It just makes the same noisy comments repeatable.
+
+Here's a phrase to memorise. Hold on to this line: determinism is not precision.
+
+[beat]
+
+Question two. This one is choose two.
+
+Here's the scenario. A support agent flags "potential escalation risk." It flags thirty-eight percent of conversations. Supervisors can handle about five percent.
+
+And leadership adds a second condition. Cases the agent is genuinely unsure about must stay visible. Not silently dropped.
+
+Which two changes?
+
+Take a second.
+
+The answers. First, a conjunctive test, with a list of near misses not to flag. Second, a required needs_human_review outcome that names the unverifiable test.
+
+Notice how the second constraint picks the second answer. The words "must stay visible" point straight at the abstention channel.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: keep only flags above zero point eight five confidence, and quietly drop the rest. This is the tempting one. Why is it wrong? It fails twice. Self-reported confidence isn't calibrated to your business standard. And silently dropping the unsure cases throws away exactly what leadership wanted kept.
+
+Wrong: "be conservative and thorough." Why? The two words give no boundary. And they actually pull in opposite directions.
+
+Wrong: temperature zero. Why? Same reason as before. Determinism is not precision.
+
+[beat]
+
+Question three. This is the one that trips people up.
+
+Here's the scenario. A review bot already uses categorical criteria. Its security and logic findings are precise.
+
+But its performance category runs a false positive rate above sixty percent. And developers have started ignoring the whole bot.
+
+Rewriting the performance criteria properly will take weeks. And trust has to recover this sprint, without losing the security signal.
+
+What do you do?
+
+Take a second.
+
+The answer. Disable only the performance category. Write its re-enable date into the prompt. And leave everything else alone.
+
+The course remedy for a category at roughly sixty percent false positives or higher is exactly that. The re-enable date works as a forcing function, so the rewrite doesn't get forgotten.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: raise one global confidence threshold across every category. Why? That would mute the real security findings too. And confidence doesn't measure importance anyway.
+
+Wrong: add "be conservative about performance." Why? The noisy category stays noisy.
+
+Wrong: ask developers to ignore performance comments. Why? That's how they learn to ignore everything. It's the trust collapse, already underway.
+
+Think of the kitchen smoke detector again. You switch off the one that keeps going off for toast. You stick a note on it saying fix by Friday. You don't turn down every alarm in the house, including the one in the bedroom that works.
+
+[beat]
+
+Question four.
+
+Here's the scenario. A research system has a verification subagent. It's told to flag any claim that "may not be adequately supported" by the retrieved sources.
+
+It flags fifty-eight percent of claims. And most of those are stated almost word for word in a source. Analysts' hours are limited.
+
+What's the fix?
+
+Take a second.
+
+The answer. Three parts. Define "unsupported" as a test. Require a quoted passage for every decision. And accept zero flags as valid.
+
+A good test would be this. A claim is unsupported only if no retrieved source contains a passage stating the claim or its figures.
+
+And the quote requirement means a supported claim can't be flagged without the verifier contradicting its own evidence.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: run the verifier three times, and keep only the claims all three agree are unsupported. That feels rigorous. Why is it wrong? All three runs share the same vague criterion. They read it the same permissive way. And they agree. You triple the cost, and remove few flags.
+
+Wrong: "only flag claims you are highly confident about." Why? Self-reported confidence is under the same pressure as the flags.
+
+Wrong: temperature zero. Why? It fails again, for the same reason.
+
+[beat]
+
+So, a quick contrast. When do you reach for criteria, when for a confidence threshold, and when for temperature?
+
+Criteria fix precision. Because precision problems are boundary problems.
+
+A confidence threshold sounds similar. But it measures the model's feeling, not your rules. And a global one damages the categories that work.
+
+Temperature changes consistency. Never correctness.
+
+And more runs with the same criterion buy agreement, not accuracy. We'll meet that last idea again in part six.
+
+[beat]
+
+Two more distractors to know by sight.
+
+First. Emphasis. Capital letters. And threats, such as "flagging a non-risk is a serious error that will be audited." None of that supplies boundary information. The course also warns that aggressive directive language can cause overtriggering on current models.
+
+Second. A softer version of a vague word is still a vague word.
+
+[beat]
+
+And the words in a question that should switch this part on.
+
+"What is the most effective first step," for false positives. That points to categorical criteria.
+
+"Uncertain cases must stay visible." That points to an abstention channel.
+
+"One category is noisy and the others are fine." That points to disabling that one category.
+
+"Limited reviewer time." That tells you precision matters more than recall.
+
+[beat]
+
+That's part one.
+
+If you remember one thing, make it this. Noise comes from a boundary you never drew. So draw it, with named tests, an exclusion list, quotes, and a place for "not sure."
+
+Coming up in part two: few-shot examples that improve consistency and quality.
+
+## Part two: Few-shot examples that improve consistency and quality
+
+Part two. Few-shot examples.
+
+By the end of this part, you'll know three things. Why a model that understands the task still gives different answers on different runs. Which examples actually fix that. And the three ways people waste their examples.
+
+[beat]
+
+Let's start with a picture.
+
+Imagine a new football referee. One week, a certain kind of tackle gets a yellow card. The next week, the same tackle gets a red.
+
+Now, what helps? Reading them the rulebook again? No. They already know the rulebook.
+
+What helps is this. You find the tackles they keep flipping on. You show them two clips of exactly those tackles. And you explain the call on each one.
+
+That's the whole idea of this part.
+
+[beat]
+
+So here's the problem in plain terms.
+
+Inconsistency is not the same as being wrong. The model understands the task. It just lands on a genuinely unclear boundary differently from one run to the next.
+
+And the fix is to show, not tell.
+
+The technical name for showing is few-shot prompting. You put a small number of worked examples in the prompt.
+
+The course is clear on one thing. Examples are the most dependable lever you have on format, tone, and structure.
+
+But here's the part that surprises people. Their value for accuracy depends entirely on which cases you pick.
+
+The instinct is to pick clean, tidy, typical examples. That instinct is backwards. An easy example teaches the model nothing it wasn't already doing right. The accuracy lives in the cases where your own rules are unclear.
+
+[beat]
+
+Why can't you just write better rules?
+
+The course has a name for this. The instruction ceiling.
+
+Words like "severe" or "significant" get read through the model's general training, not through your team's meaning. So another paragraph of definitions doesn't remove the ambiguity. It just moves it somewhere else.
+
+Hold on to this line. Instructions describe. Examples demonstrate.
+
+[beat]
+
+How many examples?
+
+Honestly, the sources disagree. The lesson fifteen deck says two to four. The study notes, following Anthropic's guidance, say three to five.
+
+So don't hang an answer on the count. What both agree on is this. A small set, aimed at the unclear cases, beats a big set aimed at coverage.
+
+Exam tip. If an option says "nine examples, one per label," or "add six more," the size of the number is your clue. That's the wrong answer.
+
+[beat]
+
+Now the design rules. There are seven, so I'll take them one at a time.
+
+One. Pick the cases people actually argued about.
+
+Two. Put a near miss on each side of the line.
+
+Three. Balance the outcomes, so the set doesn't quietly teach "the answer is usually yes."
+
+Four. Keep incidental details, like length, the same across labels.
+
+Five. Show the reasoning, not just the answer.
+
+Six. Where two labels are both defensible, write your house rule into the reasoning.
+
+And seven. Show the "I'm not sure" path at least once. If you never show it, it never gets used.
+
+[beat]
+
+In exam terms, three details.
+
+First. Each example goes in example tags, inside an examples block. The tags tell the model which part is a demonstration, which part is an instruction, and which part is the real input.
+
+Second. Each example runs input, then reasoning, then output.
+
+Why the reasoning? Because output-only examples invite pattern matching. The model asks, "which example does this look like?" instead of, "what's the rule?" Show the working, and it learns a rule that carries over to layouts it has never seen.
+
+And third, a limit to remember. Examples make the right format likely. They never make the wrong format impossible. For a guarantee, you need the enforcement coming up in part three.
+
+[beat]
+
+Quick recap before the questions.
+
+Inconsistency means an unclear boundary, not a confused model. Spend your few examples on that boundary. Balance the outcomes. Show the reasoning.
+
+Right. Four practice questions.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A review step labels bugs as critical, high, or medium. The same kind of bug, a missing null check on an internal response, comes back critical on some runs and high on others. The prompt already has about eight hundred words of severity definitions. There's room for only a handful of examples.
+
+What should the architect do first?
+
+Take a second.
+
+The answer. Rerun a sample of the changes several times. Find exactly where the severity flips. Then add reasoning examples for those cases only.
+
+In other words: diagnose the drift, then spend your examples on the fault line.
+
+What would a good example say? Something like this. "The caller is internal. The input is already checked upstream. The failure is an error page, not a data leak. So: high."
+
+Now the wrong turns.
+
+Wrong: one tidy example per severity level, like SQL injection as critical. Why is that wrong? Because SQL injection is already stable. You'd spend your budget on solid ground and leave the drifting case alone.
+
+Wrong: sharper wording that separates "severe" from "significant." Why? That's the instruction ceiling again. More words, same ambiguity.
+
+Wrong: set the temperature to zero. Why? It freezes one of the two answers. It doesn't decide which one is right.
+
+[beat]
+
+Question two.
+
+Here's the scenario. A refund agent has four examples. All four come from the most common kind of ticket. And all four end with "approve refund."
+
+In production, it approves forty-one percent of requests. A policy review says only about fifteen percent should qualify. And the reviewers agree the policy text itself is fine.
+
+What's the fix?
+
+Take a second.
+
+The answer. Replace the set with disputed cases, balanced between approve and deny, and include one that routes to human review.
+
+A good set sounds like this.
+
+An unopened item, inside the window. Approve.
+
+An opened item, with no defect. Deny. And that's a near miss, because opened items only qualify if they're faulty.
+
+A defect reported just after the window. Approve, under a house rule that defects count from the report date.
+
+And a vague message, with no order identified. That one is needs_human_review.
+
+Now the wrong turns.
+
+Wrong: add four more approval examples from other ticket types. Why? That widens coverage, but it deepens the lean. Eight approvals just say "approve" louder.
+
+Wrong: add a line saying "approve less often." Why? It doesn't say which requests qualify. You'd trade wrong approvals for wrong denials.
+
+Wrong: move the examples after the customer's message. Why? That changes where they sit, not what they teach.
+
+Hold on to this line. All-yes examples teach a lean, not a line.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A contract extractor has examples that show only an input contract and the output data. Every example comes from a contract laid out as a table. On contracts written as dense prose, it fills renewal_term with values it infers from other clauses. There's room for two or three examples.
+
+What's the fix?
+
+Take a second.
+
+The answer. Rewrite the examples to show the reasoning. Stated versus inferred, and why inferred means null. And use both layouts, tables and prose.
+
+A good example quotes a clause saying the agreement "continues until terminated." It notes that twelve months only appears in the payment clause. And so it returns null for renewal_term.
+
+Here's a way to picture it. Show a trainee three finished tax forms, and they learn what a finished form looks like. Show them where each number came from on the receipt, and which boxes to leave blank when the receipt is silent, and they can fill in a form they've never seen.
+
+Now the wrong turns.
+
+Wrong: add six more output-only examples from table contracts. Why? It blows the budget and deepens the pattern matching.
+
+Wrong: add a pattern check on the field's format. Why? A guessed duration is perfectly well formed. The format was never the problem.
+
+Wrong: "do not guess values," in capital letters. Why? It still doesn't say what counts as stated.
+
+[beat]
+
+Question four. This one is choose two.
+
+Here's the scenario. A ticket classifier sorts tickets into bug, feature request, and tech debt. Accuracy is eighty-eight percent. Nearly all the errors fall on two boundaries, where the engineers themselves argued until someone wrote down a house rule.
+
+Which two properties should the example set have?
+
+Take a second.
+
+The answers. First, examples drawn from those disputed boundary cases, with the house rule written into each example's reasoning. Second, outcomes balanced across the labels, with incidental features, like ticket length, matched.
+
+Here's the picture. Teaching a child the difference between a wolf and a husky, you don't show them a poodle and a lion. You show the husky that looks most like a wolf, and the wolf that looks most like a husky.
+
+And one more thing. Make sure the wolf photos aren't all taken in snow. Otherwise the child learns that snow means wolf.
+
+That's the surface-feature trap. If every tech debt example is long, and every bug example is short, you've built a length detector.
+
+Now the wrong turns.
+
+Wrong: one example per label, from the busiest ticket types. Why? Volume isn't difficulty.
+
+Wrong: examples the model already gets right. Why? Easy cases carry no boundary information.
+
+Wrong: paste the examples in without tags, to save space. Why? The tags are what separate a demonstration from an instruction.
+
+[beat]
+
+Two contrasts to lock this in.
+
+First. Rules versus examples. When do you write a rule, and when do you show a case?
+
+Write the rule first, like in part one, because a stated test can be checked. Then use examples for whatever the rule still leaves unclear at the edges.
+
+So on the exam: if the model understands the task but flips on the same kind of case, that's an examples problem. If it's flagging far too much, that's a rules problem.
+
+Second. Examples versus a schema. Examples make a format likely. A schema makes anything else impossible. If a question demands a guarantee, more examples are never the answer.
+
+[beat]
+
+And the words in a question that should switch this part on.
+
+"Inconsistent across runs." That means targeted examples at the fault line.
+
+"Room for only a handful." That means spend them on boundaries, not coverage.
+
+"The policy text is correct." That means the problem is what's in the example set.
+
+"A different document layout." That means show the reasoning, not just the output.
+
+[beat]
+
+That's part two.
+
+If you remember one thing, make it this. Spend your few examples on the cases people argue about. Balance the outcomes. And show the reasoning.
+
+Coming up in part three: how to make the format not just likely, but guaranteed.
+
+## Part three: Enforcing structured output with tool use and JSON schemas
+
+Part three. Structured output.
+
+By the end of this part, you'll know how to stop asking for the right shape and start enforcing it, what that enforcement costs, and what it can never do.
+
+[beat]
+
+Let's start with a picture.
+
+Ask someone to jot delivery details on a scrap of paper. It usually comes back fine.
+
+Occasionally, though, you get a friendly note at the top. Or the date in a format your filing system can't read. Or two numbers the wrong way round.
+
+Now hand them a printed form, with a box for each field. Those mistakes have nowhere to happen.
+
+[beat]
+
+That's this part.
+
+When output goes straight into a system of record, like a ledger or a database, "usually right" isn't good enough.
+
+Think about it. A reply that arrives wrapped in extra text one time in a hundred and fifty is a crash one time in a hundred and fifty.
+
+So you stop asking for the right shape. And you start enforcing it.
+
+[beat]
+
+The format in question is JSON. That stands for JavaScript Object Notation. It's the structured text format most systems exchange data in.
+
+Here's the technical headline. Prompting for JSON yields JSON most of the time. And "most of the time" is a parse error in production.
+
+There are two enforcement mechanisms. Let's take them in turn.
+
+[beat]
+
+The first mechanism. Tool use, with a forced tool.
+
+You define a tool. Say one called record_shipment. Its input_schema is your extraction contract.
+
+Then you force the model to call it, with the tool_choice setting.
+
+The model's answer arrives as the input to that tool call. And you read it straight from there. No regular expressions. No stripping of code fences.
+
+[beat]
+
+The tool_choice setting has exactly four modes. One at a time.
+
+One. Auto. The model decides whether to call a tool. It's the default when tools are present.
+
+Two. Any. The model must call some tool, but you don't say which.
+
+Three. Tool, with a name. The model must call that specific tool.
+
+And four. None. It forbids tool calls. It's the default when no tools are supplied.
+
+Now, the classic failure. Leaving it on auto for mandatory extraction.
+
+Why is that a failure? Auto permits the model to answer in prose, and skip your schema entirely. That's the cause of intermittent parser crashes on unusual inputs.
+
+[beat]
+
+Now a source disagreement. You should hear this one on air.
+
+The lesson sixteen deck prefers tool_choice "any" for forcing structured output. The study notes prefer naming the one tool.
+
+So how do you reconcile them?
+
+With exactly one tool defined, the two behave the same today.
+
+But naming the tool is the tighter contract. Why? Because "any" silently loosens the guarantee the moment someone adds a second tool.
+
+And when is "any" the right choice? When you have several tools, every valid outcome calls one of them, and you genuinely want the model to choose. For example, routing an input into one of several typed handlers.
+
+[beat]
+
+So on the exam, four rules.
+
+First. If only one forcing option is offered, it's the right answer.
+
+Second. If both are offered for a single-schema extraction, prefer naming the tool.
+
+Third. If the stem has several tools and the model must pick, "any" fits.
+
+And fourth. If the contract is exactly one call per input, you add a setting called disable_parallel_tool_use to the tool_choice object.
+
+[beat]
+
+The second mechanism. Structured Outputs.
+
+Instead of constraining a tool's input, it constrains the model's response itself.
+
+You set a request parameter called output_config.format. You give it a type of json_schema, and your schema.
+
+An earlier name, output_format, is still accepted during the transition. It's an alias, not a separate feature.
+
+Separately, you can set strict to true on a tool definition. That enforces that tool's input_schema. There's a documented ceiling of twenty strict tools per request.
+
+And the two can be combined.
+
+[beat]
+
+Enforcement has costs. And the exam likes honesty about them.
+
+One. It injects extra instructions, and those bill as ordinary tokens.
+
+Two. The first request against a new schema pays a grammar compilation cost.
+
+Three. Compiled grammars are cached for about twenty-four hours. The cache resets on structural changes to the schema or tool set. Not on rewording a description.
+
+[beat]
+
+And two incompatibilities matter.
+
+First. Enforced structured output can't be combined with citations. That returns an error.
+
+Second. It's incompatible with prefilling. Prefilling means starting the model's reply for it.
+
+Prefilling is also, separately, unavailable on Claude four point six and later.
+
+So the old trick of prefilling an opening curly brace to force JSON is retired. And Structured Outputs is its documented replacement.
+
+[beat]
+
+Now the idea that makes schemas honest.
+
+Think about a paper form that refuses to be submitted until the order number box is filled.
+
+What do people do when they don't have an order number? They make one up. And nobody can tell it from a real one.
+
+A form that says "leave blank if you don't have one" gets honest blanks.
+
+[beat]
+
+In schema terms, it works like this.
+
+A required field that can't be null gives the model two choices. Violate the schema, or invent a value. It invents.
+
+The fix? Type genuinely optional fields as a union of string and null. And keep them in the required list anyway.
+
+Why both? Required forces the model to address the field. The null option gives it a truthful way to say the document is silent.
+
+Then you add an array called fields_not_found, where the model names every field it set to null.
+
+That redundancy is deliberate. It makes absence a declared act, rather than a passive omission. And it gives your validator a cheap consistency check.
+
+[beat]
+
+Two more habits.
+
+First. Set additionalProperties to false on every object. That stops the model inventing keys you didn't design.
+
+Second. Write field descriptions that forbid inference. For example: "the document's own stated total, do not compute this by summing line items."
+
+[beat]
+
+Next. Which schema rules are actually enforced?
+
+The supported slice is: type, properties, required, items, enum, const, anyOf, allOf, oneOf, additionalProperties set to false, and pattern.
+
+Not enforced are the numeric and length bounds. That's minimum, maximum, minLength and maxLength.
+
+So what happens to those? The official software development kits strip those keywords. They fold their meaning into the field description as a hint. And they check your original schema on the client side, after the response returns.
+
+So a length bound is a soft hint plus an after-the-fact check. Not a guarantee.
+
+Where the allowed values can be listed, use an enum. Because enum is enforced.
+
+[beat]
+
+One more response-handling habit. Before you parse anything, check the stop_reason.
+
+Two documented cases return output that doesn't satisfy the schema.
+
+First. A stop_reason of max_tokens. That means the output was cut off mid-structure. Raise the token limit if truncation dominates.
+
+Second. A stop_reason of refusal. That means a safety response replaced the format. Send refusals to a separate exception queue, not the retry loop. Because retrying a refusal usually reproduces it.
+
+[beat]
+
+Quick recap before the questions.
+
+Force the shape with a named tool or Structured Outputs. Know the four tool_choice modes. Give absence an honest null, and list it in fields_not_found. Use enum where values can be listed. And check stop_reason before you parse.
+
+Right. Four practice questions.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A shipping-document extractor asks for "JSON only."
+
+About one reply in a hundred and fifty arrives in markdown code fences. Or with a friendly preamble. Or with a renamed key. And the repair layer keeps growing.
+
+Output goes straight into a system of record.
+
+What removes this whole class of failure?
+
+Take a second.
+
+The answer. Define an extraction tool whose input_schema is the contract. Force the call with tool_choice. And read its input.
+
+Now the wrong turns.
+
+Wrong: "return raw JSON only, no backticks, no preamble," in capital letters. Why? That's persuasion. It's the same approach that's already failing.
+
+Wrong: prefill an opening brace. Why? It's retired. It's unavailable on Claude four point six and later, and incompatible with enforcement.
+
+Wrong: a tolerant parser that strips fences and maps renamed keys. Why? It treats the symptom. And it becomes repair logic you maintain forever.
+
+[beat]
+
+Question two.
+
+Here's the scenario. A support agent extracts ticket fields through a forced tool call. The field order_number is a required string.
+
+When a customer never mentions an order, the agent fills in a plausible number from their history. And refunds land on the wrong order.
+
+The ticket system can already route tickets with a missing field to a person.
+
+What's the fix?
+
+Take a second.
+
+The answer. Type order_number as string or null. Keep it required. And list every null field in fields_not_found.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: remove the field from the required list. That sounds gentle. Why is it wrong? It loses the presence guarantee. An omitted field no longer tells you whether the model checked and found nothing, or just skipped it.
+
+Wrong: add a pattern for the order-number format. Why? An invented number is correctly formatted. A pattern checks shape, never origin.
+
+Wrong: a retry that resends the same email. Why? That's pure resampling. The email still contains no order number, so the model can only invent another.
+
+[beat]
+
+Question three.
+
+Here's the scenario. It's about Claude Code running headless. That means with no one at the keyboard. It runs on every pull request.
+
+The team passes the flag --output-format json. They expect the model's answer to match their findings schema. But the answer inside the result is often free text.
+
+Findings must conform on every run.
+
+What's the fix?
+
+Take a second.
+
+The answer. Pass the findings schema with a different flag, --json-schema. And read the answer from the structured_output field of the result.
+
+[beat]
+
+Here's the plain version.
+
+Choosing a padded envelope instead of a plain one changes how the letter arrives. Not what the letter says. If you need the letter written on a specific form, you send the form.
+
+The --output-format flag is the envelope. It chooses the shape of the command line tool's own wrapper document. The options are text, json, or stream-json.
+
+The --json-schema flag is the form.
+
+Now the wrong turns.
+
+Wrong: switch to stream-json. Why? That changes delivery, not conformance.
+
+Wrong: a system prompt rule. Why? It's persuasion. And the words "every run" rule it out.
+
+Wrong: a tolerant parser. Why? It still fails when there's no JSON at all.
+
+[beat]
+
+We touched this in the chapter on Claude Code configuration and continuous integration. It's worth saying the four look-alike names once, together.
+
+One. output_config.format. That's the programming interface request parameter that constrains the answer.
+
+Two. output_format. That's its older alias.
+
+Three. --output-format. That's the command line flag choosing the wrapper shape.
+
+And four. structured_output. That's the field in the command line result where schema-conforming output lands.
+
+[beat]
+
+Question four.
+
+Here's the scenario. A developer tool labels each pull request with a risk_level value.
+
+Mostly it says low, medium or high. But occasionally it says "moderate-high," or "med." And the dashboard crashes on unknown values.
+
+A colleague proposes a maximum length of six characters. The team wants a guarantee, not a likelihood.
+
+What's the fix?
+
+Take a second.
+
+The answer. Replace the free string with an enum of exactly low, medium and high.
+
+Think of T-shirt sizes. Tick boxes for small, medium and large give you only those three. A rule saying "write no more than one letter" still lets someone write X.
+
+Now the wrong turns.
+
+Wrong: maxLength. Why? It isn't enforced. It's stripped and checked afterwards. And "med" would pass it anyway.
+
+Wrong: a description saying "must be one of." Why? That's guidance.
+
+Wrong: examples showing only the three values. Why? They make them likely, not guaranteed.
+
+[beat]
+
+Two contrasts to lock this in.
+
+First. Prompt instruction versus enforcement.
+
+An instruction makes an outcome likely. A forced tool call, or Structured Outputs, makes a malformed outcome impossible.
+
+When a stem says "every time," "guarantee," or "written straight into a system of record," pick enforcement.
+
+And prose output is still right when a human is the reader.
+
+[beat]
+
+Second, and you'll need this one in part four. A stricter schema versus a semantic check.
+
+A stricter schema fixes shape problems. Stray keys. Unknown values. Malformed dates.
+
+It can't fix a value that is well formed and false. A fabricated date is a perfectly good date.
+
+So when the problem is truth, the answer is never a tighter pattern.
+
+[beat]
+
+And the words in a question that should switch this part on.
+
+"One in a hundred and fifty," or "occasionally." That means enforce, don't persuade.
+
+"Invents a plausible value when missing." That means nullable and required.
+
+"Every run," at the command line. That means the --json-schema flag.
+
+"A guarantee," with a list of allowed values. That means enum.
+
+[beat]
+
+That's part three.
+
+If you remember one thing, make it this. Force the shape with a tool call or Structured Outputs, give absence an honest null, and remember the schema polices shape, not truth.
+
+Coming up in part four: validation, retry and feedback loops for extraction quality.
+
+## Part four: Validation, retry and feedback loops for extraction quality
+
+Part four. Validation and retries.
+
+By the end of this part, you'll know the three levels of checking, how to write feedback that actually gets a correction, and when to stop retrying altogether.
+
+[beat]
+
+Let's start with a picture.
+
+Hand an essay back with "this is wrong, do it again." What do you get? The same essay.
+
+Now circle the sentence. Write "this quote isn't in any of your sources." And say "replace it or remove it." What do you get? A fixed essay.
+
+[beat]
+
+This part is about two things.
+
+First. Checking what the model produced, against things the schema can't see.
+
+Second. When a check fails, sending feedback specific enough that the next attempt is a correction. Not a second roll of the dice.
+
+[beat]
+
+Start with checking.
+
+There are three different questions you can ask of a filled-in form.
+
+One. Is it legible and complete?
+
+Two. Does it agree with itself?
+
+Three. Does it agree with the world?
+
+Teams ship bad data because they only ask the first.
+
+[beat]
+
+In exam terms, these are the three validation tiers.
+
+Tier one is structural. Enforcement from part three already handles it.
+
+Tier two is internal semantic. Does the total equal the sum of the line items? Is every field named in fields_not_found actually null? Is the date plausible?
+
+Tier three is external semantic. Is the supplier in your vendor master? Does the purchase order number match one you issued? Does the currency match the contract?
+
+So what's the difference? Tier two catches a record that contradicts itself. Only tier three catches a coherent extraction of the wrong document.
+
+And both tiers live in your own application code. Why? Because only your code knows what the sum should be, and which suppliers exist.
+
+[beat]
+
+Now retries.
+
+A retry that resends the identical prompt is a bet. A bet that the model will randomly come out differently. It's called pure resampling.
+
+If a failure is systematic, caused by the input or the prompt, it fails the same way again. And you pay again.
+
+The notes have a neat worked example. Say a verbatim retry succeeds about fifteen percent of the time. That tells you roughly fifteen percent of your failures were coin flips. And the other eighty-five percent will fail identically, forever.
+
+[beat]
+
+So what does a correcting retry look like? Three steps.
+
+First. You append the model's own previous attempt to the conversation, as its turn.
+
+Second. You send the validation failure back as a tool result, with a flag called is_error set to true. That keeps the exchange in the channel the model already understands from tool use.
+
+Third. The error text names four things. The field. The observed value. The rule it broke. And the next action.
+
+Here's an example. "Finding seven cites source nineteen, which is not in the retrieved set of sources one to fourteen. Cite a retrieved source that states this claim, or drop finding seven. Correct only finding seven."
+
+[beat]
+
+Then you cap the attempts, and send what's left to a person.
+
+Here's another source disagreement. Lesson sixteen says cap retries at two. The notes say three. And the notes are explicit that three is house guidance, not a platform limit. It's to be moved once your own data shows where improvement flattens.
+
+So don't argue about the number. The point is bounded retries that feed back the specific validation error.
+
+One rule sits above any cap. A failure classified as not retryable, such as a refusal or a permission denial, is not retried at all. Whatever the counter says.
+
+And log the pattern of failures by field, not just the count. That distribution tells you which prompt or schema change to make next. And that closes the loop, back to parts one and two.
+
+[beat]
+
+Two tempting but wrong retry fixes are worth naming.
+
+First. Exponential backoff. That means waiting longer between attempts. It's for rate limits and temporary infrastructure faults. Not validation failures. Waiting doesn't change the input or the prompt.
+
+Second. Switching to a bigger model. That treats a feedback defect as a capability shortfall. A stronger model receiving "try again" still learns nothing.
+
+[beat]
+
+Quick recap before the questions.
+
+Check at three tiers: shape, self-agreement, and the world. When a check fails, feed back the field, the value, the rule, and the next step, as a tool result with is_error true. Cap the attempts. And never retry what isn't retryable.
+
+Right. Four practice questions.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A synthesis subagent emits findings through a forced tool call. A validator checks that every cited source exists in the retrieved set.
+
+On failure, the coordinator appends the prior attempt, and replies "Validation failed. Please try again."
+
+Second attempts mostly fail the same way. And retries are now a large share of spend.
+
+What's the fix?
+
+Take a second.
+
+The answer. Return a tool result with is_error true, naming the finding, the bad source, the rule, and the next step.
+
+Now the wrong turns.
+
+Wrong: raise the retry cap. Why? It multiplies spend on a bet the data shows is losing.
+
+Wrong: drop the prior attempt, so each retry "starts clean." That sounds fair-minded. Why is it wrong? It makes the retry a fresh guess, with no knowledge of what went wrong. That's the identical-prompt pattern again.
+
+Wrong: route to a larger model. Why? The message is still generic.
+
+[beat]
+
+Question two. This is the cold open story.
+
+Here's the scenario. An invoice validator tells the model "total_amount does not equal the sum of line_items, fix it."
+
+The pass rate rises from ninety-one to ninety-nine percent. But auditors find recorded totals that differ from the printed ones. Often with a discount line missing.
+
+What's the root cause?
+
+Take a second.
+
+The answer. The feedback never said the printed total is authoritative. So the model overwrote it with its own sum.
+
+Picture a clerk handed a receipt that says twenty dollars, when the items add up to twenty-five. Tell them "make these match," and they may just change the receipt to twenty-five. Tell them "the printed total is correct, find the item you added wrong," and you get the missing coupon.
+
+[beat]
+
+So what does better feedback say? Three things.
+
+It states the numbers, and the difference.
+
+It says: if the printed total really is that figure, keep it, and check for a missed discount or credit.
+
+And it says: do not change the total to match your sum.
+
+Now the wrong turns.
+
+Wrong: a strict rounding tolerance. Why? That would produce small differences, not a missing discount line.
+
+Wrong: a missing pattern on the total. Why? It's irrelevant. The numbers are well formed.
+
+Wrong: a low retry cap. Why? These records pass validation. The loop is ending in "success," not running out of attempts.
+
+Hold on to this line. Say which side of a discrepancy is authoritative, or the retry fixes the check by destroying the evidence.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A warranty-claims agent extracts a purchase date. Validation requires a date.
+
+For about six percent of emails, the loop fails every time, even with specific feedback. And review shows those emails simply never state a purchase date.
+
+What's the fix?
+
+Take a second.
+
+The answer. Make purchase_date nullable, but still required. Stop retrying on null. And route those claims to a person.
+
+Here's the picture. You can ask someone to re-read a letter for the sender's phone number as often as you like. If it isn't there, they'll keep failing. Or they'll start making numbers up.
+
+The key line from the course. Hold on to this line. Retries correct formatting. They cannot make absent information appear.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: raise the cap. Why? Specific feedback is already in place. And it can't conjure a missing date.
+
+Wrong: tell the model to estimate from context. Why? That's asking it to fabricate. And a made-up date then passes validation, and corrupts the claim.
+
+Wrong: run three instances and take the majority date. Why? Instances that each must produce a date will each invent one. And a vote can adopt the invention as consensus.
+
+So what is retry for? Things like a date written with the month first, when the rule asks for year, then month, then day.
+
+[beat]
+
+Question four.
+
+Here's the scenario. An accounts payable pipeline has schema enforcement and internal checks. Totals reconcile. And the not-found list matches the nulls.
+
+But audits still find records that are fully self-consistent, yet were extracted from a delivery note or a quote, rather than an invoice. And some name suppliers the company has never used.
+
+Which addition catches this?
+
+Take a second.
+
+The answer. Check each extraction against your own reference data. Such as the vendor master, and issued purchase orders.
+
+Here's the picture. A cheque can be neatly filled in, signed, and add up perfectly. And still be drawn on an account that doesn't exist. Only calling the bank tells you. That's tier three.
+
+Now the wrong turns.
+
+Wrong: additionalProperties false, and stricter patterns everywhere. Why? These records are already well formed.
+
+Wrong: more internal cross-field checks. Why? The records already agree with themselves.
+
+Wrong: two independent instances, writing only matching records. Why? Both read the same delivery note, and agree.
+
+[beat]
+
+Two contrasts to lock this in.
+
+First. A stricter schema versus a semantic check. This is the single most common wrong move in the domain.
+
+The team sees bad data. Tightens the schema. Sees no improvement. Tightens again.
+
+So ask yourself which one the stem describes. If the value is well formed and wrong, the fix is a tier two or tier three check, in code. If the value is malformed, the fix is enforcement.
+
+[beat]
+
+Second. Format failure versus absent data.
+
+A format failure converges with specific feedback. Absent data never converges.
+
+So the loop needs two exits. One. Retry with feedback, for fixable errors. Two. An honest null, routed to a person, for information that isn't there.
+
+We'll see similar routing of failure classes in the chapter on tool design and error handling. There, errors are classed as transient, business, or permission.
+
+[beat]
+
+And the words in a question that should switch this part on.
+
+"Please try again," or "resends the same request." That means the feedback lacks specifics.
+
+"Pass rate went up but auditors found problems." That means the feedback let the model overwrite evidence.
+
+"The document never states it." That means stop retrying, and allow null.
+
+"Self-consistent but from the wrong document," or "a supplier we never used." That means tier three.
+
+[beat]
+
+That's part four.
+
+If you remember one thing, make it this. Check what the schema can't see, feed back the exact error including which side is right, cap the attempts, and never retry for data that isn't there.
+
+Coming up in part five: designing efficient batch processing strategies.
+
+## Part five: Designing efficient batch processing strategies
+
+Part five. Batch processing.
+
+By the end of this part, you'll know the two tests a job must pass before it goes to batch, and how to collect the results without losing any.
+
+[beat]
+
+Let's start with a picture.
+
+Posting letters in the evening is cheaper than sending each one by courier.
+
+But you don't post the key your colleague is standing at the door waiting for. You courier the key. And you post the monthly newsletter.
+
+[beat]
+
+That's the whole decision in this part.
+
+Anthropic offers a cheaper, overnight-style service for work nobody is waiting on.
+
+So the question is always the same. Is anyone standing there waiting for this result?
+
+[beat]
+
+The technical name is the Message Batches API. That's the application programming interface for batch processing. You submit many requests at once, and collect the results later.
+
+Here are the facts the exam uses. One at a time.
+
+One. It costs fifty percent of standard rates.
+
+Two. It uses the same model and parameters. So output quality is the same.
+
+Three. A batch holds up to one hundred thousand requests, or two hundred and fifty-six megabytes, whichever comes first.
+
+Four. Most batches finish within an hour. But the hard ceiling is twenty-four hours. And there's no guaranteed delivery time inside that window.
+
+Five. Requests still unprocessed at twenty-four hours end as expired.
+
+[beat]
+
+A few more facts.
+
+Six. Results come back as a stream of newline-separated JSON. And they stay available for twenty-nine days.
+
+Seven. Streaming output is not available inside batch requests.
+
+And eight. Batch requests do support tool definitions, system prompts, images, extended thinking, and prompt caching. So the batch discount stacks with the caching savings we'll cover in the chapter on context management.
+
+[beat]
+
+There are two tests for whether batch fits. And you need both.
+
+The first test is latency tolerance. That's the deciding axis.
+
+Is a user, or a pipeline, blocked waiting on this result? If yes, use the standard synchronous service.
+
+A pre-merge check. Live chat. A two-minute routing target. A four-hour compliance window. All synchronous.
+
+And design to the worst case, not the typical case. "Most finish within an hour" doesn't satisfy a four-hour deadline. Why? Because the documented ceiling is twenty-four hours.
+
+[beat]
+
+The second test is whether the task is a single turn.
+
+Here's the plain version. Dropping off a list of questions at a catering company works when each question can be answered on its own. It doesn't work for a conversation where each answer decides the next question. Because nobody is there to reply.
+
+In exam terms, a batch request is one request and one response.
+
+If the model asks to call a tool, nobody is listening to run it and send the result back.
+
+So an agent loop can't run inside a batch. That's a loop where the model reads a file, decides what to open next, and reads again.
+
+[beat]
+
+Now a subtle point. Two sources can seem to clash here.
+
+The notes say batch requests support tool use. That's true. You can define tools, force a single extraction call, and read the answer from that one response.
+
+What batch can't do is host a multi-turn loop that needs your code to execute tools and reply.
+
+So, hold on to this line. If the answer needs one forced tool call, batch is fine. If it needs back-and-forth, it isn't.
+
+[beat]
+
+Two more properties dominate correct design.
+
+First. Results are not ordered.
+
+You attach a custom_id to every request. It's between one and sixty-four characters, of letters, numbers, hyphens and underscores. And you join results back on it. Never on position.
+
+Code that pairs result number N with input number N is wrong, even when it passes tests. And it produces the worst class of bug. Correct data, attached to the wrong record.
+
+[beat]
+
+Second. Failure is per request, not per batch.
+
+The batch's processing_status moves through in_progress, possibly canceling, and then ended.
+
+And here's the catch. Ended means every request reached a final state. It doesn't mean every request succeeded.
+
+Each result carries one of four types. Succeeded. Errored. Canceled. Or expired. And only succeeded results are billed.
+
+So the right handler switches on all four. It loads the successes. It re-queues the recoverable failures. And it alarms on the rates.
+
+[beat]
+
+The notes offer a pattern worth remembering.
+
+Hold on to this line. Treat the batch boundary as a checkpoint, not a transaction.
+
+Here's the sequence. Submit. Poll until ended. Stream the results. Join on custom_id. Run your tier two and tier three checks from part four on each success. And route validation failures, plus every errored and expired result, into the next batch or a human queue.
+
+[beat]
+
+Quick recap before the questions.
+
+Two tests, in order. Is anyone waiting? Is it a single turn? Then join on custom_id, and treat ended as "finished," not "succeeded."
+
+Right. Four practice questions.
+
+[beat]
+
+Question one.
+
+Here's the scenario. Every pull request triggers an AI review that must pass before merge. Reviews finish in a few minutes.
+
+Finance proposes batch for the discount, noting most batches finish within an hour.
+
+The team also runs a nightly full-repository security audit that nobody waits on.
+
+What should the architect do?
+
+Take a second.
+
+The answer. Keep the pre-merge reviews synchronous, because batch has no guaranteed delivery time. And move the nightly audit to batch.
+
+Now the wrong turns.
+
+Wrong: move the reviews to batch, because typical turnaround fits the working day. Why? That designs to the average, and ignores the ceiling.
+
+Wrong: poll every minute. Why? That tells you sooner that a batch finished. Not that it finished sooner.
+
+Wrong: keep both synchronous, because "batch produces lower-quality reviews." Why? That's factually wrong. Same model, same quality. The disqualifier is timing.
+
+[beat]
+
+Question two. This is the one that catches strong candidates.
+
+Here's the scenario. A nightly job has an agent explore each repository, through repeated file-read and search tool calls. It decides what to open next from what it read. Then it writes an architecture summary.
+
+Nobody reads the summaries until morning. Finance wants batch.
+
+What's the right call?
+
+Take a second.
+
+The answer. Keep it on the standard service. Each run is a multi-turn tool loop that a batch request can't service.
+
+Latency alone would favour batch. And that's exactly what makes this tempting.
+
+Now the wrong turns.
+
+Wrong: move it as is, because nothing waits. Why? It passes the first test, and fails the second.
+
+Wrong: batch with streaming enabled. Why? Streaming isn't available in batches. And it wouldn't supply the missing tool turn anyway.
+
+Wrong: split into many small batches. Why? That adds no conversation turn. And it multiplies the tracking work.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A nightly job extracts fields from about twenty thousand invoices, by batch.
+
+The loader waits for processing_status to reach ended. Then it writes every result it receives.
+
+Analysts find one to two percent of invoices missing after heavy nights. With no errors logged.
+
+What's the best fix?
+
+Take a second.
+
+The answer. Switch on each result type. Load succeeded. Re-queue errored or expired. And alarm on the failure rates.
+
+Here's the picture. A delivery van returning to the depot means every parcel has been dealt with. Not that every parcel was delivered. If nobody checks the returns shelf, those customers never get their parcels.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: split into smaller batches. Why? Failure is already per request, so it buys nothing. And re-running whole batches reprocesses successes.
+
+Wrong: poll more often. Why? That changes when you learn the batch ended. Not what succeeded.
+
+Wrong: write placeholder rows full of nulls. Why? That hides the failure, as though the invoices were blank. And they're never actually processed.
+
+[beat]
+
+On splitting, the notes add a useful nuance.
+
+Splitting one job into many small batches, "to get results sooner and limit blast radius," is mostly illusory.
+
+Why? It doesn't speed up the queue. And a single poison input already fails only itself.
+
+What splitting does buy is more polling, more batch identifiers, and more joins. Each one a chance to lose a slice.
+
+So what are the defensible reasons to split? Operational ones. Such as aligning batches to tenant boundaries, or to schema versions.
+
+[beat]
+
+Question four. This one is choose two.
+
+Here's the scenario. A support organisation wants to move suitable work to batch. There are five options.
+
+One. Live chat drafting, while the customer waits.
+
+Two. Overnight re-tagging of last quarter's closed tickets.
+
+Three. Weekly quality scoring of chat transcripts, for a Monday report.
+
+Four. Routing each ticket, under a two-minute target.
+
+Five. A refund agent that calls order-lookup tools over several turns.
+
+Which two are good fits?
+
+Take a second.
+
+The answers. The overnight re-tagging, and the weekly scoring. Both pass both tests. Nobody waits on any single result. And each request is one turn.
+
+Now the wrong turns.
+
+Wrong: live chat, and two-minute routing. Why? Someone is waiting.
+
+Wrong: the refund agent. Why? It needs a tool loop.
+
+Think of the office laundry. You happily send it to a cheap overnight service. But not the shirt you need in ten minutes. And you can't send it anything that needs you to answer questions halfway through.
+
+[beat]
+
+A contrast to lock this in. Batch versus real-time.
+
+Real-time buys responsiveness. Batch buys a fifty percent discount. So pay for responsiveness only when someone consumes it.
+
+And the two tests run in order. First, is anyone waiting? Second, is it a single turn? A job must pass both.
+
+[beat]
+
+And the words in a question that should switch this part on.
+
+"Must pass before merge," "customer waiting," "two-minute target," or "four-hour compliance window." All of those mean synchronous.
+
+"Overnight," "nobody reads it until morning," "backfill," "weekly report." Those point to batch. Unless the stem also says "repeated tool calls," or "decides what to open next."
+
+"Most batches finish within an hour." That's bait.
+
+"Missing records, no errors logged." That means ended was read as success.
+
+"Attached to the wrong record." That means positional joining, instead of custom_id.
+
+[beat]
+
+That's part five.
+
+If you remember one thing, make it this. Batch only when nobody is waiting and each request is a single turn. Then join on custom_id, and handle all four result types.
+
+Coming up in part six: designing multi-instance and multi-pass review architectures.
+
+## Part six: Designing multi-instance and multi-pass review architectures
+
+Part six. Review architectures.
+
+By the end of this part, you'll know the four ways to spend extra effort on review, what each one catches and misses, and the one blind spot they all share.
+
+[beat]
+
+Let's start with a picture.
+
+People are bad at proofreading their own writing. Why? Because they read what they meant to write.
+
+A colleague who never saw your draft catches the missing word on the first pass.
+
+[beat]
+
+This part is about spending extra effort on review wisely.
+
+There are several ways to check work.
+
+One. A fresh reviewer.
+
+Two. A second pass that checks each claim against the source.
+
+Three. Several reviewers, working independently.
+
+Four. A cheap first pass that escalates only the hard cases.
+
+Each one catches different errors, costs different amounts, and has a blind spot. The exam wants you to match the architecture to the failure, and to the budget.
+
+[beat]
+
+Start with self-review.
+
+In exam terms, an instance reviewing its own output keeps its conversation history. And it keeps the reasoning it used to justify its choices. So it's unlikely to question them.
+
+That's called self-review bias.
+
+The fix is an independent instance, with fresh context. It sees only the output, such as a diff plus the review criteria. Not the writer's history.
+
+The course signal is explicit. Hold on to this line. Better review means independent instances, not prompting the same instance to be more careful.
+
+[beat]
+
+Next, the two architectures the notes distinguish.
+
+The first is multi-pass. Multi-pass is sequential. Each pass sees the previous pass's output.
+
+Pass one extracts.
+
+Pass two verifies each extracted value against the source. It quotes the supporting text. And it sets anything it can't support to null.
+
+Pass three adjudicates.
+
+What is it strong on? Errors of commission. That means fabricated or unsupported values. Why? Because the verification pass isn't invested in the first answer.
+
+It costs roughly two to three times a single pass.
+
+And for code review, the multi-pass idea takes a specific shape. Parallel per-file passes, for depth. Then an integration pass over their findings, for cross-file breadth.
+
+[beat]
+
+The second is multi-instance. Multi-instance is parallel and independent.
+
+You run the same input through several separate calls that can't see each other. And you compare.
+
+It costs roughly N times, plus adjudication.
+
+Now here's the key. The valuable output isn't the majority answer. It's which fields disagreed. Disagreement localises genuine ambiguity. And it tells you exactly what to send to a person.
+
+So the rule is this. Hold on to this line. Use disagreement to route, not to vote.
+
+[beat]
+
+And here's the blind spot both share.
+
+Picture three judges, all handed a rulebook with the same mistake in it. They all make the same wrong call. And they agree perfectly.
+
+Does adding a fourth judge with the same rulebook help? No. You have to fix the rulebook.
+
+In exam terms: unanimity is not correctness.
+
+Every instance reads the same criterion. So a flawed criterion produces confident, agreeing, wrong answers. And the high agreement reads as high confidence. Which is worse than no signal.
+
+No review architecture fixes a bad criterion. The fix goes back to part one.
+
+[beat]
+
+Finally, tiered escalation. This is the answer the exam usually wants when volume and budget appear in the same stem.
+
+Picture airport security. They don't hand-search every bag. And they don't pick bags at random. They search the ones the scanner flags, or that look unusual. And every so often, they check a few unflagged bags, to make sure the scanner isn't missing something.
+
+In exam terms: run one cheap, schema-enforced pass over everything. Then escalate only the flagged subset to verification, or to multi-instance review.
+
+That lands near one point two to one point five times the single-pass cost. Compare that with three times for uniform review.
+
+[beat]
+
+So what should trigger escalation? Signals that need no second model call. There are three kinds.
+
+One. Tier two and tier three validation failures, from part four.
+
+Two. A confidence field whose values are tied to observable document properties. Such as "low if handwritten, rotated, partially illegible, or an unrecognised layout."
+
+Three. Properties known before the call. Such as page count, scan quality, and whether you recognise the layout.
+
+And there's a remaining risk. The trigger might miss some hard documents. The technical term is triage recall. So you periodically sample the unescalated population, to check.
+
+[beat]
+
+Why not just ask the model for a confidence score?
+
+A free-floating, self-reported score is a model output like any other. It's under the same pressure to fabricate as the data. And it tends to read high on exactly the well-formatted wrong answers you most want to catch.
+
+Tying the enum to observable properties turns a feeling into a checkable condition.
+
+[beat]
+
+Quick recap before the questions.
+
+Fresh eyes beat self-review. Multi-pass catches made-up values. Multi-instance finds genuine disagreement, and you route on it. Tiered escalation spends extra only on the hard cases. And none of them fixes a bad rulebook.
+
+Right. Four practice questions.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A developer uses Claude Code to implement a payment-retry feature. Then, in the same session, asks it to review its changes carefully.
+
+It approves. And a race condition surfaces in staging.
+
+What's the fix?
+
+Take a second.
+
+The answer. Have a separate instance review the diff. One with no access to the writing session's history.
+
+Now the wrong turns.
+
+Wrong: ask the same session to review "as a skeptical senior engineer." Why? That changes the persona. But it leaves the same history and justifications.
+
+Wrong: add "double-check every line thoroughly." Why? It adds no new perspective.
+
+Wrong: raise the writing session's reasoning effort. Why? It still starts from its own justifications. And that's the source of the blind spot.
+
+We saw the same isolation idea in the chapter on agent architecture, where subagents get fresh context by design.
+
+[beat]
+
+Question two.
+
+Here's the scenario. A single review instance reads entire twenty-five-file pull requests, in one pass.
+
+Feedback is shallow. And it misses bugs where a changed function signature in one file breaks callers in another.
+
+Reviews are pre-merge, and must finish in minutes.
+
+What's the fix?
+
+Take a second.
+
+The answer. Per-file review passes, in parallel. Then an integration pass over their findings, for cross-file issues.
+
+Here's the picture. One inspector walking a whole house in ten minutes notices the paint. Now send one inspector to each room at once. Then have a lead walk the house, checking how the rooms connect. And you find the pipe running from the bathroom into the kitchen ceiling.
+
+Running the per-file passes in parallel is what keeps it inside the time budget.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: "be thorough and check cross-file impact." Why? It doesn't change what one overloaded pass can attend to. And the course verdict on this exact move is no.
+
+Wrong: five instances over the whole pull request, with majority voting. Why? It costs five times as much. It keeps the same shallow approach. And it throws away the disagreements that would locate real issues.
+
+Wrong: batch. Why? Batch can't sit behind a merge gate. And it doesn't make a review deeper. That ties back to part five.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A claims-document pipeline processes three hundred thousand documents a month, with one enforced-schema pass.
+
+About five percent are hard. Scans, handwriting, unusual layouts.
+
+Leadership will fund at most about one point five times current cost.
+
+What should trigger verification?
+
+Take a second.
+
+The answer. Validation failures. A confidence enum tied to handwriting or rotation. And scan quality. Plus audits of the unescalated documents.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: a self-reported score from zero to one hundred, with escalation below eighty. Why? A free-floating score is under fabrication pressure.
+
+Wrong: a random five percent daily sample, chosen to match the known rate of hard documents. That sounds clever. Why is it wrong? Matching the rate is not matching the documents. Random sampling doesn't correlate with difficulty. So it verifies mostly clean files, and lets most hard ones through.
+
+Wrong: three independent instances on every document. Why? That costs about three times. Well over the ceiling.
+
+[beat]
+
+Question four.
+
+Here's the scenario. A research system classifies sources as primary or secondary. It runs three independent instances, and sends only disagreements to a human.
+
+An audit finds many unanimous "primary" verdicts are wrong. News articles re-reporting a company press release are consistently labelled primary.
+
+What's the fix?
+
+Take a second.
+
+The answer. Rewrite the primary-source criterion. With explicit tests. An exclusion for re-reported press material. And near-miss examples.
+
+For instance. Primary only if the author or publisher is the originating party, and the content isn't a restatement of another document. And: do not classify news re-reporting a press release as primary.
+
+Then show the press release itself as primary. And an article quoting it as secondary.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: five instances instead of three. Why? They just agree more loudly.
+
+Wrong: a verification pass re-applying the same definition to every unanimous verdict. That sounds like multi-pass rigour. Why is it wrong? It confirms the same wrong labels. Multi-pass misses systematic misreadings that every pass shares.
+
+Wrong: lower temperature. Why? It increases agreement on the wrong answer. And it strengthens the misleading signal.
+
+[beat]
+
+Let me pull the architectures into one spoken comparison. Four of them.
+
+One. A single pass, with explicit criteria and an enforced schema. It costs one times. It catches format errors, and what the criteria cover. It fits when errors are cheap, or a human reads everything anyway.
+
+Two. Multi-pass verification. It costs two to three times. It catches fabricated values and unsupported claims. It misses shared misreadings. And it fits when fabrication is the main failure, and the source is available to re-check.
+
+The notes give one such case. Values that appear nowhere in the source. A budget of about double. And the document always available. That points to a second pass that quotes and nulls.
+
+[beat]
+
+Three. Multi-instance. It costs N times, plus adjudication. It catches genuine ambiguity, and unstable boundary calls. It misses errors caused by the criteria. And it fits when judgment is contested, and you need a signal to route on.
+
+Four. Tiered escalation. It costs about one point two to one point five times. It catches most of the above, on the subset that needs it. It misses whatever the trigger fails to flag. And it fits high volume with a minority of hard cases. Which is the usual production reality.
+
+[beat]
+
+Two contrasts to lock this in.
+
+First. Multi-pass versus multi-instance.
+
+Multi-pass is sequential, and catches things that were made up. Multi-instance is parallel, and catches things that are genuinely debatable. Neither catches a bad rulebook.
+
+Second, a contrast that spans the chapter. When a review fails, is it the architecture, or the criterion?
+
+If all the reviewers agree and are wrong, it's the criterion.
+
+If a single reviewer is shallow across many files, it's the architecture.
+
+If the reviewer wrote the code, it's self-review bias.
+
+[beat]
+
+And the words in a question that should switch this part on.
+
+"Same session reviews its own work." That means independent instance.
+
+"Many files, shallow, cross-file bugs, must finish in minutes." That means parallel per-file passes, plus integration.
+
+"Volume" and "budget ceiling," together. That means tiered escalation, with observable triggers.
+
+"Unanimous but wrong." That means fix the criterion.
+
+"Values not in the source, source available, about double the budget." That means multi-pass verification, with quotes.
+
+[beat]
+
+That's part six.
+
+If you remember one thing, make it this. Use fresh eyes, buy extra review only where the hard cases are, route on disagreement rather than voting, and remember no amount of review fixes a bad rulebook.
+
+Coming up next: the trap round.
+
+## Trap round
+
+The trap round.
+
+Here comes the rapid-fire round. Each one is a pattern you might see in an answer option, and the thought it should trigger. We'll go part by part.
+
+[beat]
+
+First, criteria.
+
+If you see "be more careful," "be conservative," or "be thorough," think: no boundary. Write named tests and an exclusion list.
+
+If you see capital letters, "serious error," or "will be audited," think: emphasis is persuasion. And it can cause overtriggering.
+
+If you see "only keep findings above zero point nine confidence," think: self-reported confidence is not calibrated to your standards. And a global threshold mutes the good categories too.
+
+If you see "set temperature to zero," think: determinism is not precision. Same answer, just as wrong.
+
+If you see "run it three times and keep what they all agree on," think: they share the same criterion. So they agree on the same mistake.
+
+If you see one category above about sixty percent false positives, while the rest are fine, think: disable that category alone, with a re-enable date.
+
+If you see "uncertain cases must stay visible," think: a required needs_human_review outcome.
+
+[beat]
+
+Next, examples.
+
+If you see one example per label, or examples from the highest-volume cases, think: no boundary information. Spend them on the disputed cases.
+
+If you see every example showing the same outcome, think: that teaches a lean. Balance the outcomes.
+
+If you see examples with only inputs and outputs, failing on a new layout, think: show the reasoning.
+
+[beat]
+
+Next, structured output.
+
+If you see "JSON only" in the prompt, with a growing repair layer, think: a forced tool call, or Structured Outputs.
+
+If you see "prefill an opening brace," think: retired on Claude four point six and later. And incompatible with enforcement.
+
+If you see tool_choice auto for mandatory extraction, think: the model can skip the tool. Force it.
+
+If you see a required field that can't be null, and invented values, think: string or null, still required, plus fields_not_found.
+
+If you see "remove it from required," think: you lose the presence guarantee.
+
+If you see "add a pattern," or "add a maximum length," to stop wrong values, think: patterns check shape. Length bounds are not enforced. And invented values are well formed. Use an enum if the values can be listed.
+
+If you see --output-format json at the command line, and a free-text answer, think: that's the envelope. Use --json-schema, and read structured_output.
+
+[beat]
+
+Next, validation and retries.
+
+If you see "Validation failed, please try again," think: name the field, the value, the rule and the next step. As a tool result with is_error true.
+
+If you see "raise the retry cap," "add backoff," or "use a bigger model," think: none of these add information. Fix the feedback.
+
+If you see the pass rate rise, but auditors find changed totals, think: the feedback didn't say which side is authoritative.
+
+If you see a field the document never states, failing every retry, think: stop retrying. Allow null. Route to a person.
+
+If you see self-consistent records from the wrong document, think: tier three. Check against your own reference data.
+
+[beat]
+
+Next, batch.
+
+If you see "most batches finish within an hour," against a deadline, think: design to the twenty-four-hour worst case.
+
+If you see batch proposed for an agent that reads, then decides what to read next, think: batch is single-turn only.
+
+If you see missing records after a batch ended, with no errors, think: ended is not success. Switch on all four result types.
+
+If you see results matched by position, think: join on custom_id.
+
+If you see "split into many small batches," think: failure is already per request. You only add tracking work.
+
+If you see "batch lowers quality," think: same model, same quality. The issue is only timing.
+
+[beat]
+
+And last, review architectures.
+
+If you see a session reviewing its own code, think: an independent instance, with fresh context.
+
+If you see a random sample as an escalation trigger, think: random doesn't track difficulty.
+
+If you see uniform three-pass review over a mostly clean corpus, think: tiered escalation, at about one point two to one point five times.
+
+If you see unanimous but wrong, think: fix the criterion, not the topology.
+
+[beat]
+
+That's the trap round.
+
+Coming up next: the closing recap.
+
+## Closing recap
+
+The closing recap.
+
+Here are the ten things to remember from this chapter. Each one in plain words first, then its technical name.
+
+[beat]
+
+One. A model that flags everything isn't confused. It's guessing where your line is. So draw the line.
+
+The technical name is explicit categorical or conjunctive criteria, with an exclusion list.
+
+Two. Give the model a truthful way to say "I am not sure," and a place to say it.
+
+That's an abstention channel. Usually a required needs_human_review outcome. Plus stating that an empty result is valid.
+
+Three. Confidence scores and lower randomness feel like fixes. But they don't move the line.
+
+The technical terms are self-reported confidence, which is not calibrated to your standards. And temperature, where determinism is not precision.
+
+[beat]
+
+Four. When one part of a reviewer is noisy, switch off just that part, with a date to bring it back.
+
+That's disabling a single category above roughly sixty percent false positives, with the re-enable date in the prompt.
+
+Five. Teach with the hard cases, not the easy ones. And show the reasoning.
+
+That's targeted few-shot prompting at the fault lines. Boundary cases. Near misses on both sides. Balanced outcomes. Matched surface features. Input, then reasoning, then output. In example tags.
+
+[beat]
+
+Six. Stop asking for the right format, and make any other format impossible.
+
+That's a forced tool call using tool_choice. Or Structured Outputs, using output_config.format. With enum for listable values. And at the command line, the --json-schema flag, with the answer in structured_output.
+
+Seven. A form with no box for "not stated" collects guesses.
+
+That's typing optional fields as string or null, keeping them required, and adding a fields_not_found list.
+
+Eight. A neat answer can still be false. So check it against itself, and against the world.
+
+Those are tier two internal and tier three external validation. Because a schema guarantees shape, never truth.
+
+[beat]
+
+Nine. When you send work back, say exactly what's wrong, and which figure to trust. And stop after a couple of tries, or when the information simply isn't there.
+
+That's a tool result with is_error true, naming field, value, rule and next action. A bounded retry cap of two or three, depending on the source. And routing absent data to a person.
+
+Ten. Use the cheap overnight service only when nobody is waiting, and each job is one round trip. And spend extra review only where the hard cases are.
+
+That's the Message Batches API at half price, with custom_id joins, and all four result types handled. And tiered escalation with independent reviewers, where unanimity is never mistaken for correctness.
+
+[beat]
+
+That's Domain four. Six task statements, ten things to remember, and twenty percent of the exam.
+
+If you remember one sentence, make it this one. Hold on to this line. A schema guarantees shape, never truth. And every other technique in this chapter exists to close that gap.

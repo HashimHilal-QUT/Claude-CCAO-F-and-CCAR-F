@@ -1,0 +1,146 @@
+[
+  {
+    "part": "Cold open: the refund that never happened",
+    "questions": [],
+    "concepts": ["domain weight twenty-seven percent", "termination owned by code", "prompt to code is the rewarded move"]
+  },
+  {
+    "part": "Part one: Agentic loops",
+    "questions": ["D1-001", "D1-002", "D1-003", "D1-004", "D1-005", "D1-006"],
+    "concepts": [
+      "stop_reason seven values",
+      "stop_reason vs content-type checking",
+      "stateless messages array and tool_use/tool_result pairing",
+      "max_tokens vs model_context_window_exceeded",
+      "pause_turn continuation",
+      "refusal and stop_details",
+      "stop_sequence branching",
+      "source disagreement: end_turn as only exit",
+      "four termination guards",
+      "no-progress detection via call signatures",
+      "code-evaluated acceptance check",
+      "iteration cap as safety valve",
+      "SDK max_turns counts tool-use turns only",
+      "ResultMessage subtypes and result only on success",
+      "single-shot query raises after error result",
+      "Tool Runner max_iterations"
+    ]
+  },
+  {
+    "part": "Part two: Coordinators and subagents",
+    "questions": ["D1-007", "D1-008", "D1-009", "D1-010", "D1-011", "D1-012"],
+    "concepts": [
+      "single agent vs coordinator vs deterministic pipeline",
+      "dependency test on content of previous result",
+      "narrow agent inside a pipeline stage",
+      "hub-and-spoke routing",
+      "missing synthesis step in a fan-out",
+      "parallel spawning in one response",
+      "parallel vs sequential: findings not files",
+      "per-topology failure handling",
+      "coordinator redoing subagent work",
+      "Agent must be in allowedTools",
+      "maxBudgetUsd bounds whole tree",
+      "spawn depth and concurrency caps",
+      "removing Agent from one subagent vs global depth",
+      "error_max_budget_usd is incomplete; report coverage"
+    ]
+  },
+  {
+    "part": "Part three: Spawning subagents and passing context",
+    "questions": ["D1-013", "D1-014", "D1-015", "D1-016", "D1-017", "D1-018"],
+    "concepts": [
+      "fresh subagent context",
+      "what crosses the subagent boundary",
+      "parent_tool_use_id correlates, does not share",
+      "self-contained delegation prompt as work order",
+      "as-discussed heuristic and missing-handoff symptoms",
+      "description as routing rule",
+      "tools availability list and disallowedTools",
+      "tools vs allowedTools vs skill allowed-tools vs readOnlyHint",
+      "source disagreement: Task vs Agent, allowed_tools vs tools",
+      "AgentDefinition fields and filesystem subagents",
+      "structured finding objects and claim-source mapping",
+      "conflict annotation and escalation",
+      "tool-level parallelism and readOnlyHint scheduling"
+    ]
+  },
+  {
+    "part": "Part four: Enforcement and handoffs in multi-step workflows",
+    "questions": ["D1-019", "D1-020", "D1-021", "D1-022", "D1-023"],
+    "concepts": [
+      "prompt is a request, code is a guarantee",
+      "enforcement ladder: structural, deterministic, contractual",
+      "prerequisite gate via PreToolUse with permissionDecisionReason",
+      "PostToolUse detects but cannot prevent",
+      "enforcement vs persistence under compaction",
+      "prompt vs CLAUDE.md vs hook",
+      "handoff record validated by the next stage",
+      "handoff record fields",
+      "evaluated_by code: claim vs evidence",
+      "addresses not payloads",
+      "decisions_locked in handoff records",
+      "structured human handoff summary",
+      "machine handoff vs human handoff",
+      "Workflow tool for large scale"
+    ]
+  },
+  {
+    "part": "Part five: Hooks for interception and normalization",
+    "questions": ["D1-024", "D1-025", "D1-026"],
+    "concepts": [
+      "hooks run in process, cost no tokens",
+      "hook events and the six that matter",
+      "Stop hook: persist state and block stopping",
+      "PreToolUse permissionDecision and updatedInput pairing",
+      "argument normalization in PreToolUse, layered with descriptions",
+      "PostToolUse result normalization",
+      "PostToolUse trimming with updatedToolOutput and raw-output path",
+      "PreCompact archives but does not prevent",
+      "async hooks cannot block or modify",
+      "split blocking hook from async audit hook",
+      "hook decision precedence deny, defer, ask, allow",
+      "matchers",
+      "PreToolUse vs PostToolUse"
+    ]
+  },
+  {
+    "part": "Part six: Decomposing complex work",
+    "questions": ["D1-027", "D1-028", "D1-029"],
+    "concepts": [
+      "decomposition buys isolation, costs context",
+      "split on context volume, permission asymmetry, verification independence",
+      "prompt chaining vs dynamic decomposition",
+      "decompose by question, not territory",
+      "synthesis step vs changing the split",
+      "do not decompose iterative refinement",
+      "wide and shallow over deep"
+    ]
+  },
+  {
+    "part": "Part seven: Sessions, resumption and forking",
+    "questions": ["D1-030", "D1-031", "D1-032"],
+    "concepts": [
+      "sessions persist conversation, not filesystem",
+      "continue vs resume vs fork_session",
+      "resume with explicit change notice",
+      "fork for parallel exploration; filesystem is not forked",
+      "fork reuses prompt cache",
+      "fresh start with injected hypotheses",
+      "resume vs fork vs fresh start",
+      "crash recovery via structured state record",
+      "sessionStore adapter and machine-local session files",
+      "file checkpointing"
+    ]
+  },
+  {
+    "part": "Trap round",
+    "questions": ["D1-001", "D1-002", "D1-003", "D1-004", "D1-005", "D1-006", "D1-007", "D1-008", "D1-009", "D1-010", "D1-011", "D1-012", "D1-013", "D1-014", "D1-015", "D1-016", "D1-017", "D1-018", "D1-019", "D1-020", "D1-021", "D1-022", "D1-023", "D1-024", "D1-025", "D1-026", "D1-027", "D1-028", "D1-029", "D1-030", "D1-031", "D1-032"],
+    "concepts": ["recurring distractors across all seven task statements"]
+  },
+  {
+    "part": "Closing recap: ten things to remember",
+    "questions": [],
+    "concepts": ["ten-point recap with technical names"]
+  }
+]

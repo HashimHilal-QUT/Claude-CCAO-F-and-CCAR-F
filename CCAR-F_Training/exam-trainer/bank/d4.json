@@ -1,0 +1,854 @@
+[
+  {
+    "id": "D4-001",
+    "domain": 4,
+    "task": "4.1",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A CI step asks Claude to review each Terraform plan with the system prompt 'Be thorough and conservative.' It posts about 45 comments per pull request, almost all on tag naming and formatting the linter already accepts. Engineers stopped reading the comments within two weeks, and a plan that made a storage bucket public was merged. What is the most effective first change?",
+    "options": [
+      "Change the instruction to 'Be more conservative and only raise the issues that truly matter to the team.'",
+      "Post only the findings whose self-reported confidence score is above 0.9, and suppress everything else.",
+      "Replace the instruction with named REPORT categories and named SKIP categories, one structured finding per issue.",
+      "Lower the sampling temperature so that the same plan always receives the same set of review comments."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "The noise comes from missing rules, not from a weak model: 'thorough' and 'conservative' do not say where your line is, so the model draws its own. Named REPORT categories (public exposure, wildcard permissions, unencrypted storage) and named SKIP categories (tag naming, linter-approved formatting) turn judgment into a rulebook. The course names categorical criteria as the most effective first step for false positives, ahead of confidence filtering or softer wording.",
+    "whyWrong": [
+      "A softer adjective still gives no boundary. The course example shows 'be more conservative' trimming 47 flags to 35 while trust stays at zero.",
+      "Model confidence reflects its training data, not your standards. A high-confidence style nitpick is still noise, and a novel real risk can score lower.",
+      "Correct. Categorical REPORT/SKIP rules tell the model exactly what to flag and what to ignore, which is what restores precision and trust.",
+      "Lower temperature makes the same over-inclusive comments more repeatable. Determinism is not precision."
+    ],
+    "concept": "categorical REPORT/SKIP criteria",
+    "plainExample": "A smoke alarm that goes off every time someone makes toast soon gets its battery pulled, and then it misses the real fire. Telling it to 'be more careful' does nothing. You fix it by telling it what counts as smoke and what counts as toast.",
+    "technicalExample": "WRONG:  System: Be thorough and conservative in your review.\nRIGHT:\nALWAYS REPORT: public exposure of storage or endpoints; IAM wildcard actions; unencrypted data at rest\nNEVER REPORT: tag naming style; formatting the linter accepts; minor reordering\nFORMAT: one JSON object per finding: {file, line, severity, issue, suggested_fix}",
+    "sources": [
+      "fde-enablement-hub-complete.md:4210",
+      "fde-enablement-hub-complete.md:4249",
+      "claude-certified-architect-principles.md:373",
+      "lesson_14.pdf p5",
+      "lesson_14.pdf p6",
+      "lesson_14.pdf p8",
+      "lesson_14.pdf p14"
+    ]
+  },
+  {
+    "id": "D4-002",
+    "domain": 4,
+    "task": "4.1",
+    "scenario": "customer-support",
+    "type": "multi",
+    "stem": "A support agent flags conversations for 'potential escalation risk' so supervisors can call the customer back. It flags 38 percent of conversations, supervisors have capacity for about 5 percent, and genuine cases get lost in the pile. Leadership also insists that cases the agent is genuinely unsure about must stay visible to supervisors, not be silently dropped. Which two changes best meet both goals? (Select TWO.)",
+    "options": [
+      "Replace the phrase with tests that must all hold, such as repeat contact plus a missed promised fix, and list near misses not to flag.",
+      "Keep only the flags whose self-reported confidence is above 0.85, and quietly drop the rest so supervisors see fewer, stronger cases.",
+      "Instruct the agent to be conservative and thorough, and to flag only conversations that show genuine escalation risk.",
+      "Add a required needs_human_review outcome, separate from flag and no-flag, naming the test that could not be verified.",
+      "Set temperature to 0 so that the same conversation always receives exactly the same flag decision, making the supervisor queue predictable."
+    ],
+    "correct": [
+      0,
+      3
+    ],
+    "explanation": "Precision this low means the criterion has no stated boundary, so the fix is a conjunctive test plus an exclusion list naming the common wrong flags. The second constraint, keeping uncertainty visible, is met by a required third outcome: needs_human_review turns an unsure guess into routed work in a queue supervisors can see. The other options either give no boundary or hide uncertainty behind a number.",
+    "whyWrong": [
+      "Correct. A conjunctive test replaces a vague standard with a checkable procedure, and the exclusion list handles the near misses a positive definition always leaves open.",
+      "Self-reported confidence is not calibrated to your business standard, and dropping low-confidence cases silently discards exactly the uncertain cases leadership wants kept visible.",
+      "'Be conservative' and 'be thorough' supply no boundary information, and the two words pull in opposite directions.",
+      "Correct. A required abstention channel gives uncertain cases somewhere to go other than a confident flag, and the queue it creates can be measured and reviewed.",
+      "Determinism is not precision. Temperature 0 makes the queue predictable by reproducing the same over-inclusive flags more consistently."
+    ],
+    "concept": "conjunctive criteria + abstention channel",
+    "plainExample": "A school tells a new hall monitor to 'report anyone suspicious' and gets half the students reported. Giving them a checklist (out of class without a pass and during a lesson) cuts the noise, and a third box, 'not sure, ask a teacher', keeps the hard cases from being guessed either way.",
+    "technicalExample": "Flag a conversation ONLY if ALL of these hold:\n1. Customer has contacted us 2+ times about the same issue\n2. A promised fix or date has already been missed\nDo NOT flag: resolved complaints, polite feedback, billing questions answered in-session\nIf you cannot verify a test from the transcript, output needs_human_review with the test name.\nAn empty flag list is a valid, expected result.",
+    "sources": [
+      "fde-enablement-hub-complete.md:4249",
+      "fde-enablement-hub-complete.md:4251",
+      "claude-certified-architect-principles.md:366",
+      "claude-certified-architect-principles.md:367",
+      "claude-certified-architect-principles.md:369",
+      "lesson_14.pdf p6",
+      "lesson_14.pdf p15"
+    ]
+  },
+  {
+    "id": "D4-003",
+    "domain": 4,
+    "task": "4.1",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A CI review bot already uses categorical criteria. Its security and logic findings are precise, but its performance category has a false positive rate above 60 percent, and developers have started ignoring the whole bot. Rewriting the performance criteria properly will take several weeks, and the team must restore trust this sprint without losing the security signal. What should the architect do?",
+    "options": [
+      "Disable only the performance category, note its re-enable date in the prompt, and leave the rest untouched.",
+      "Raise one global confidence threshold across every category until the performance false positives stop, then lower it once the rewrite ships.",
+      "Add 'be conservative about performance findings' to the prompt and keep the performance category fully active.",
+      "Keep every category active and ask developers to ignore performance comments until the criteria rewrite lands."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "Trust collapse spreads across categories, so one noisy category drags down the precise ones. Turning off only the noisy category isolates the problem and lets trust recover while the real criteria rewrite happens, and writing the re-enable date into the prompt makes it a forcing function. Lowering thresholds across the board would sacrifice the security signal that is working.",
+    "whyWrong": [
+      "Correct. The course's remedy for a category above about 60 percent false positives is to disable it entirely, document the re-enable date, and not touch the healthy categories.",
+      "A global threshold also suppresses real security and logic findings, and confidence does not measure business importance anyway.",
+      "A vague adjective gives no boundary, so the performance category stays noisy and keeps eroding trust in the whole bot.",
+      "Asking people to ignore part of the output is how they learn to ignore all of it. That is the trust collapse already underway."
+    ],
+    "concept": "disable noisy categories",
+    "plainExample": "If one smoke detector in the kitchen keeps going off for toast, you switch off that one detector and put a note on it to fix it by Friday. You do not turn down every alarm in the house, including the one in the bedroom that works.",
+    "technicalExample": "# PERFORMANCE CATEGORY: DISABLED UNTIL 2026-11-15. Do not report performance findings.\nALWAYS REPORT (unchanged):\n- SECURITY: injection, hardcoded credentials, weak encryption\n- LOGIC: missing error handlers in critical paths, race conditions\nWRONG: 'Only report findings above 0.9 confidence' applied to every category",
+    "sources": [
+      "lesson_14.pdf p4",
+      "lesson_14.pdf p11",
+      "lesson_14.pdf p14",
+      "lesson_14.pdf p15"
+    ]
+  },
+  {
+    "id": "D4-004",
+    "domain": 4,
+    "task": "4.1",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "A research system's verification subagent is told to 'flag any claim in the draft report that may not be adequately supported by the retrieved sources.' It flags 58 percent of claims, and spot checks show most flagged claims are stated almost word for word in a retrieved source. Flags go to analysts whose review hours are limited. Which change best raises precision?",
+    "options": [
+      "Run the verifier three times per draft and forward to analysts only the claims that all three independent runs agree are unsupported.",
+      "Add the rule 'only flag claims you are highly confident are unsupported by the sources' to the verifier prompt.",
+      "Lower the verifier's temperature to 0 so that its flag decisions become fully reproducible across repeated runs.",
+      "Define 'unsupported' as a test, require a quoted passage for each decision, and accept zero flags as valid."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "'May not be adequately supported' is satisfied by almost any claim, so the verifier picks a permissive boundary. A stated test (for example, no retrieved source contains a passage asserting the claim or its figures) plus a required quote grounds each decision in the text, so a supported claim cannot be flagged without the verifier contradicting its own evidence. Saying an empty flag list is valid removes the pressure to find something.",
+    "whyWrong": [
+      "Independent runs share the same vague criterion, interpret it the same permissive way, and agree. Unanimity filtering removes few flags and triples cost.",
+      "Self-reported confidence is subject to the same pressure as the flags themselves and gives no boundary information.",
+      "Determinism is not precision. It stabilises the same over-inclusive flags.",
+      "Correct. A test, a quotation requirement, and permission to return nothing are the three moves that convert a vague standard into an auditable decision."
+    ],
+    "concept": "grounding with quotes + empty result valid",
+    "plainExample": "A proofreader told to 'mark anything that might be wrong' marks every page. Ask them instead to mark a sentence only if they can't find it in the source, and to copy the source line next to anything they clear, and the marks become few and checkable.",
+    "technicalExample": "A claim is UNSUPPORTED only if no retrieved source contains a passage stating the claim or its figures.\nFor every claim, output {claim_id, verdict, quote, source_id}.\nIf verdict = supported, quote is the passage you relied on.\nIf you cannot decide from the sources alone, verdict = needs_human_review.\nZero unsupported claims is a valid, expected result.",
+    "sources": [
+      "fde-enablement-hub-complete.md:4212",
+      "fde-enablement-hub-complete.md:4249",
+      "claude-certified-architect-principles.md:365",
+      "claude-certified-architect-principles.md:368",
+      "claude-certified-architect-principles.md:371",
+      "claude-certified-architect-principles.md:374",
+      "claude-certified-architect-principles.md:448"
+    ]
+  },
+  {
+    "id": "D4-005",
+    "domain": 4,
+    "task": "4.2",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A CI review step assigns CRITICAL, HIGH, or MEDIUM severity. The same bug class, a missing null check on an internal API response, comes back CRITICAL on some runs and HIGH on others. The prompt already contains about 800 words of severity definitions, and you have room for only a handful of examples. What should the architect do first?",
+    "options": [
+      "Add one clear, well-annotated example per severity level, such as SQL injection as CRITICAL, so every level in the scale is illustrated.",
+      "Rerun a sample of diffs several times, find where severity flips, and add reasoning examples for those cases only.",
+      "Expand the prose definitions with sharper wording that separates 'severe' impact from 'significant' impact.",
+      "Set temperature to 0 so that the same diff always receives exactly the same severity rating on every run."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "Inconsistency here is not a hallucination: the model understands the task but resolves an ambiguous boundary differently across runs. More prose adds surface area for ambiguity, so the fix is demonstration, and a small example budget should go to the fault lines, not the obvious cases. Running inputs repeatedly to find where output flips tells you exactly which boundary cases to demonstrate, with reasoning that shows how to decide.",
+    "whyWrong": [
+      "Obvious cases like SQL injection are already stable. Examples there spend the budget on solid ground and leave the drifting boundary untouched.",
+      "Correct. Diagnose the drift first, then spend the few examples on the cases that flip, with the reasoning that resolves them.",
+      "The course calls this the instruction ceiling: words like 'severe' calibrate against general training data, and more prose moves the ambiguity rather than closing it.",
+      "Temperature controls randomness, not classification judgment. It would freeze one of the two ratings without deciding which is right."
+    ],
+    "concept": "targeted few-shot at the fault lines",
+    "plainExample": "A new referee keeps calling the same kind of tackle a yellow card one week and a red the next. Reading them the rulebook again won't help. Watch which tackles they flip on, then show them two clips of exactly those tackles with the reason for each call.",
+    "technicalExample": "Step 1: run 10 representative diffs 3 times each\nStep 2: note where severity flips\n        (e.g. a null check on an internal API: CRITICAL on one run, HIGH on another)\nStep 3: add examples for those cases only\n\n<example>\n  <diff>...internal caller passes user_id to getAccount() without a null check...</diff>\n  <reasoning>Internal caller; the input is validated upstream; the failure is a\n  500, not data exposure.</reasoning>\n  <severity>HIGH</severity>\n</example>\n\nNot part of the prompt: another SQL-injection-is-CRITICAL example would be\nwasted, because that case is already stable.",
+    "sources": [
+      "fde-enablement-hub-complete.md:4263",
+      "claude-certified-architect-principles.md:380",
+      "claude-certified-architect-principles.md:386",
+      "lesson_15.pdf p2",
+      "lesson_15.pdf p4",
+      "lesson_15.pdf p10",
+      "lesson_15.pdf p13"
+    ]
+  },
+  {
+    "id": "D4-006",
+    "domain": 4,
+    "task": "4.2",
+    "scenario": "customer-support",
+    "type": "single",
+    "stem": "A refund-decision agent uses four few-shot examples, all taken from the most common ticket type and all ending in 'approve refund'. In production it approves 41 percent of refund requests, while a policy review of a labeled sample says about 15 percent qualify. Reviewers agree the written policy text itself is correct. Which change is most likely to bring the approval rate in line?",
+    "options": [
+      "Add four more approval examples drawn from other ticket types, so the example set covers the full range of tickets the agent actually sees.",
+      "Append 'approve refunds less often than you currently do' to the policy text so the agent leans toward denial.",
+      "Move the example block after the customer's message so the policy text carries more weight than the examples.",
+      "Replace the set with disputed boundary cases, balanced between approve and deny, including one that routes to human review."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "An example set where every outcome is 'approve' teaches a prior about frequency, and easy examples carry no boundary information. Rebalancing the outcomes, choosing cases reviewers actually argued about, including a near miss on each side, and demonstrating the abstention path teaches the boundary instead of a direction. The policy text is fine; the composition of the examples is the defect.",
+    "whyWrong": [
+      "Wider ticket-type coverage does not fix one-sided outcomes. Eight approval examples deepen the skew toward 'approve' and still sit far from the boundary.",
+      "A frequency instruction gives no information about which requests qualify, so it trades wrong approvals for wrong denials.",
+      "Placement is not the defect. The examples would still all show 'approve', and the model would still read that as a pattern about the task.",
+      "Correct. Balanced outcomes, boundary cases, near misses on both sides, and an exercised abstention path are what make examples teach a line rather than a lean."
+    ],
+    "concept": "balanced outcomes in examples",
+    "plainExample": "If you train a new cashier by showing them four customers who were all allowed to return an item, they will learn that returns are always allowed. Show them one yes, one no, one that nearly qualified, and one where they should call a manager.",
+    "technicalExample": "<examples>\n  <example>\n    <ticket>Unopened item returned 12 days after purchase. Receipt attached.</ticket>\n    <decision>{\"outcome\": \"approve\", \"reason\": \"Unopened and inside the 30-day window.\"}</decision>\n  </example>\n  <example>\n    <ticket>Opened item returned after 12 days. No defect described.</ticket>\n    <decision>{\"outcome\": \"deny\", \"reason\": \"Opened items qualify only when defective.\"}</decision>\n  </example>\n  <example>\n    <ticket>Defect reported on day 31; the customer first reported it on day 28.</ticket>\n    <decision>{\"outcome\": \"approve\", \"reason\": \"Defect claims count from the first report date.\"}</decision>\n  </example>\n  <example>\n    <ticket>\"It broke, you know the one.\"</ticket>\n    <decision>{\"outcome\": \"needs_human_review\", \"reason\": \"No order can be identified.\"}</decision>\n  </example>\n</examples>\n\nNot part of the prompt: examples 2 and 3 are near misses on either side of the\nline, example 4 exercises abstention, and every output is the exact JSON the\nsystem parses.",
+    "sources": [
+      "fde-enablement-hub-complete.md:4265",
+      "fde-enablement-hub-complete.md:4315",
+      "claude-certified-architect-principles.md:382",
+      "claude-certified-architect-principles.md:385",
+      "fde-enablement-hub-complete.md:4571"
+    ]
+  },
+  {
+    "id": "D4-007",
+    "domain": 4,
+    "task": "4.2",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "A contract extractor uses few-shot examples that show only an input contract and the output JSON, all taken from contracts laid out as tables. On contracts written as dense prose, it fills renewal_term with values it infers from other clauses rather than a term the contract actually states. The team can afford only two or three examples in the prompt. Which change best fixes this?",
+    "options": [
+      "Rewrite the examples to show the reasoning, stated versus inferred and why inferred means null, using both layouts.",
+      "Add six more input-to-output examples from table-style contracts, each showing the complete JSON output, so the extraction pattern is reinforced.",
+      "Add a regular-expression pattern to renewal_term so that only well-formed duration values can ever be emitted.",
+      "Add 'DO NOT GUESS VALUES' in capital letters at the top of the prompt, directly above the example block."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "Output-only examples teach the model to ask 'which example does this look like?', which breaks when the document shape changes. Examples that show the derivation (found here, stated or inferred, so this value or null) teach the decision rule, which generalises across layouts. The course resolves exactly this extracted-versus-inferred drift with a couple of targeted reasoning examples, regardless of document shape.",
+    "whyWrong": [
+      "Correct. Reasoning-driven examples across both layouts teach the stated-versus-inferred rule rather than a surface pattern, within the small example budget.",
+      "More output-only examples from the same layout deepen pattern matching, exceed the budget, and still never show a prose contract or the stated-versus-inferred decision.",
+      "A pattern checks format. An inferred duration is perfectly well formed, so the schema cannot tell it apart from a stated one.",
+      "Emphasis supplies no boundary information about what counts as stated, and aggressive directives can cause overtriggering."
+    ],
+    "concept": "reasoning in examples (derivation)",
+    "plainExample": "Showing a trainee three finished tax forms teaches them what a finished form looks like. Showing them where on the receipt each number came from, and which boxes to leave blank when the receipt doesn't say, teaches them to fill in a form they have never seen.",
+    "technicalExample": "<example>\n  <contract>...This Agreement shall continue until terminated by either party...</contract>\n  <reasoning>No renewal period is stated. 12 months appears only in the payment\n  clause, so it would be inferred, not extracted.</reasoning>\n  <output>{\"renewal_term\": null}</output>\n</example>\n\nNot part of the prompt: an output-only example (contract, then output) shows the\nanswer without the derivation, so the model cannot learn to tell a stated term\nfrom an inferred one.",
+    "sources": [
+      "lesson_15.pdf p6",
+      "lesson_15.pdf p7",
+      "lesson_15.pdf p8",
+      "lesson_15.pdf p11",
+      "lesson_14.pdf p13",
+      "claude-certified-architect-principles.md:373"
+    ]
+  },
+  {
+    "id": "D4-008",
+    "domain": 4,
+    "task": "4.2",
+    "scenario": "developer-productivity",
+    "type": "multi",
+    "stem": "An internal tool classifies Jira tickets as bug, feature request, or tech debt. Accuracy is 88 percent, and nearly all errors fall on two boundaries (bug versus tech debt, and feature versus bug) where engineers disagreed until a house rule was written down. You are building a small example set for the prompt. Which two properties should the example set have? (Select TWO.)",
+    "options": [
+      "One example per label, drawn from the highest-volume ticket types in the backlog, so the examples reflect what the tool sees most often.",
+      "Examples drawn from the disputed boundary cases, with the house rule stated in each example's reasoning.",
+      "Examples the model already classifies correctly, to reinforce the behavior that is working and avoid confusing it with edge cases.",
+      "Examples pasted inline between the instructions without delimiters, to save tokens.",
+      "Outcomes balanced across labels, with incidental features such as ticket length matched across labels."
+    ],
+    "correct": [
+      1,
+      4
+    ],
+    "explanation": "Examples teach boundaries, and the errors sit on two boundaries the team itself found ambiguous, so the examples belong there with the house rule written into the reasoning. Examples also teach whatever else they share: a skewed outcome mix teaches a prior, and a surface difference like length teaches a length classifier. Volume and already-correct cases carry no boundary information.",
+    "whyWrong": [
+      "Volume is not difficulty. High-volume categories are mostly classified correctly already, so these examples spend tokens on solved problems.",
+      "Correct. Disputed cases carry the boundary information, and stating the house rule inline stops the model inventing its own reasonable alternative.",
+      "Easy, already-correct cases contain no boundary information, so they cost tokens and leave accuracy unchanged. The edge cases are exactly what it needs.",
+      "Wrapping each demonstration in example tags inside an examples block lets the model separate demonstrations from instructions and input. Dropping them invites confusion.",
+      "Correct. Balanced outcomes and matched surface features stop the examples teaching unintended patterns such as 'usually a bug' or 'long tickets are tech debt'."
+    ],
+    "concept": "example selection: boundaries, balance, surface features",
+    "plainExample": "To teach a child the difference between a wolf and a husky, don't show them a poodle and a lion. Show the husky that looks most like a wolf and the wolf that looks most like a husky, and make sure all the wolf photos aren't taken in snow, or they'll learn 'snow means wolf'.",
+    "technicalExample": "<examples>\n  <example>\n    <ticket>Legacy retry loop swallows errors; no user impact yet.</ticket>\n    <reasoning>House rule: a defect with no current user-visible failure is tech debt.</reasoning>\n    <label>tech_debt</label>\n  </example>\n  <example>\n    <ticket>Retry loop swallows errors; exports fail silently for users.</ticket>\n    <reasoning>A user-visible failure makes it a bug.</reasoning>\n    <label>bug</label>\n  </example>\n  ...more pairs, similar lengths, labels balanced across the set...\n</examples>\n\nNot part of the prompt: each pair differs only on the deciding fact, so the model\nlearns the boundary, not a surface feature such as length or wording.",
+    "sources": [
+      "fde-enablement-hub-complete.md:4265",
+      "fde-enablement-hub-complete.md:4317",
+      "claude-certified-architect-principles.md:379",
+      "claude-certified-architect-principles.md:380",
+      "claude-certified-architect-principles.md:383",
+      "claude-certified-architect-principles.md:384",
+      "claude-certified-architect-principles.md:386"
+    ]
+  },
+  {
+    "id": "D4-009",
+    "domain": 4,
+    "task": "4.3",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "A shipping-document extractor asks for 'JSON only' in its prompt. About one response in 150 arrives wrapped in markdown code fences, with a friendly preamble, or with a renamed key, and the team's regular-expression repair layer keeps growing. The output is written straight into a system of record. Which change removes this whole class of failure?",
+    "options": [
+      "Add 'RETURN RAW JSON ONLY. NO BACKTICKS. NO PREAMBLE.' in capital letters at the very end of the prompt.",
+      "Prefill the assistant turn with an opening brace so that every reply is forced to begin as a JSON object.",
+      "Define an extraction tool whose input_schema is the contract, force the call with tool_choice, read its input.",
+      "Replace the regex layer with a tolerant JSON parser that strips code fences and maps renamed keys back."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "Prompting for JSON yields JSON most of the time, and 'most of the time' is a parse error in production. Tool use with a forced call makes the schema a contract the API enforces, so fences, preambles, and drifting keys have nowhere to happen, and the result is read directly from the tool input. The other options either persuade, rely on a retired technique, or maintain repair logic forever.",
+    "whyWrong": [
+      "Emphasis is persuasion, not enforcement. It is the same approach that already produces the one-in-150 failure.",
+      "Prefill-based JSON forcing is retired: it is unavailable on Claude 4.6 and later and incompatible with enforced structured output.",
+      "Correct. Protocol enforcement through a forced tool call eliminates syntax and shape drift structurally rather than asking for it.",
+      "A tolerant parser treats the symptom and becomes a permanent maintenance burden that still breaks on the next unusual input."
+    ],
+    "concept": "tool use over prompted JSON",
+    "plainExample": "Asking someone to write delivery details on a scrap of paper usually works, but sometimes you get a note at the top or the numbers in the wrong order. Handing them a printed form with a box for each field gives those mistakes nowhere to happen.",
+    "technicalExample": "tools = [{\n    \"name\": \"record_shipment\",\n    \"description\": \"Record the shipment fields extracted from the document.\",\n    \"input_schema\": {\"type\": \"object\", \"additionalProperties\": False,\n                     \"properties\": {...}, \"required\": [...]},\n}]\nresponse = client.messages.create(\n    model=MODEL, max_tokens=1024, tools=tools,\n    tool_choice={\"type\": \"tool\", \"name\": \"record_shipment\"},   # no prose path\n    messages=[{\"role\": \"user\", \"content\": document}],\n)\ndata = next(b.input for b in response.content if b.type == \"tool_use\")\n# no regex, no fence stripping\n# Wrong: prompt 'JSON only' + regex repair; prefill '{' (unavailable on 4.6+)",
+    "sources": [
+      "fde-enablement-hub-complete.md:4325",
+      "fde-enablement-hub-complete.md:4327",
+      "fde-enablement-hub-complete.md:4419",
+      "fde-enablement-hub-complete.md:4428",
+      "claude-certified-architect-principles.md:399",
+      "lesson_16.pdf p3",
+      "lesson_16.pdf p4",
+      "lesson_16.pdf p15"
+    ]
+  },
+  {
+    "id": "D4-010",
+    "domain": 4,
+    "task": "4.3",
+    "scenario": "customer-support",
+    "type": "single",
+    "stem": "A support agent extracts fields from customer emails into a ticket through a forced tool call, and the schema declares order_number as a required string. When a customer never mentions an order, the agent fills in a plausible order number from the customer's recent history, and refunds are applied to the wrong order. The ticket system can already route tickets with a missing field to a person who asks the customer. Which schema change is best?",
+    "options": [
+      "Remove order_number from the required list so the model can leave it out entirely whenever the email doesn't mention an order at all.",
+      "Type order_number as string-or-null, keep it required, and list every null field in a fields_not_found array.",
+      "Add a pattern matching the order-number format so that invented values are rejected at the schema level.",
+      "Add a retry that resends the same email whenever the extracted order_number fails the order lookup."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "A required, non-nullable field leaves the model two choices, violate the schema or invent a value, and it invents. A null union kept in required forces the model to address the field while giving it a truthful way to say the email is silent, and fields_not_found makes absence an explicit, checkable act. The existing routing then handles the null tickets safely.",
+    "whyWrong": [
+      "Making the field optional loses the presence guarantee: an omitted field no longer tells you whether the model checked and found nothing or simply skipped it.",
+      "Correct. Required plus nullable is the honest path: the field is always present, null is a valid escape hatch, and downstream routing catches it.",
+      "An invented order number is correctly formatted. A pattern checks shape, never whether the value came from the email.",
+      "Resending the identical request is pure resampling, and the email still contains no order number, so the model can only invent another one."
+    ],
+    "concept": "required + nullable fields",
+    "plainExample": "A form that says 'Order number (leave blank if you don't have one)' gets honest blanks. A form that refuses to be submitted until the box is filled gets made-up numbers, and nobody can tell them from real ones.",
+    "technicalExample": "Wrong:\n  \"order_number\": {\"type\": \"string\"}      # required, so the model invents one\nRight:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"order_number\": {\n      \"type\": [\"string\", \"null\"],\n      \"description\": \"As written in the email. null if none is mentioned. Never infer from history.\"\n    },\n    \"fields_not_found\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}\n  },\n  \"required\": [\"order_number\", \"fields_not_found\"]\n}\nOutput for an email with no order number:\n{\"order_number\": null, \"fields_not_found\": [\"order_number\"]}",
+    "sources": [
+      "fde-enablement-hub-complete.md:4392",
+      "fde-enablement-hub-complete.md:4565",
+      "claude-certified-architect-principles.md:409",
+      "claude-certified-architect-principles.md:410",
+      "claude-certified-architect-principles.md:411",
+      "lesson_16.pdf p6",
+      "lesson_16.pdf p13",
+      "lesson_16.pdf p15"
+    ]
+  },
+  {
+    "id": "D4-011",
+    "domain": 4,
+    "task": "4.3",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A pipeline runs Claude Code headless on every pull request and parses the findings. The team passes --output-format json and expects the model's answer to match their findings schema, but the answer inside the result is often free text and the parser fails. Findings must conform to the schema on every run. What should they change?",
+    "options": [
+      "Switch --output-format from json to stream-json so the findings arrive as a series of structured events.",
+      "Keep --output-format json and add a system-prompt rule telling Claude to answer only in the findings schema.",
+      "Add a tolerant parser step that extracts the first JSON object it can find anywhere in the result text.",
+      "Pass the findings schema with --json-schema and read the answer from the structured_output field."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "--output-format selects the shape of the CLI's own wrapper document (text, json, or stream-json), not the shape of the model's answer. The flag that constrains the answer is --json-schema, and the conforming output lands in the structured_output field of the result. Confusing the two names is the classic trap here.",
+    "whyWrong": [
+      "stream-json changes how the CLI wrapper is delivered, not whether the model's answer conforms to your schema.",
+      "A prompt rule is persuasion. It makes the right shape likely, never guaranteed, which the 'every run' constraint rules out.",
+      "A tolerant parser is repair logic you maintain forever, and it still fails when the answer contains no JSON at all.",
+      "Correct. --json-schema constrains the answer itself and structured_output is where the conforming result is delivered."
+    ],
+    "concept": "--output-format vs --json-schema",
+    "plainExample": "Choosing a padded envelope instead of a plain one changes how the letter arrives, not what the letter says. If you need the letter written on a specific form, you have to send the form, not pick a different envelope.",
+    "technicalExample": "Wrong: claude -p \"Review this PR\" --output-format json\n       # a JSON wrapper around a free-text answer\nRight: claude -p \"Review this PR\" --output-format json \\\n         --json-schema \"$(cat findings.schema.json)\"\n       # --json-schema takes the schema text itself, not a file path\n       # read .structured_output: it conforms to the schema",
+    "sources": [
+      "fde-enablement-hub-complete.md:4331",
+      "claude-certified-architect-principles.md:580",
+      "claude-certified-architect-principles.md:586",
+      "claude-certified-architect-principles.md:587",
+      "fde-enablement-hub-complete.md:5867"
+    ]
+  },
+  {
+    "id": "D4-012",
+    "domain": 4,
+    "task": "4.3",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "A developer tool labels each pull request with a risk_level string. Most outputs are 'low', 'medium', or 'high', but occasionally it returns 'moderate-high' or 'med', and the downstream dashboard crashes on any unknown value. A colleague proposes adding \"maxLength\": 6 to the field. The team wants a guarantee, not a likelihood. What should the architect do?",
+    "options": [
+      "Replace the free string with an enum of exactly 'low', 'medium', and 'high' in the schema.",
+      "Accept the colleague's proposal and add maxLength of 6 so long values like 'moderate-high' are rejected.",
+      "Add a field description saying the value must be one of low, medium, or high.",
+      "Add few-shot examples showing only the three allowed values in realistic pull requests."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "The allowed values are enumerable, and enum is in the enforced slice of JSON Schema, so an unknown value becomes impossible. Length and numeric bounds such as maxLength are not enforced: the SDKs strip them, fold them into descriptions, and validate client-side afterwards, so they become a soft hint plus a post-hoc check. Descriptions and examples make the right value likely, not guaranteed.",
+    "whyWrong": [
+      "Correct. enum is enforced and is far stronger than a length bound that degrades to a hint.",
+      "maxLength is not enforced by structured output. It is stripped and checked after the fact, and 'med' would pass it anyway.",
+      "A description is guidance the model usually follows. It does not meet the requirement for a guarantee.",
+      "Examples shape format and make the right output likely. Only schema enforcement makes the wrong output impossible."
+    ],
+    "concept": "enum vs unenforced bounds",
+    "plainExample": "If you want people to pick a T-shirt size, give them tick boxes for S, M, and L. A rule saying 'write no more than one letter' still lets someone write 'X', and a note saying 'please use S, M or L' is only a request.",
+    "technicalExample": "WRONG: \"risk_level\": {\"type\": \"string\", \"maxLength\": 6}\n       # stripped by the SDK, validated only after the response returns\nRIGHT: \"risk_level\": {\"type\": \"string\", \"enum\": [\"low\", \"medium\", \"high\"]}\n       # enforced: no other value can be emitted",
+    "sources": [
+      "fde-enablement-hub-complete.md:4333",
+      "claude-certified-architect-principles.md:406",
+      "claude-certified-architect-principles.md:407",
+      "claude-certified-architect-principles.md:408",
+      "claude-certified-architect-principles.md:387",
+      "fde-enablement-hub-complete.md:4620"
+    ]
+  },
+  {
+    "id": "D4-013",
+    "domain": 4,
+    "task": "4.4",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "A synthesis subagent emits finding objects through a forced tool call, and a validator checks that every cited source_id exists in the set of retrieved sources. On failure, the coordinator appends the prior attempt and replies 'Validation failed. Please try again.' Second attempts fail the same way most of the time, and retries now account for a large share of token spend. Which change best fixes this?",
+    "options": [
+      "Raise the retry cap so that more of the failing attempts eventually converge on citations that pass validation.",
+      "Drop the prior attempt from the conversation so that each retry starts from a clean and unbiased slate.",
+      "Return a tool_result with is_error true naming the finding, the bad source_id, the rule, and the next step.",
+      "Route every retry to a larger model, since repeated identical failures suggest the task exceeds its capability."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "A generic 'try again' gives the model nothing to act on, so a systematic failure repeats while billing again. Appending the prior attempt and returning the concrete error as a tool_result with is_error true turns the next attempt into a correction task on known-bad output. Naming the field, the observed value, the rule, and the next action is what makes the feedback actionable.",
+    "whyWrong": [
+      "More attempts multiply spend on a bet the telemetry already shows losing. The problem is feedback content, not attempt count.",
+      "Removing the prior attempt makes the retry a fresh guess with no knowledge of what was wrong, which is the identical-prompt anti-pattern.",
+      "Correct. Specific, structured error feedback in the tool-result channel is what makes a retry converge.",
+      "A larger model receiving the same generic message still learns nothing about which citation was invalid."
+    ],
+    "concept": "specific error feedback in retries",
+    "plainExample": "Handing an essay back with 'this is wrong, do it again' gets you the same essay. Circling the sentence, writing 'this quote isn't in any of your sources', and saying 'replace it or remove it' gets you a fixed essay.",
+    "technicalExample": "messages.append({\"role\": \"assistant\", \"content\": response.content})  # holds tool_use toolu_07\nmessages.append({\"role\": \"user\", \"content\": [{\n    \"type\": \"tool_result\", \"tool_use_id\": \"toolu_07\", \"is_error\": True,\n    \"content\": (\"Finding F-7 cites source_id S-19, which is not in the retrieved set \"\n                \"(S-1 to S-14). Cite a retrieved source that states this claim, \"\n                \"or drop F-7. Correct only F-7.\"),\n}]})\n# Wrong: \"content\": \"Validation failed. Please try again.\"",
+    "sources": [
+      "fde-enablement-hub-complete.md:4440",
+      "fde-enablement-hub-complete.md:4504",
+      "claude-certified-architect-principles.md:425",
+      "claude-certified-architect-principles.md:426",
+      "claude-certified-architect-principles.md:427",
+      "lesson_16.pdf p9",
+      "fde-enablement-hub-complete.md:4563"
+    ]
+  },
+  {
+    "id": "D4-014",
+    "domain": 4,
+    "task": "4.4",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "An invoice validator compares the stated total with the sum of the extracted line items, and on a mismatch tells the model 'total_amount does not equal the sum of line_items; fix it.' After this change the validation pass rate rose from 91 to 99 percent, but auditors now find invoices whose recorded total differs from the printed total, often with a discount line missing. What is the most likely root cause?",
+    "options": [
+      "The reconciliation tolerance is too strict, so the model is rounding totals to force a match.",
+      "The feedback never said the printed total is authoritative, so the model overwrote it with its own sum.",
+      "The schema has no pattern on total_amount, so malformed numbers slipped past validation.",
+      "The retry cap is too low, so the model stops before it has re-read the document closely enough to find the missing discount line."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "When feedback doesn't say which side of a discrepancy is authoritative, the easiest correction is to change the printed total to match the computed sum. That passes validation and destroys the evidence, turning a detected error into an undetectable one. The feedback should say the printed total stands and the model should re-check line items for a missed discount or credit.",
+    "whyWrong": [
+      "Rounding would produce small differences, not totals that match a sum missing a whole discount line.",
+      "Correct. Stating which value is authoritative is load-bearing: without it the retry 'fixes' the check by overwriting the evidence.",
+      "The numbers are well formed. A pattern checks shape and could not detect a total replaced by a computed sum.",
+      "The validator passes these records, so the loop is ending in 'success', not exhausting its attempts."
+    ],
+    "concept": "state which side is authoritative",
+    "plainExample": "If a receipt says 20 dollars but the items add up to 25, telling a clerk 'make these match' may just get the receipt total changed to 25. Telling them 'the printed total is correct, find the item you added wrong' gets you the missing coupon.",
+    "technicalExample": "WRONG: 'total_amount does not equal the sum of line_items; fix it.'\nRIGHT: 'total_amount = 4820.00, but line_items sum to 5120.00 (difference 300.00).\n        If the printed total really is 4820.00, keep it and check for a missed discount\n        or credit line. Do not change the total to match your sum.'",
+    "sources": [
+      "fde-enablement-hub-complete.md:4491",
+      "fde-enablement-hub-complete.md:4504",
+      "claude-certified-architect-principles.md:428",
+      "fde-enablement-hub-complete.md:8460"
+    ]
+  },
+  {
+    "id": "D4-015",
+    "domain": 4,
+    "task": "4.4",
+    "scenario": "customer-support",
+    "type": "single",
+    "stem": "A warranty-claims agent extracts purchase_date from customer emails, and validation requires a date. For about 6 percent of emails the retry loop fails on every attempt, even with specific feedback such as 'purchase_date is missing; re-read the email for the purchase date.' Review shows these emails simply never state a purchase date. What is the correct architectural response?",
+    "options": [
+      "Raise the retry cap for purchase_date failures, since specific feedback is already in place and should converge.",
+      "Strengthen the feedback to tell the model to estimate the purchase date from the order context.",
+      "Run three independent extraction instances on these emails and take the majority date.",
+      "Make purchase_date nullable but still required, stop retrying on null, and route those claims to a person."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "Retries correct formatting; they cannot make absent information appear. When the data is genuinely not in the document, the loop will never converge, so the schema must allow an honest null while keeping the field required, and those records go to human review or a follow-up question. Retrying further, inferring, or voting all produce either cost or fabrication.",
+    "whyWrong": [
+      "Specific feedback fixes format errors. It cannot make a missing date exist, so extra attempts are pure cost.",
+      "Asking the model to estimate is asking it to fabricate. A made-up date then passes validation and corrupts the claim.",
+      "Instances that each have to produce a date will each invent one, and a majority vote can adopt the invention as consensus.",
+      "Correct. Required plus nullable gives an honest null, and non-converging absent-data failures stop retrying and route to a person."
+    ],
+    "concept": "absent data: stop retrying, allow null",
+    "plainExample": "You can ask someone to re-read a letter for the sender's phone number as many times as you like. If the letter doesn't contain one, they will either keep failing or start making numbers up. The right move is to mark it 'not given' and call the sender.",
+    "technicalExample": "\"purchase_date\": {\"type\": [\"string\", \"null\"]}   # still in required\nvalidate(): if purchase_date is None and 'purchase_date' in fields_not_found:\n    route_to_human(claim, reason='no purchase date stated')  # no retry\nRetry only format errors, e.g. '01/15/2024 must be YYYY-MM-DD'",
+    "sources": [
+      "lesson_16.pdf p10",
+      "lesson_16.pdf p13",
+      "lesson_16.pdf p14",
+      "lesson_16.pdf p15",
+      "fde-enablement-hub-complete.md:4506",
+      "claude-certified-architect-principles.md:409"
+    ]
+  },
+  {
+    "id": "D4-016",
+    "domain": 4,
+    "task": "4.4",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "An accounts-payable extraction pipeline has schema enforcement plus internal checks: totals reconcile with line items, and fields_not_found matches the null fields. Audits still find records that are fully self-consistent but were extracted from a delivery note or a quote rather than an invoice, and some name suppliers the company has never used. Which addition catches this class of error?",
+    "options": [
+      "Check each extraction against your own reference data, such as the vendor master and issued purchase orders.",
+      "Tighten the schema with additionalProperties false on every object and stricter patterns on every field.",
+      "Add more internal cross-field checks, such as date plausibility and a second pass over line-item arithmetic.",
+      "Run two independent extraction instances and write only the records where both instances agree."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "Validation has three tiers: structural (enforcement), internal semantic (does the record agree with itself), and external semantic (does it agree with the world). A coherent extraction of the wrong document passes the first two by construction. Only lookups against your own reference data, the vendor master and the purchase-order system, catch it.",
+    "whyWrong": [
+      "Correct. External, tier-three checks are the only tier that catches a self-consistent extraction of the wrong document or an unknown supplier.",
+      "Schemas enforce shape, never truth. These records are already well formed.",
+      "The records already pass internal checks. More self-consistency checks cannot tell you the document was a quote.",
+      "Both instances read the same delivery note and extract the same coherent values, so agreement adds cost without catching the error."
+    ],
+    "concept": "tier-three external validation",
+    "plainExample": "A cheque can be neatly filled in, signed, and add up perfectly, and still be drawn on an account that doesn't exist. Only calling the bank tells you that; staring harder at the cheque never will.",
+    "technicalExample": "Tier 1 (structural): schema enforcement\nTier 2 (internal): sum(line_items) == total_amount; fields_not_found matches nulls\nTier 3 (external): supplier in VENDOR_MASTER? po_number in issued_POs? doc_type == invoice?\n   -> fail: 'Header DELIVERY NOTE is not a supplier in the vendor master. Do not guess a vendor.'",
+    "sources": [
+      "fde-enablement-hub-complete.md:4436",
+      "fde-enablement-hub-complete.md:4442",
+      "claude-certified-architect-principles.md:419",
+      "claude-certified-architect-principles.md:421",
+      "fde-enablement-hub-complete.md:8426",
+      "claude-certified-architect-principles.md:21"
+    ]
+  },
+  {
+    "id": "D4-017",
+    "domain": 4,
+    "task": "4.5",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "Every pull request triggers an AI review that must pass before merge, and reviews currently finish in a few minutes. Finance proposes moving these reviews to the Message Batches API for the 50 percent discount, pointing out that most batches finish within an hour. The team also runs a nightly full-repository security audit that nobody waits on. What should the architect recommend?",
+    "options": [
+      "Move pull-request reviews to batch, since typical turnaround fits easily within the team's working day.",
+      "Move pull-request reviews to batch but poll every minute so finished results are picked up quickly.",
+      "Keep pre-merge reviews synchronous, since batch has no guaranteed delivery time, and move the nightly audit to batch.",
+      "Keep both workloads synchronous, since batch processing produces lower-quality reviews than the standard API."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "Latency tolerance is the deciding axis. A pre-merge check blocks a developer, and batch offers no delivery guarantee within its 24-hour window, so it could block merges indefinitely. The nightly audit is the opposite case: nothing waits on it, so it earns the discount at no cost to anyone. When 'blocking workflow' meets 'batch', the answer is about timing, not quality.",
+    "whyWrong": [
+      "Designing to the typical case ignores the worst case. A blocking check needs a delivery guarantee batch does not give.",
+      "Polling tells you sooner that a batch finished; it does not make the batch process sooner.",
+      "Correct. Standard API for the blocking pre-merge path, batch for the non-blocking nightly audit.",
+      "Batch uses the same model and parameters and gives the same output quality. The disqualifier is timing, not quality."
+    ],
+    "concept": "batch only when nothing is waiting",
+    "plainExample": "Posting letters in the evening is cheaper than sending each one by courier, but you don't post the key your colleague is standing at the door waiting for. You courier the key and post the monthly newsletter.",
+    "technicalExample": "Is a user or pipeline blocked waiting on this result?\n  YES -> standard Messages API   (pre-merge PR review)\n  NO  -> single-turn?  YES -> Message Batches API (nightly security audit, 50% off)\nBatch: up to 24h, no delivery guarantee -> never behind a merge gate",
+    "sources": [
+      "lesson_17.pdf p3",
+      "lesson_17.pdf p4",
+      "lesson_17.pdf p5",
+      "lesson_17.pdf p8",
+      "lesson_17.pdf p12",
+      "fde-enablement-hub-complete.md:4516",
+      "fde-enablement-hub-complete.md:5823"
+    ]
+  },
+  {
+    "id": "D4-018",
+    "domain": 4,
+    "task": "4.5",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "A nightly job has an agent explore each service repository through repeated file-read and search tool calls, deciding what to open next from what it has already read, and then write an architecture summary. Nobody reads the summaries until the next morning. Finance wants to move the job to the Message Batches API for the discount. How should the architect assess this?",
+    "options": [
+      "Move it to batch as it is, because nothing waits on any individual result overnight and the 50 percent discount applies to every request.",
+      "Keep it on the standard API, because each run is a multi-turn tool loop that a batch request cannot service.",
+      "Move it to batch with streaming enabled so tool results can be fed back while the response is generated.",
+      "Split it into many small batches so each tool round trip completes and returns sooner."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "Latency alone would favour batch here, which is what makes this tempting. But a batch request is a single turn: if the model asks to call a tool, nobody is listening to run it and send the result back, so an agentic exploration loop cannot run inside it. The second question in the batch decision is whether the task needs multi-turn tool calling, and here it does.",
+    "whyWrong": [
+      "Latency tolerance is necessary but not sufficient. The discount is irrelevant if the job cannot run: it depends on a back-and-forth tool loop that batch cannot host.",
+      "Correct. Multi-turn tool calling disqualifies batch regardless of latency tolerance.",
+      "Streaming is not available inside batch requests, and it would not supply the missing tool-execution turn anyway.",
+      "Splitting does not add a conversation turn, and it multiplies polling and reconciliation work for no benefit."
+    ],
+    "concept": "batch is single-turn only",
+    "plainExample": "Dropping off a list of questions at a catering company works when each question can be answered on its own. It doesn't work for a conversation where each answer decides the next question, because nobody is there to reply.",
+    "technicalExample": "Batch decision:\n1. Is anyone blocked waiting?        NO  (overnight)\n2. Does the task need multi-turn tool calling?  YES (Read -> Grep -> Read ...)\n   -> standard API\nBatch fits: one request, one response (e.g. forced extraction tool, no follow-up turn)",
+    "sources": [
+      "lesson_17.pdf p4",
+      "lesson_17.pdf p5",
+      "lesson_17.pdf p7",
+      "lesson_17.pdf p14",
+      "fde-enablement-hub-complete.md:4520",
+      "claude-certified-architect-principles.md:439"
+    ]
+  },
+  {
+    "id": "D4-019",
+    "domain": 4,
+    "task": "4.5",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "A nightly job extracts fields from about 20,000 invoices through the Message Batches API. The loader waits for processing_status to reach ended, then writes every result it receives to the warehouse. Analysts report that 1 to 2 percent of invoices are missing after heavy nights, and nothing in the logs shows an error. What is the best fix?",
+    "options": [
+      "Split the job into many smaller batches so that any single failure affects fewer invoices, and retry any smaller batch that reports problems.",
+      "Poll the batch status more frequently so results are collected before any of them can be lost.",
+      "Write a placeholder row with every field set to null for each invoice that is missing from the results.",
+      "Switch on each result type: load succeeded, re-queue errored or expired, and alarm on the failure rates."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "ended means every request reached a terminal state, not that every request succeeded; errored, canceled, and expired are terminal too. A loader that treats ended as universal success silently drops that slice, which is why nothing shows in the logs. Handling all four result types, re-queueing the recoverable ones, and alarming on the rates turns missing data into a visible signal.",
+    "whyWrong": [
+      "Failure is already per request, not per batch, so splitting buys nothing, and re-running whole batches reprocesses successes while multiplying polling and reconciliation joins.",
+      "Polling frequency changes when you learn the batch ended, not which results succeeded.",
+      "Placeholder nulls hide the failure as if the invoices were blank, and the invoices are never actually processed.",
+      "Correct. A switch over succeeded, errored, canceled, and expired, joined on custom_id, is the correct batch result handler."
+    ],
+    "concept": "ended is not success",
+    "plainExample": "A delivery van returning to the depot means every parcel has been dealt with, not that every parcel was delivered. Some came back undeliverable, and if nobody checks the returns shelf, those customers just never get their parcels.",
+    "technicalExample": "for r in results(batch_id):          # unordered: key by r.custom_id\n    match r.result.type:\n        case 'succeeded': validate_then_load(r.custom_id, r.result.message)\n        case 'errored' | 'expired': requeue(r.custom_id)\n        case 'canceled': log_and_decide(r.custom_id)\nalarm_if(rate('errored') > x or rate('expired') > y)",
+    "sources": [
+      "fde-enablement-hub-complete.md:4518",
+      "fde-enablement-hub-complete.md:4520",
+      "fde-enablement-hub-complete.md:4577",
+      "claude-certified-architect-principles.md:437",
+      "claude-certified-architect-principles.md:438",
+      "claude-certified-architect-principles.md:440",
+      "fde-enablement-hub-complete.md:8562"
+    ]
+  },
+  {
+    "id": "D4-020",
+    "domain": 4,
+    "task": "4.5",
+    "scenario": "customer-support",
+    "type": "multi",
+    "stem": "A support organisation wants to cut model costs by moving suitable work to the Message Batches API. Some workloads face customers directly, some feed internal reports, and one uses an agent that looks up orders before deciding. Which two workloads are good fits for batch processing? (Select TWO.)",
+    "options": [
+      "Drafting replies in live chat while the customer waits in the chat window.",
+      "Overnight re-tagging of last quarter's closed tickets against a new taxonomy.",
+      "Weekly quality scoring of chat transcripts, consumed by a Monday-morning report.",
+      "Routing each inbound ticket to the right queue under a two-minute service target.",
+      "A refund agent that calls order-lookup tools over several turns before deciding."
+    ],
+    "correct": [
+      1,
+      2
+    ],
+    "explanation": "Batch fits when nothing waits on an individual result and each request is a single turn. The overnight re-tagging backfill and the weekly scoring job meet both conditions and earn the discount. Live chat and two-minute routing have someone waiting, and the multi-turn refund agent needs a tool loop batch cannot run.",
+    "whyWrong": [
+      "A customer is waiting in real time, and batch can take up to 24 hours with no delivery guarantee.",
+      "Correct. A one-time backfill with no one waiting on any single ticket is the textbook batch case.",
+      "Correct. The report is consumed days later, and each transcript is scored independently in one turn.",
+      "A two-minute target is far tighter than the batch worst case, so the service level would be missed.",
+      "Multi-turn tool calling cannot run inside a batch request, regardless of latency tolerance."
+    ],
+    "concept": "batch fit: latency tolerance + single turn",
+    "plainExample": "You'd happily send the office laundry to a cheap overnight service, but not the shirt you need for a meeting in ten minutes. And you can't send it anything that needs you to answer questions halfway through.",
+    "technicalExample": "Workload                      Waiting?  Multi-turn?  -> API\nLive chat drafting            yes       no           standard\nOvernight re-tagging          no        no           batch\nWeekly transcript QA          no        no           batch\n2-minute routing              yes       no           standard\nRefund agent with lookups     yes/no    yes          standard",
+    "sources": [
+      "fde-enablement-hub-complete.md:4516",
+      "fde-enablement-hub-complete.md:4530",
+      "lesson_17.pdf p5",
+      "lesson_17.pdf p7",
+      "lesson_17.pdf p13",
+      "fde-enablement-hub-complete.md:5822"
+    ]
+  },
+  {
+    "id": "D4-021",
+    "domain": 4,
+    "task": "4.6",
+    "scenario": "code-generation",
+    "type": "single",
+    "stem": "A developer uses Claude Code to implement a payment-retry feature, then, in the same session, asks it to 'review your changes carefully for bugs.' The review approves the change, and a race condition later surfaces in staging. The team wants reviews that reliably catch this kind of defect before merge. Which change best addresses this?",
+    "options": [
+      "Have a separate instance, with no access to the writing session's history, review the diff.",
+      "Ask the same session to review a second time, this time 'as a skeptical senior engineer.'",
+      "Extend the same session's review prompt with 'double-check every line thoroughly before approving.'",
+      "Raise the writing session's reasoning effort so it thinks longer before it approves its own change."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "An instance reviewing its own output keeps the conversation history and the reasoning it used to justify its choices, so it is unlikely to question them. A separate instance that sees only the output approaches the code with fresh eyes. The course signal is explicit: improving review quality means independent instances, not prompting the same instance to review more carefully.",
+    "whyWrong": [
+      "Correct. An independent reviewer without the writer's context removes self-review bias.",
+      "A persona change leaves the same history and justifications in context, so the bias remains.",
+      "A 'be thorough' instruction adds no new perspective. The same session still reviews choices it already rationalised.",
+      "More reasoning inside the same context still starts from the writer's own justifications, which is the source of the blind spot."
+    ],
+    "concept": "independent reviewer vs self-review",
+    "plainExample": "People are bad at proofreading their own writing because they read what they meant to write. A colleague who never saw your draft catches the missing word on the first pass.",
+    "technicalExample": "WRONG: Session A writes code -> Session A: 'review your changes carefully'\nRIGHT: Session A writes code -> diff file -> Session B (fresh context, reviewer prompt only)\n       Session B receives: the diff + review criteria. Not: A's history or reasoning.",
+    "sources": [
+      "lesson_17.pdf p9",
+      "lesson_17.pdf p10",
+      "lesson_17.pdf p12",
+      "lesson_17.pdf p14"
+    ]
+  },
+  {
+    "id": "D4-022",
+    "domain": 4,
+    "task": "4.6",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A single review instance reads entire 25-file pull requests in one pass. Its feedback is shallow, and it misses bugs where a changed function signature in one file breaks callers in another. Reviews run pre-merge and must finish within minutes. Which architecture best fits?",
+    "options": [
+      "Keep one instance and add 'be thorough and check the cross-file impact of every change' to its review prompt.",
+      "Run per-file review passes in parallel, then an integration pass over their findings for cross-file issues.",
+      "Run five instances over the whole pull request and report only the issues a majority find, to filter out noise and false alarms.",
+      "Move the review to the Message Batches API so that each pull request can get a longer and deeper review."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "Per-file passes give depth because each instance focuses on one file with clean context, and running them in parallel keeps the pre-merge review within minutes. A separate integration pass over their findings supplies breadth, catching dependency and signature mismatches across files. Vague instructions do not fix shallow feedback, and batch cannot sit behind a merge gate.",
+    "whyWrong": [
+      "A thoroughness instruction does not change what one overloaded pass can attend to. The course verdict on this exact move is no.",
+      "Correct. Depth from parallel per-file passes, then breadth from an integration pass, within a blocking time budget.",
+      "Majority voting over whole-PR passes costs five times as much, keeps the same shallow approach, and discards the disagreements that would localise real issues. Noise is a criteria problem.",
+      "Batch has no delivery guarantee and cannot back a pre-merge check, and it does not make a review deeper."
+    ],
+    "concept": "multi-pass: per-file depth + integration breadth",
+    "plainExample": "One inspector walking through a whole house in ten minutes notices the paint. Send one inspector to each room at the same time, then have a lead walk the house checking how the rooms connect, and you find the pipe that runs from the bathroom into the kitchen ceiling.",
+    "technicalExample": "PR opened -> fan out (parallel, fresh context each):\n  review(auth.ts)  review(user.ts)  review(api.ts) ...   -> findings[]\n-> integration pass(findings[], changed signatures) -> cross-file issues\n-> results in minutes (standard API, blocking)",
+    "sources": [
+      "lesson_17.pdf p11",
+      "lesson_17.pdf p12",
+      "lesson_17.pdf p13",
+      "lesson_17.pdf p14",
+      "fde-enablement-hub-complete.md:4546"
+    ]
+  },
+  {
+    "id": "D4-023",
+    "domain": 4,
+    "task": "4.6",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "A claims-document pipeline processes 300,000 documents a month with a single enforced-schema pass. About 5 percent of documents are hard: scans, handwriting, and unusual layouts. Leadership will fund at most about 1.5 times the current cost for additional review. Which trigger should decide which documents go to a verification pass?",
+    "options": [
+      "A self-reported 0 to 100 confidence score from the extraction call, escalating any document scored below 80.",
+      "A random 5 percent sample of each day's documents, chosen to match the known rate of hard documents so review effort tracks real difficulty.",
+      "Validation failures, a confidence enum tied to handwriting or rotation, and scan quality, plus audits of unescalated ones.",
+      "Disagreement between three independent extraction instances that are run on every document in the corpus."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "Tiered escalation (one cheap pass, verify only the flagged subset) lands near 1.2 to 1.5 times cost, inside the budget. The trigger should come from signals that need no second model call: tier-two and tier-three validation failures, a confidence field tied to observable document properties, and properties known before the call. Because the residual risk is triage recall, periodically sampling what was not escalated confirms the trigger is not missing a class of hard document.",
+    "whyWrong": [
+      "A free-floating self-reported score is under the same fabrication pressure as the data and reads high on well-formatted wrong answers.",
+      "Matching the rate is not matching the documents. Random sampling does not correlate with difficulty, so it verifies mostly clean documents and lets most hard ones through.",
+      "Correct. Cheap, observable signals drive the escalation, and auditing the unescalated population protects triage recall.",
+      "Three instances on every document costs about three times the current spend, well over the 1.5x ceiling."
+    ],
+    "concept": "tiered escalation trigger design",
+    "plainExample": "An airport doesn't hand-search every bag, and it doesn't pick bags at random either. It searches the ones the scanner flags or that look unusual, and every so often checks a few unflagged bags to make sure the scanner isn't missing something.",
+    "technicalExample": "escalate if any of:\n  tier2/tier3 validation errors\n  extraction_confidence == 'low'   # enum: low if handwritten, rotated, illegible, unknown layout\n  pre-call: scan_quality < threshold or layout not recognised\nelse: post after one pass;  weekly: sample N unescalated docs for audit",
+    "sources": [
+      "fde-enablement-hub-complete.md:4553",
+      "fde-enablement-hub-complete.md:4555",
+      "claude-certified-architect-principles.md:449",
+      "claude-certified-architect-principles.md:450",
+      "claude-certified-architect-principles.md:451",
+      "claude-certified-architect-principles.md:452",
+      "fde-enablement-hub-complete.md:8572"
+    ]
+  },
+  {
+    "id": "D4-024",
+    "domain": 4,
+    "task": "4.6",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "A research system classifies each source as primary or secondary by running three independent instances, and sends only disagreements to a human. An audit finds that a large share of unanimous 'primary' verdicts are wrong: news articles that re-report a company press release are consistently labeled primary. What should the architect change?",
+    "options": [
+      "Increase to five independent instances so that a wrong majority becomes statistically less likely.",
+      "Add a verification pass that re-applies the same primary-source definition to every unanimous verdict and overturns any it cannot confirm.",
+      "Lower the temperature of all three instances so that their verdicts agree with one another even more consistently.",
+      "Rewrite the primary-source criterion with explicit tests, an exclusion for re-reported press material, and near misses."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "Multi-instance agreement measures stability, not correctness. Every instance reads the same flawed definition, so they converge on the same wrong answer, and the unanimity reads as confidence. No review architecture fixes a bad criterion. The fix belongs upstream: explicit tests, an exclusion naming the common near miss, and examples on both sides of the boundary.",
+    "whyWrong": [
+      "More instances sharing the same flawed criterion just agree more loudly on the same wrong label.",
+      "A pass applying the same flawed definition will confirm the same wrong labels. Multi-pass review misses systematic misreadings that every pass shares.",
+      "Lower temperature increases agreement on the wrong answer, which makes the misleading confidence signal stronger.",
+      "Correct. The error comes from the criterion, so the repair is in the criterion, not in the review topology."
+    ],
+    "concept": "unanimity is not correctness",
+    "plainExample": "If three judges are all handed a rulebook with the same mistake in it, they will all make the same wrong call and agree perfectly. Adding a fourth judge with the same rulebook doesn't help. You have to fix the rulebook.",
+    "technicalExample": "PRIMARY only if ALL hold:\n1. Author or publisher is the originating party (the organisation, lab, or official record)\n2. Content is not a restatement of another document\nDo NOT classify as primary: news articles re-reporting a press release, summaries of filings\n\n<examples>\n  <example><source>A press release issued by the company itself</source><label>primary</label></example>\n  <example><source>A news article quoting that press release</source><label>secondary</label></example>\n</examples>",
+    "sources": [
+      "fde-enablement-hub-complete.md:4551",
+      "fde-enablement-hub-complete.md:4559",
+      "claude-certified-architect-principles.md:448",
+      "claude-certified-architect-principles.md:453",
+      "fde-enablement-hub-complete.md:4701"
+    ]
+  }
+]

@@ -1,0 +1,844 @@
+[
+ {
+  "id": "D3-001",
+  "domain": 3,
+  "task": "3.1",
+  "scenario": "customer-support",
+  "type": "single",
+  "stem": "Your team maintains the repository for a Customer Support Resolution Agent. The lead engineer's Claude Code sessions consistently follow the team's conventions for the refund tool's error categories, but a contractor who cloned the repository last week finds Claude ignores them entirely. The conventions live in the lead's ~/.claude/CLAUDE.md. The fix must reach every contributor and the CI job without any per-machine setup. Which change best meets that constraint?",
+  "options": [
+   "Ask the contractor to copy the lead's file into their own ~/.claude/CLAUDE.md and keep the two copies in sync.",
+   "Move the conventions into a CLAUDE.local.md at the repository root so they sit beside the code.",
+   "Move the conventions into the project CLAUDE.md (./CLAUDE.md or ./.claude/CLAUDE.md) and commit it.",
+   "Add an @import in the lead's ~/.claude/CLAUDE.md that points at a conventions file inside the repository."
+  ],
+  "correct": [
+   2
+  ],
+  "explanation": "User-scope CLAUDE.md lives in the home directory and is never pushed, so it works only for its owner; this is the classic 'teammate is not getting the conventions' bug, and the first thing to check is the config location. Project scope is the only option that version control distributes to every clone and every CI checkout. The 'no per-machine setup' constraint rules out anything that depends on each person's home directory or on a gitignored file.",
+  "whyWrong": [
+   "Manual per-machine copying fails the stated constraint, drifts as the conventions change, and never reaches the CI runner.",
+   "CLAUDE.local.md is the personal, gitignored scope; it is never committed, so neither the contractor nor CI receives it.",
+   "Correct. Project-scope CLAUDE.md is committed with the repository, so every teammate and the pipeline load the same conventions on pull.",
+   "The import sits in a user-scope file that only the lead has; anyone without that file never follows the import."
+  ],
+  "concept": "user vs project CLAUDE.md scope",
+  "plainExample": "It is like pinning the house rules on your own bedroom door instead of the fridge. You see them every day, so they feel shared, but your new flatmate never walks into your room and has no idea they exist. Move the note to the fridge, where everyone looks, and the problem disappears.",
+  "technicalExample": "Before (only the lead sees it):\n  ~/.claude/CLAUDE.md        <- user scope, never committed\nAfter (everyone sees it):\n  repo/.claude/CLAUDE.md     <- project scope\n  git add .claude/CLAUDE.md && git commit -m \"Share refund-tool conventions\"\n# Every clone and CI checkout now loads it at session start\n# Debug a teammate's session with /memory: is the file listed?",
+  "sources": [
+   "all-transcripts.md:73",
+   "all-transcripts.md:77",
+   "lesson_10.pdf p7",
+   "lesson_10.pdf p14",
+   "fde-enablement-hub-complete.md:3543",
+   "fde-enablement-hub-complete.md:3606"
+  ]
+ },
+ {
+  "id": "D3-002",
+  "domain": 3,
+  "task": "3.1",
+  "scenario": "code-generation",
+  "type": "single",
+  "stem": "A developer's ~/.claude/CLAUDE.md says 'Write commit messages as a single imperative sentence.' The repository's committed CLAUDE.md says 'Use Conventional Commits: type(scope): summary.' Claude follows the project format on some commits and the personal format on others. The developer wants the project rule to hold reliably in this repository without changing how their other repositories behave. Which change is best?",
+  "options": [
+   "Delete the commit-format line from the user file, keeping user scope to preferences a project will not contradict.",
+   "Move the project rule into ./.claude/CLAUDE.md, which loads after ./CLAUDE.md and therefore overrides the user file.",
+   "Restate the project rule in capitals with a note saying that project instructions always override user instructions.",
+   "Copy the project rule into a CLAUDE.local.md so it appears twice in context and outweighs the user instruction."
+  ],
+  "correct": [
+   0
+  ],
+  "explanation": "All CLAUDE.md scopes are concatenated into context rather than overriding each other, so a direct contradiction resolves arbitrarily from turn to turn. The fix is to remove the conflict, not to out-rank it, and a commit-message format is a project decision that user scope should not assert. If the format must hold every time, a hook enforces it; prose never does.",
+  "whyWrong": [
+   "Correct. Scopes are additive, so deleting the conflicting line is the only reliable fix, and commit format belongs to the project, not to user scope.",
+   "./CLAUDE.md and ./.claude/CLAUDE.md are equivalent project locations, and load order decides what is read first, never what wins.",
+   "Emphasis does not create precedence; both instructions remain in context and Claude still reconciles them by judgment.",
+   "Repetition is not a weighting rule; the contradiction remains, context cost rises, and the local file is personal anyway."
+  ],
+  "concept": "CLAUDE.md scopes are additive, not overriding",
+  "plainExample": "Picture two notes on the same fridge: yours says 'buy oat milk', the household's says 'buy dairy milk'. Whoever shops has to guess, and they guess differently each week. Writing the household note bigger does not settle it; taking your note down does.",
+  "technicalExample": "Both files land in context together:\n  ~/.claude/CLAUDE.md : \"Commit messages: one imperative sentence\"\n  ./CLAUDE.md         : \"Use Conventional Commits: type(scope): summary\"\n-> no precedence rule; Claude picks by judgment each turn\nFix: delete the user-scope line (audit with /memory and /context)\nMust always hold? Enforce with a hook, not with prose.",
+  "sources": [
+   "fde-enablement-hub-complete.md:3567",
+   "fde-enablement-hub-complete.md:3814",
+   "claude-certified-architect-principles.md:268",
+   "claude-certified-architect-principles.md:269",
+   "claude-certified-architect-principles.md:270"
+  ]
+ },
+ {
+  "id": "D3-003",
+  "domain": 3,
+  "task": "3.1",
+  "scenario": "developer-productivity",
+  "type": "single",
+  "stem": "A platform team's root CLAUDE.md holds API patterns, testing conventions, and deployment rules, and Claude genuinely needs all of it in every session. The backend and QA teams keep colliding in merge conflicts when they edit the same file. They want each team to own its section in a separate file, and they accept that the total context loaded per session will stay the same. Which approach best fits?",
+  "options": [
+   "Move each section into a .claude/rules/ file with paths frontmatter so each team edits its own rule file.",
+   "Split the sections into topic files and reference each one from the root CLAUDE.md with an @path import.",
+   "Move each section into a CLAUDE.md inside the directory where the owning team works most often.",
+   "Convert each section into a project skill so it loads on demand when Claude judges it relevant."
+  ],
+  "correct": [
+   1
+  ],
+  "explanation": "@import organizes but does not economize: imported files expand into context at launch, so the cost equals inlining. That is exactly what this team wants, because the content must be present in every session and the goal is ownership and fewer merge conflicts, not a smaller footprint. Every other option changes when the content loads, which breaks the 'needed in every session' constraint.",
+  "whyWrong": [
+   "Path-scoped rules make loading conditional on matching files, so guidance needed in every session would be missing whenever no matching file is read.",
+   "Correct. @import is the modularity mechanism: separate files, clean ownership, fewer merge conflicts, and the same launch-time loading as inline text.",
+   "Directory CLAUDE.md files load on demand when Claude reads files there, so repository-wide guidance would be absent from sessions working elsewhere.",
+   "Skills load on demand, so guidance that every session needs would be absent until someone invokes it or Claude judges it relevant."
+  ],
+  "concept": "@import for modularity, not conditional loading",
+  "plainExample": "Think of a staff handbook where each department writes its own chapter in its own document, and the front page simply says 'testing: see chapter 3'. Everyone still gets the whole handbook on day one; the only change is that two departments no longer fight over the same page.",
+  "technicalExample": "# ./CLAUDE.md (root, always loaded)\nRun commands from the package directory.\nAPI patterns: @docs/api-patterns.md\nTesting conventions: @docs/testing-conventions.md\nDeployment rules: @docs/deployment.md\n# Imports expand at launch (max four hops); relative paths resolve from the importing file",
+  "sources": [
+   "all-transcripts.md:83",
+   "all-transcripts.md:87",
+   "all-transcripts.md:89",
+   "fde-enablement-hub-complete.md:3593",
+   "claude-certified-architect-principles.md:273",
+   "lesson_10.pdf p14"
+  ]
+ },
+ {
+  "id": "D3-004",
+  "domain": 3,
+  "task": "3.1",
+  "scenario": "multi-agent-research",
+  "type": "single",
+  "stem": "A Multi-Agent Research System lives in a monorepo with packages/coordinator, packages/web-search-agent, and packages/synthesis-agent. Each package has a different owning team that wants to keep its conventions in a file right next to its own code and review changes to it in its own pull requests. When an engineer works only in the coordinator, the web-search conventions should not be in context. Which configuration best fits these constraints?",
+  "options": [
+   "Put all three sections in the root CLAUDE.md under headings such as 'For packages/web-search-agent/:' so each applies only to its path.",
+   "Keep a short root CLAUDE.md and pull each package's conventions into it with an @import per package.",
+   "Create .claude/rules/ files at the repository root with a paths glob per package, maintained by a central team.",
+   "Add a CLAUDE.md inside each package directory, owned and edited by that package's team."
+  ],
+  "correct": [
+   3
+  ],
+  "explanation": "Per-directory CLAUDE.md files and path-scoped rules both give conditional loading, so the deciding constraint is ownership. The sources recommend a per-directory file when each package owner maintains a file beside the code they own, and a central path-scoped rule when a convention spans scattered paths. Root-level headings and imports fail the loading requirement outright.",
+  "whyWrong": [
+   "CLAUDE.md has no path-prefix scoping; the headings are plain text, so all three sets load in every session.",
+   "Imports expand at launch, so every package's conventions load in every session, including coordinator-only work.",
+   "This loads conditionally, but the files sit centrally at the root, which misses the requirement that owners keep the file beside their own code.",
+   "Correct. A per-directory CLAUDE.md sits with the code its team owns and loads on demand when Claude reads files in that package."
+  ],
+  "concept": "directory CLAUDE.md vs central path-scoped rule",
+  "plainExample": "Picture an office building where each department tapes its own notice inside its own door. People read it only when they walk into that department, and each department updates its sign without asking reception. A single lobby board would either be read by everyone or need a central keeper.",
+  "technicalExample": "monorepo/\n  CLAUDE.md                            # repo-wide facts only\n  packages/coordinator/CLAUDE.md       # owned by the coordinator team\n  packages/web-search-agent/CLAUDE.md  # owned by the web-search team\n  packages/synthesis-agent/CLAUDE.md\n# Subdirectory files load on demand, the first time Claude reads a file there\n# Wrong: '## For packages/web-search-agent/' in the root file (no path prefixes exist)",
+  "sources": [
+   "fde-enablement-hub-complete.md:3543",
+   "fde-enablement-hub-complete.md:3697",
+   "claude-certified-architect-principles.md:272",
+   "claude-certified-architect-principles.md:292",
+   "all-transcripts.md:65",
+   "all-transcripts.md:139"
+  ]
+ },
+ {
+  "id": "D3-005",
+  "domain": 3,
+  "task": "3.1",
+  "scenario": "code-generation",
+  "type": "single",
+  "stem": "The project CLAUDE.md for a code-generation repository contains 'Never commit directly to main.' Claude complies early in sessions, but in long sessions it has twice committed to main anyway. The release manager says this rule must hold every single time, for every contributor. Which change best satisfies that requirement?",
+  "options": [
+   "Move the rule to the first line of the project CLAUDE.md, in capitals, prefixed with 'CRITICAL'.",
+   "Enforce it with a PreToolUse hook that denies git commit and git push when the current branch is main.",
+   "Ask IT to place the rule in the managed policy CLAUDE.md so no individual can exclude or override it.",
+   "Move the rule into a .claude/rules/ file whose paths glob matches every file, so it reloads on each file read."
+  ],
+  "correct": [
+   1
+  ],
+  "explanation": "Every CLAUDE.md scope, managed policy included, and every rule file is advisory context; none of them can block an action. When a stem says 'must hold every time', apply the enforcement ladder: withhold the capability or deny it in code, and a PreToolUse hook is the deterministic deny. Rewording, relocating, or reloading the prose only makes violations rarer.",
+  "whyWrong": [
+   "Emphasis leaves the rule as advisory prose competing with the whole context window; it can still be missed or summarized away.",
+   "Correct. A hook runs as code at a fixed moment and can refuse the action, which is enforcement rather than advice.",
+   "Managed policy cannot be excluded, but it is still CLAUDE.md content: advisory context Claude weighs, not a gate that blocks a command.",
+   "A rule file is still advisory text; reloading it on file reads does not stop a commit, and a rule is never a gate."
+  ],
+  "concept": "CLAUDE.md is advisory; hooks enforce",
+  "plainExample": "A sign on the door saying 'please lock up' works most nights, but not on the night someone is tired. If the door must be locked every time, you fit a lock that closes itself. A bigger sign, or one signed by the landlord, is still just a sign.",
+  "technicalExample": "Advisory (can be missed):\n  CLAUDE.md: \"Never commit directly to main\"\nEnforced (cannot be argued with):\n  .claude/settings.json -> hooks.PreToolUse, matcher \"Bash\"\n  script: if branch is main and command starts with git commit / git push -> deny\n# Ladder: withhold the tool, then deny in PreToolUse, then validate a record",
+  "sources": [
+   "fde-enablement-hub-complete.md:3527",
+   "fde-enablement-hub-complete.md:3605",
+   "fde-enablement-hub-complete.md:3595",
+   "claude-certified-architect-principles.md:15",
+   "claude-certified-architect-principles.md:278"
+  ]
+ },
+ {
+  "id": "D3-006",
+  "domain": 3,
+  "task": "3.2",
+  "scenario": "developer-productivity",
+  "type": "single",
+  "stem": "An engineer built a /security-audit command in ~/.claude/commands/ that scans dependencies and opens tickets for findings. Teammates who try it get 'command not found'. The team wants it available to every contributor, reviewed in pull requests like other code, and never triggered by Claude on its own initiative, because it creates tickets. Which setup best meets all three requirements?",
+  "options": [
+   "Keep it at ~/.claude/skills/security-audit/SKILL.md with disable-model-invocation: true and share the file on the team wiki.",
+   "Commit it to .claude/skills/security-audit/SKILL.md with user-invocable: false so only deliberate runs can happen.",
+   "Add the audit procedure to the project CLAUDE.md with an instruction to run it only when a user explicitly asks.",
+   "Commit it to .claude/skills/security-audit/SKILL.md with disable-model-invocation: true set in the frontmatter."
+  ],
+  "correct": [
+   3
+  ],
+  "explanation": "Scope is distribution: anything under ~/.claude is personal, while the project's .claude directory travels with the repository and is reviewed like code. Because the procedure has side effects, disable-model-invocation: true is the right control, making the skill user-only. user-invocable: false is its tempting mirror and does the reverse.",
+  "whyWrong": [
+   "User scope lives on one machine, so distribution depends on manual copying and nothing is reviewed in pull requests.",
+   "user-invocable: false is the mirror setting: it hides the skill from users and makes it Claude-only, the opposite of the requirement.",
+   "CLAUDE.md is ambient context paid for in every session; prose cannot stop Claude acting, and it does not create a slash command.",
+   "Correct. Project scope is distributed and reviewed through version control, and disable-model-invocation: true makes the side-effecting skill user-only."
+  ],
+  "concept": "project skill scope plus disable-model-invocation",
+  "plainExample": "It is like keeping the team's fire-drill checklist in your own desk drawer: it works perfectly for you, and nobody else can find it. Put it in the shared binder instead, and mark it 'only a manager starts this drill' so nobody sets off the alarm by accident.",
+  "technicalExample": "# .claude/skills/security-audit/SKILL.md (committed)\n---\nname: security-audit\ndescription: Scan dependencies and open tickets for findings\ndisable-model-invocation: true   # user-only: runs when a person types /security-audit\n---\n# Not ~/.claude/commands/security-audit.md (personal, never shared)\n# Not user-invocable: false (hides it from users; Claude-only)",
+  "sources": [
+   "lesson_11.pdf p2",
+   "lesson_11.pdf p4",
+   "fde-enablement-hub-complete.md:3616",
+   "fde-enablement-hub-complete.md:3642",
+   "claude-certified-architect-principles.md:298",
+   "claude-certified-architect-principles.md:306"
+  ]
+ },
+ {
+  "id": "D3-007",
+  "domain": 3,
+  "task": "3.2",
+  "scenario": "multi-agent-research",
+  "type": "single",
+  "stem": "A research team has a skill, /evaluate-sources, whose body is a list of criteria for judging source credibility. Run inline, it floods the main conversation with dozens of file reads across 60 collected documents. They want the main session to receive only a findings table with file references, and they need that table back in the same turn. Which change best achieves this?",
+  "options": [
+   "Add context: fork, agent: Explore, and background: false, and rewrite the body as a task: evaluate the documents in $ARGUMENTS and return a findings table.",
+   "Add context: fork and agent: Explore, and leave the body as the list of credibility criteria so the forked subagent applies them to whatever documents it finds.",
+   "Keep the skill inline and add allowed-tools: Read Grep Glob so the evaluation runs with read-only tools and keeps the main session lighter.",
+   "Keep the skill inline and add argument-hint: [folder] so every invocation is pointed at one specific folder of collected documents."
+  ],
+  "correct": [
+   0
+  ],
+  "explanation": "context: fork moves the exploration into an isolated subagent, so the main session receives only the result. Because that subagent's prompt is the skill content, with no conversation history, the body must be a self-contained task rather than a list of conventions. A forked skill runs in the background by default, so background: false is needed to get the table in the same turn.",
+  "whyWrong": [
+   "Correct. The fork isolates the file reads, the explicit task gives the subagent something to do, and background: false returns the table in the invoking turn.",
+   "A forked subagent gets the skill content as its prompt and nothing else, so a body of pure guidelines gives it criteria but no task, and it returns nothing useful.",
+   "allowed-tools pre-approves tools for the turn; it moves no work out of the main context, so the reads still land in the main session.",
+   "argument-hint is autocomplete text; it neither validates input nor isolates execution."
+  ],
+  "concept": "context: fork needs an explicit task",
+  "plainExample": "Sending an assistant to the library keeps your desk clear, but only if you tell them what to find and what to bring back. Hand them a page titled 'what makes a good source' and nothing else, and they come back empty-handed, because they never knew the question.",
+  "technicalExample": "---\nname: evaluate-sources\ncontext: fork\nagent: Explore\nbackground: false\n---\nEvaluate each document in $ARGUMENTS against these criteria: <criteria>.\nReturn a table: file, credibility rating, reason, line reference.\n# Guidelines-only body + context: fork -> subagent has no task -> empty result",
+  "sources": [
+   "fde-enablement-hub-complete.md:3646",
+   "fde-enablement-hub-complete.md:3818",
+   "claude-certified-architect-principles.md:308",
+   "claude-certified-architect-principles.md:311",
+   "lesson_11.pdf p8",
+   "lesson_11.pdf p12"
+  ]
+ },
+ {
+  "id": "D3-008",
+  "domain": 3,
+  "task": "3.2",
+  "scenario": "customer-support",
+  "type": "single",
+  "stem": "A support engineering team built a /triage-ticket skill for their Customer Support Resolution Agent repository. The frontmatter contains argument-hint: [ticket-id], and the body says 'Fetch ticket $ticket and classify it.' When an engineer runs /triage-ticket 48213, the literal text '$ticket' reaches Claude instead of the ID. What is the most direct fix?",
+  "options": [
+   "Change the hint to argument-hint: [ticket-id] required so the value is validated and bound before the skill runs.",
+   "Add allowed-tools: Bash(curl *) so the skill has permission to fetch the ticket and resolve the placeholder.",
+   "Add arguments: ticket to the frontmatter so the first argument binds to the $ticket placeholder in the body.",
+   "Move the file to .claude/commands/triage-ticket.md, because command files bind named placeholders and skills do not."
+  ],
+  "correct": [
+   2
+  ],
+  "explanation": "argument-hint only supplies autocomplete text; binding a named placeholder is the separate arguments field, whose names map to argument positions in order. Adding arguments: ticket is the smallest change that fixes the symptom. The distractors confuse hinting, permission, and packaging with binding.",
+  "whyWrong": [
+   "argument-hint is autocomplete text only; a hint never validates or binds a value, whatever is written inside it.",
+   "allowed-tools pre-approves tool calls for the invoking turn; it has nothing to do with substituting placeholders.",
+   "Correct. arguments maps names to positions in order, so $ticket resolves to the first argument; positional $ARGUMENTS or $0 would also work.",
+   "Command files and skills accept the same frontmatter, apart from name and paths, which command files ignore; moving the file changes packaging, not binding."
+  ],
+  "concept": "argument-hint hints, arguments binds",
+  "plainExample": "A form field labelled 'Ticket number' tells you what to type, but if nobody wired that field to the system, whatever you type goes nowhere. The label is the hint; the wiring is what actually carries the value through.",
+  "technicalExample": "---\nname: triage-ticket\nargument-hint: [ticket-id]   # autocomplete text only\narguments: ticket            # binds $ticket to the first argument\n---\nFetch ticket $ticket and classify it.\n# /triage-ticket 48213 -> \"Fetch ticket 48213 and classify it.\"\n# Positional alternatives: $ARGUMENTS, $ARGUMENTS[0], $0",
+  "sources": [
+   "fde-enablement-hub-complete.md:3642",
+   "fde-enablement-hub-complete.md:3616",
+   "fde-enablement-hub-complete.md:5792",
+   "claude-certified-architect-principles.md:300",
+   "claude-certified-architect-principles.md:301"
+  ]
+ },
+ {
+  "id": "D3-009",
+  "domain": 3,
+  "task": "3.2",
+  "scenario": "developer-productivity",
+  "type": "multi",
+  "stem": "An on-call team is writing a committed /incident-snapshot skill that runs kubectl get commands and summarizes pod health for the incident channel. Only a human may trigger it, and the kubectl get commands it needs should not stop for approval prompts during that invocation. Tool restrictions are already enforced separately through the team's permission settings, so the skill does not need to block anything. Which TWO frontmatter choices fit these requirements? (Select TWO.)",
+  "options": [
+   "user-invocable: false, so Claude cannot start the snapshot unless a person asks for it.",
+   "disable-model-invocation: true, so the skill runs only when a person types /incident-snapshot.",
+   "allowed-tools: Bash(kubectl*), which pre-approves kubectl get and blocks unlisted tools for the session.",
+   "argument-hint: [namespace], so an invocation without a namespace is rejected before any command runs.",
+   "allowed-tools: Bash(kubectl get *), which pre-approves those commands for the invoking turn only."
+  ],
+  "correct": [
+   1,
+   4
+  ],
+  "explanation": "disable-model-invocation: true is the user-only switch; user-invocable: false is its mirror and does the opposite. Skill allowed-tools pre-approves the listed tools for the invoking turn and restricts nothing, so the right expectation is a narrow prefix grant with no blocking effect. The space before the asterisk is load-bearing in permission rule syntax. Source conflict to know: the lesson 11 deck describes allowed-tools as restricting tools, while the study-kit notes (checked against current Claude Code docs) say it pre-approves and restricts nothing. If an exam item frames allowed-tools as a restriction, answer in the item's own terms.",
+  "whyWrong": [
+   "Reversed: user-invocable: false makes the skill Claude-only and hides it from users.",
+   "Correct. disable-model-invocation: true makes the skill user-only, which suits a procedure a human should time.",
+   "Two errors: without the space the rule matches more than 'kubectl' followed by arguments, and allowed-tools restricts nothing and lasts one turn, not the session.",
+   "argument-hint is autocomplete text; it does not validate or reject anything.",
+   "Correct. A narrow prefix rule pre-approves exactly the needed commands for the turn that invokes the skill, and blocks nothing else, which matches the stated design."
+  ],
+  "concept": "disable-model-invocation and allowed-tools semantics",
+  "plainExample": "A note on the counter saying 'use the drill without asking me today' lets the handyman get on with it, but it does not lock the rest of the garage, and it expires when the visit ends. A separate house rule decides who is allowed to call the handyman in the first place.",
+  "technicalExample": "---\nname: incident-snapshot\ndisable-model-invocation: true       # user-only\nallowed-tools: Bash(kubectl get *)   # pre-approved for this turn; restricts nothing\n---\n# The space matters: Bash(git diff *) vs Bash(git diff*), which also matches git diff-index\n# To remove tools use disallowed-tools or permission rules, not allowed-tools",
+  "sources": [
+   "fde-enablement-hub-complete.md:3642",
+   "claude-certified-architect-principles.md:302",
+   "claude-certified-architect-principles.md:306",
+   "claude-certified-architect-principles.md:319",
+   "claude-certified-architect-principles.md:576",
+   "lesson_11.pdf (conflicting description)"
+  ]
+ },
+ {
+  "id": "D3-010",
+  "domain": 3,
+  "task": "3.3",
+  "scenario": "code-generation",
+  "type": "single",
+  "stem": "A code-generation monorepo has 14 packages, and test files (*.test.ts and *.spec.ts) are scattered through all of them, often beside the source files. The team wants strict test conventions, such as no any types and explicit return types in test helpers, to load only when Claude works on a test file and never during ordinary source edits. No team owns the test conventions per package. Which configuration best fits?",
+  "options": [
+   "Add a CLAUDE.md to each of the 14 packages containing the shared test conventions.",
+   "Create .claude/rules/testing.md with paths: [\"**/*.test.ts\", \"**/*.spec.ts\"].",
+   "Add a 'For files matching **/*.test.ts' section containing the conventions to the root CLAUDE.md.",
+   "Put the conventions in docs/testing.md and reference it from the root CLAUDE.md as @docs/testing.md."
+  ],
+  "correct": [
+   1
+  ],
+  "explanation": "When the condition is a file type rather than a directory, .claude/rules/ with paths frontmatter is purpose-built: globs such as **/*.test.ts match at any depth, and the rule loads only when Claude works with a matching file. Directory CLAUDE.md files cannot target file patterns, the root CLAUDE.md cannot be conditional, and @import is for modularity, not conditional activation.",
+  "whyWrong": [
+   "Directory CLAUDE.md files scope by location, not file type, so they also load during source edits in those packages, and the text is duplicated fourteen times.",
+   "Correct. A rule with paths globs loads only when Claude works with a matching file, wherever it sits in the tree, and lives in one central file.",
+   "CLAUDE.md has no conditional or glob scoping; that heading is plain text, so the conventions load in every session.",
+   "@import expands at launch, so the conventions load in every session regardless of which file is being edited."
+  ],
+  "concept": "paths frontmatter for file-type conventions",
+  "plainExample": "It is like a recipe card marked 'desserts only' that comes out only when someone bakes, whichever kitchen they are in. Taping a copy inside every kitchen door means people read it while making soup too.",
+  "technicalExample": "# .claude/rules/testing.md\n---\npaths:\n  - \"**/*.test.ts\"\n  - \"**/*.spec.ts\"\n---\n- Never use `any` in tests; use `unknown` with narrowing.\n- Test helpers declare explicit return types.\n# Loads when Claude reads a matching file; a rule with no paths loads every session",
+  "sources": [
+   "all-transcripts.md:105",
+   "all-transcripts.md:107",
+   "all-transcripts.md:119",
+   "lesson_10.pdf p10",
+   "lesson_10.pdf p13",
+   "fde-enablement-hub-complete.md:3671",
+   "fde-enablement-hub-complete.md:3691"
+  ]
+ },
+ {
+  "id": "D3-011",
+  "domain": 3,
+  "task": "3.3",
+  "scenario": "structured-extraction",
+  "type": "single",
+  "stem": "A Structured Data Extraction repository keeps invoice JSON Schemas under schemas/, organized into subfolders such as schemas/invoices/v2/. A rule at .claude/rules/schema-conventions.md has paths: [\"schemas/*.json\"]. While Claude edits schemas/invoices/v2/line-items.json, /memory does not list the rule and Claude ignores its conventions. What is the most likely root cause?",
+  "options": [
+   "Path-scoped rules load only in sessions started from the directory that contains the matched files.",
+   "Rule files are discovered only when the root CLAUDE.md references them with an @import line.",
+   "The pattern's brace expansions exceed the expansion budget, so it is used unexpanded and matches nothing.",
+   "A single * matches within one directory level, so the glob covers only JSON files directly in schemas/."
+  ],
+  "correct": [
+   3
+  ],
+  "explanation": "In glob syntax a single * matches within one directory level while ** matches any number of directories, so schemas/*.json never matches a nested file. /memory not listing the rule while a nested file is open is consistent with that diagnosis. Changing the pattern to schemas/**/*.json fixes it without moving anything.",
+  "whyWrong": [
+   "Rules live centrally under .claude/rules/ and fire when Claude reads a matching file, regardless of where the session started.",
+   "Rules in .claude/rules/ are loaded by their own mechanism; no import is needed, and an import would load the content unconditionally anyway.",
+   "The pattern contains no brace groups, so the 1,000-pattern expansion budget cannot be the cause.",
+   "Correct. schemas/*.json stops at the first level; schemas/**/*.json matches JSON files at any depth under schemas/."
+  ],
+  "concept": "glob depth in paths frontmatter",
+  "plainExample": "A sign reading 'rules for the ground floor' is not read by anyone working upstairs, even though it is the same building. If you meant every floor, the sign has to say 'all floors'.",
+  "technicalExample": "paths: [\"schemas/*.json\"]      # matches schemas/a.json only\npaths: [\"schemas/**/*.json\"]   # also matches schemas/invoices/v2/line-items.json\n# *  = anything within one directory level\n# ** = any number of directories\n# Verify with /memory after Claude has read a matching file",
+  "sources": [
+   "all-transcripts.md:119",
+   "all-transcripts.md:123",
+   "all-transcripts.md:129",
+   "fde-enablement-hub-complete.md:3691",
+   "fde-enablement-hub-complete.md:3693",
+   "claude-certified-architect-principles.md:285"
+  ]
+ },
+ {
+  "id": "D3-012",
+  "domain": 3,
+  "task": "3.3",
+  "scenario": "developer-productivity",
+  "type": "single",
+  "stem": "A developer added .claude/rules/terraform.md with Terraform naming and module conventions, and no frontmatter. Since then, frontend engineers report Claude suggesting Terraform-style snake_case names in React components, and every session carries the Terraform text even when no infrastructure file is touched. All Terraform files live under infra/. Which change best fixes both problems?",
+  "options": [
+   "Add frontmatter with paths: [\"infra/**/*.tf\"] to the existing rule file.",
+   "Move the file to ~/.claude/rules/terraform.md so it stops loading for the frontend team.",
+   "Add a first line to the rule body: 'Apply these conventions only to Terraform files under infra/.'",
+   "Move the conventions into the root CLAUDE.md under a heading that reads 'Terraform files only'."
+  ],
+  "correct": [
+   0
+  ],
+  "explanation": "A rule under .claude/rules/ with no paths list loads unconditionally at launch, which causes both the context cost and the cross-contamination. Adding paths frontmatter turns it into a conditional rule that appears only when matching files are touched. Moving it to user scope removes it from the people who need it, and prose cannot scope itself.",
+  "whyWrong": [
+   "Correct. Without paths a rule loads every session; with a glob it loads only when Claude works with matching Terraform files.",
+   "User-scope rules are personal, so the infrastructure team would lose the conventions on their machines and in CI.",
+   "A prose scope statement still loads every session and relies on Claude's judgment, so it fixes neither the context cost nor, reliably, the misapplication.",
+   "Root CLAUDE.md content loads in every session and headings do not scope it, so both problems remain."
+  ],
+  "concept": "rule without paths loads unconditionally",
+  "plainExample": "A notice meant for the garage mechanics is pinned in the main entrance, so the receptionist starts using mechanic jargon on the phone. Moving the notice to the garage door fixes it; writing 'mechanics only' on it while leaving it in the entrance does not.",
+  "technicalExample": "# Before: no frontmatter -> loads in every session\n# After: .claude/rules/terraform.md\n---\npaths:\n  - \"infra/**/*.tf\"\n---\n- Module names use snake_case.\n# Now loads only when Claude reads a matching .tf file",
+  "sources": [
+   "lesson_10.pdf p9",
+   "fde-enablement-hub-complete.md:3671",
+   "fde-enablement-hub-complete.md:7214",
+   "claude-certified-architect-principles.md:282",
+   "claude-certified-architect-principles.md:283"
+  ]
+ },
+ {
+  "id": "D3-013",
+  "domain": 3,
+  "task": "3.3",
+  "scenario": "customer-support",
+  "type": "single",
+  "stem": "In the Customer Support Resolution Agent repository, a developer added .claude/rules/refund-tool.md with paths: [\"tools/refund/**/*.py\"]. They report that Claude still ignores the refund conventions while editing tools/refund/policy.py, and they want to fix it. What should they do first?",
+  "options": [
+   "Copy the refund conventions into the root CLAUDE.md so they are always present in context.",
+   "Rewrite the rule with 'MANDATORY' headings in capitals so Claude weighs it more heavily.",
+   "Run /memory after Claude has read tools/refund/policy.py and check whether the rule is listed as loaded.",
+   "Convert the rule into a project skill with disable-model-invocation: true and invoke it before refund work."
+  ],
+  "correct": [
+   2
+  ],
+  "explanation": "The stem asks what to do first, and the first move is diagnosis: /memory shows which instruction files and rules are loaded in the session, and a file missing from that list is your problem. Path-scoped rules load when Claude reads a matching file, so check after that read has happened. Only once you know whether it loaded do you choose a fix.",
+  "whyWrong": [
+   "A global remedy applied before diagnosis: it adds permanent context cost to every session and may not address the actual cause.",
+   "Emphasis cannot help if the rule never loaded, and it diagnoses nothing.",
+   "Correct. If the rule is absent, the problem is configuration such as the glob or location; if present, the problem lies elsewhere.",
+   "This changes the mechanism before knowing what failed, and makes correct behavior depend on someone remembering to invoke it."
+  ],
+  "concept": "/memory to debug what loaded",
+  "plainExample": "When a guest says they never got your note, first check whether it is actually on the noticeboard. Do not repaint it in red or glue copies to every wall until you know which problem you are fixing.",
+  "technicalExample": "> (Claude reads tools/refund/policy.py)\n> /memory\n  ~/.claude/CLAUDE.md\n  ./CLAUDE.md\n  .claude/rules/refund-tool.md   <- listed? config is fine. missing? check glob and location\n# /context also lists which memory files actually loaded",
+  "sources": [
+   "all-transcripts.md:129",
+   "all-transcripts.md:131",
+   "all-transcripts.md:135",
+   "lesson_10.pdf p12",
+   "claude-certified-architect-principles.md:290",
+   "claude-certified-architect-principles.md:29"
+  ]
+ },
+ {
+  "id": "D3-014",
+  "domain": 3,
+  "task": "3.4",
+  "scenario": "code-generation",
+  "type": "single",
+  "stem": "A production error log shows a stack trace pointing to an off-by-one error in the paginate() function in a single file; the fix is obvious and a regression test already reproduces the bug. The team needs the hotfix shipped within the hour. Which approach should the engineer take?",
+  "options": [
+   "Enter plan mode first, because any change headed to production deserves a reviewed plan before edits.",
+   "Launch an Explore subagent to map every caller of paginate() across the codebase before editing.",
+   "Start with the interview pattern so Claude asks clarifying questions about pagination requirements.",
+   "Execute directly: fix paginate(), run the regression test, and show the passing test output."
+  ],
+  "correct": [
+   3
+  ],
+  "explanation": "Plan mode pays off when a wrong first attempt would cost more than the planning round trip: uncertain approach, several files, unfamiliar code, hard to reverse. A clear stack trace with an obvious single-file fix fails every one of those tests, and the one-hour deadline makes the extra round trip actively harmful. The regression test turns 'done' into evidence rather than assertion.",
+  "whyWrong": [
+   "Planning theater: the diff fits in one sentence, so the round trip costs more than the change and delays the hotfix.",
+   "Large-codebase discovery suits unclear scope; here the stack trace already localizes the defect to one function.",
+   "The interview pattern is for ambiguous requirements; the expected behavior is already encoded in the failing test.",
+   "Correct. A clear stack trace and a one-sentence, single-file fix is the textbook direct-execution case, and the test supplies the evidence."
+  ],
+  "concept": "direct execution for one-sentence fixes",
+  "plainExample": "If a lightbulb has blown, you replace it; you do not ask an architect for drawings first. Drawings are for knocking through walls, where a mistake is expensive to undo.",
+  "technicalExample": "One-sentence test: \"Change the loop bound in paginate() from <= to <\" -> passes\nSingle file, obvious path, cheap to git revert -> direct execution\n> Fix the off-by-one in src/paginate.ts, run the paginate tests, paste the output\n# Plan mode triggers: multi-file, several valid approaches, hard to reverse, architectural",
+  "sources": [
+   "fde-enablement-hub-complete.md:3713",
+   "fde-enablement-hub-complete.md:3824",
+   "claude-certified-architect-principles.md:324",
+   "lesson_12.pdf p4",
+   "lesson_12.pdf p12"
+  ]
+ },
+ {
+  "id": "D3-015",
+  "domain": 3,
+  "task": "3.4",
+  "scenario": "structured-extraction",
+  "type": "single",
+  "stem": "An engineer who joined last week must move a Structured Data Extraction pipeline from 30 regex-based parser files to a schema-driven approach, and there are at least two credible designs. A wrong first attempt would touch every parser and be painful to unwind. Which workflow best fits?",
+  "options": [
+   "Start in plan mode, let Claude read the parsers and propose a phased plan, edit it with Ctrl+G, then approve and implement.",
+   "Execute directly with acceptEdits across all 30 files, relying on git to revert everything if the approach proves wrong.",
+   "Start in plan mode and, since plan mode blocks edits, keep bypass permissions enabled to avoid prompts during implementation.",
+   "Fan out one claude -p run per parser file immediately, since each parser can be converted independently of the others."
+  ],
+  "correct": [
+   0
+  ],
+  "explanation": "Plan mode buys a chance to reject an approach before any file changes, which is worth its round trip when the approach is genuinely in question and the blast radius is large. Every trigger in the stem points there: unfamiliar code, competing designs, 30 files, costly failure. Editing the plan with Ctrl+G is the cheapest correction available before Claude acts.",
+  "whyWrong": [
+   "Correct. Unfamiliar code, several valid approaches, many files, and an expensive failure are all plan-mode triggers, and editing the plan is the cheapest intervention.",
+   "Starting an uncertain multi-file migration from one prompt risks an unreviewable diff; unwinding 30 files of rework is exactly the cost planning avoids.",
+   "Where bypass permissions are available, plan mode's blocks are not enforced; it is a workflow control, not a safety boundary.",
+   "Fanning out before the design is chosen and proven on a sample reproduces an unvetted approach across every file."
+  ],
+  "concept": "plan mode for uncertain multi-file migrations",
+  "plainExample": "Before rewiring a whole house you ask the electrician for a drawing, mark up the parts you disagree with, and only then let them start. Going room by room with no plan and 'we can always rip it out' is how you pay twice.",
+  "technicalExample": "claude --permission-mode plan      # or Shift+Tab, or /plan\n> Read parsers/*.py and propose a phased migration to schema-driven extraction; list files and risks\n# Ctrl+G opens the plan in your editor to correct it before approving\n# Approve -> implement phase by phase, verifying against the plan\n# Not a security boundary where bypass permissions are available",
+  "sources": [
+   "fde-enablement-hub-complete.md:3707",
+   "fde-enablement-hub-complete.md:3709",
+   "fde-enablement-hub-complete.md:3713",
+   "claude-certified-architect-principles.md:323",
+   "claude-certified-architect-principles.md:326",
+   "lesson_12.pdf p6",
+   "lesson_12.pdf p8"
+  ]
+ },
+ {
+  "id": "D3-016",
+  "domain": 3,
+  "task": "3.4",
+  "scenario": "code-generation",
+  "type": "multi",
+  "stem": "A team lead is setting up a new billing-integration repository. They want every contributor's sessions to start in plan mode by default, and they are also counting on plan mode to guarantee that nothing under migrations/ is ever edited without approval, including in sessions where some engineers enable bypass permissions. Which TWO actions are correct? (Select TWO.)",
+  "options": [
+   "Set permissions.defaultMode to \"plan\" in the committed .claude/settings.json.",
+   "Rely on plan mode for the migrations/ guarantee, since plan mode blocks edits in every permission mode.",
+   "Add 'Always start in plan mode' to the lead's ~/.claude/CLAUDE.md so the behavior applies to the team.",
+   "Protect migrations/ with a permission deny rule or a PreToolUse hook instead of relying on plan mode.",
+   "Plan mode stops Claude from reading files, so write the plan from the lead's description of the code."
+  ],
+  "correct": [
+   0,
+   3
+  ],
+  "explanation": "The default is a shareable setting, so it belongs in committed project settings. The guarantee is a separate requirement: plan mode is a workflow control whose blocks are not enforced where bypass permissions are available, so a must-not-happen edit needs a permission rule or a hook. Keeping those two jobs apart is the point of the question.",
+  "whyWrong": [
+   "Correct. permissions.defaultMode: \"plan\" in project settings makes plan mode the default, and committing the file shares it with the team.",
+   "Where bypass permissions are available, plan mode's blocks are not enforced; it is a workflow control, not a security boundary.",
+   "User-scope CLAUDE.md is never shared, and prose is advisory; it cannot set anyone's default permission mode.",
+   "Correct. Anything that must not happen belongs in a permission rule or a hook, which hold regardless of the planning workflow.",
+   "Plan mode lets Claude read files and run exploratory commands; what it blocks is edits until you approve."
+  ],
+  "concept": "plan mode default vs security boundary",
+  "plainExample": "Asking every builder to show you a drawing before starting is a good habit, but it does not lock the cupboard with the fuse box. If nobody may ever touch the fuse box, you put a lock on it; the drawing habit covers everything else.",
+  "technicalExample": "// .claude/settings.json (committed)\n{\n  \"permissions\": { \"defaultMode\": \"plan\" }\n}\n// Guarantee for migrations/: a deny permission rule or a PreToolUse hook on Edit/Write\n// Plan mode blocks are not enforced where bypass permissions are available",
+  "sources": [
+   "fde-enablement-hub-complete.md:3707",
+   "fde-enablement-hub-complete.md:3709",
+   "fde-enablement-hub-complete.md:3719",
+   "claude-certified-architect-principles.md:325",
+   "claude-certified-architect-principles.md:327"
+  ]
+ },
+ {
+  "id": "D3-017",
+  "domain": 3,
+  "task": "3.5",
+  "scenario": "structured-extraction",
+  "type": "single",
+  "stem": "An engineer asks Claude to 'write a function that normalizes invoice dates to ISO 8601.' Each attempt looks finished, but review keeps finding failures on inputs such as '03/04/25', '4 Mar 2025', and blank strings, and the engineer has become the only source of feedback. Which change will most reliably make the iterations converge?",
+  "options": [
+   "Rewrite the request as a longer, more detailed prose description of every date format the business accepts today.",
+   "Give input and expected-output pairs, including ambiguous and blank cases, and have Claude run them as tests.",
+   "Ask Claude to review its own output carefully and confirm that it handles every edge case before finishing.",
+   "Split the work across three parallel sessions and keep whichever function looks the most robust."
+  ],
+  "correct": [
+   1
+  ],
+  "explanation": "Refinement converges when each iteration produces a signal Claude can read. Concrete input and output pairs define done in a testable form and capture edge cases you would otherwise catch in review, and running them as tests closes the loop. Without that, Claude stops when the work looks done and the human becomes the verification loop.",
+  "whyWrong": [
+   "More prose still gives Claude nothing it can check for itself, so 'looks done' remains the only signal and the engineer stays in the loop.",
+   "Correct. Examples encode the edge cases, and as tests they become a signal Claude can run and act on without waiting for review.",
+   "Self-confirmation is verification by assertion; it produces a claim, not evidence.",
+   "Parallel attempts multiply cost without adding a check; 'looks most robust' is still a human judgment."
+  ],
+  "concept": "input/output examples and tests as the feedback signal",
+  "plainExample": "Hanging a shelf is slow if you have to call someone in to check every adjustment. Hand the person a spirit level and they can check it themselves. Example cases with expected answers are the spirit level.",
+  "technicalExample": "Write normalize_date(s). Examples:\n  \"03/04/25\"   -> \"2025-04-03\"   (house rule: day first)\n  \"4 Mar 2025\" -> \"2025-03-04\"\n  \"\"           -> None\nAdd these as pytest cases, run them after each edit, and paste the output.\n# Vague version: \"write a function that normalizes dates\" -> nothing to test against",
+  "sources": [
+   "fde-enablement-hub-complete.md:3731",
+   "fde-enablement-hub-complete.md:3733",
+   "claude-certified-architect-principles.md:337",
+   "claude-certified-architect-principles.md:338",
+   "lesson_12.pdf p10"
+  ]
+ },
+ {
+  "id": "D3-018",
+  "domain": 3,
+  "task": "3.5",
+  "scenario": "developer-productivity",
+  "type": "single",
+  "stem": "Deep into a long session, an engineer has twice corrected Claude on the same issue: an internal CLI tool keeps swallowing a non-zero exit code. Both corrections produced plausible changes that did not fix it, and the context now holds three failed approaches. What should the engineer do next?",
+  "options": [
+   "Give a third, more forceful correction that lists everything that went wrong in the two previous attempts.",
+   "Switch the same session into plan mode so Claude can reconsider the approach with all three attempts visible.",
+   "Clear the context and start again with a better prompt that states what was learned and names a failing test.",
+   "Raise the session's turn limit so Claude has more room to keep iterating until the fix finally lands."
+  ],
+  "correct": [
+   2
+  ],
+  "explanation": "The sources give an explicit stopping rule: after two failed corrections on the same issue, clearing context and writing a better prompt beats a third correction. The accumulated failed approaches are part of the problem, so anything that keeps them in the window keeps the problem. Naming a failing test gives the fresh attempt a signal it can check.",
+  "whyWrong": [
+   "A third correction in the same polluted context is the documented anti-pattern after two failures on the same issue.",
+   "Plan mode does not remove the failed approaches from context; they keep competing with the new plan.",
+   "Correct. Clearing context drops the failed attempts, and a sharper prompt with a failing test gives Claude a readable signal.",
+   "More turns make a non-converging loop longer, not convergent; the problem is the context and the missing signal, not the budget."
+  ],
+  "concept": "clear context after two failed corrections",
+  "plainExample": "If you have given someone directions twice and they are still lost, repeating them louder does not help, especially while they are still holding the two wrong maps. Take the old maps away and hand over one clear new one.",
+  "technicalExample": "Attempt 1: correction -> still failing\nAttempt 2: correction -> still failing\nStop. /clear\nNew prompt: \"cli.py exits 0 when upload() raises; expected exit code 2.\n  Failing test: tests/test_cli.py::test_upload_error_exit_code.\n  Make it pass and paste the pytest output.\"",
+  "sources": [
+   "fde-enablement-hub-complete.md:3749",
+   "fde-enablement-hub-complete.md:3735",
+   "claude-certified-architect-principles.md:333",
+   "claude-certified-architect-principles.md:29",
+   "claude-code-command-reference.md:309"
+  ]
+ },
+ {
+  "id": "D3-019",
+  "domain": 3,
+  "task": "3.5",
+  "scenario": "developer-productivity",
+  "type": "single",
+  "stem": "A team runs Claude Code overnight on unattended refactoring tasks. Several mornings in a row the transcript ends with 'All tests pass,' yet running the suite shows failures. The project CLAUDE.md already says 'Run the full test suite before finishing.' The team needs a guarantee that no unattended run ends while the suite is red. Which change best provides it?",
+  "options": [
+   "Strengthen the CLAUDE.md line to 'You MUST run the tests and MUST NOT finish until they pass.'",
+   "Add a Stop hook that runs the suite and blocks the turn from ending while any test is failing.",
+   "Require Claude to paste the final test output into its closing summary before it finishes each task.",
+   "Add a PostToolUse hook that logs every test command Claude runs so the team can review the log each morning."
+  ],
+  "correct": [
+   1
+  ],
+  "explanation": "A test gate can be escalated from a request in the prompt, to a session-long condition, to a Stop hook that blocks the turn until your script passes. 'Guarantee' and 'unattended' push the answer to the deterministic end of that ladder. Requiring pasted output is good practice but remains a request, and logging is not prevention.",
+  "whyWrong": [
+   "Emphasis keeps the rule advisory; it can still be missed or summarized away, which is exactly the observed failure.",
+   "Correct. A Stop hook makes the gate deterministic: the turn cannot end until the script passes, and Claude receives the output to act on.",
+   "Asking for evidence improves reviewability, but it is still a prompt-level request that an unattended run can skip, so it is not a guarantee.",
+   "Logging records what happened after the fact; it does not stop a run from ending with a red suite."
+  ],
+  "concept": "Stop hook as a deterministic test gate",
+  "plainExample": "Asking the last person out to check every window is shut works most nights. If the building must never be left with a window open, you fit an alarm that will not arm while any window is still open.",
+  "technicalExample": "// .claude/settings.json\n\"hooks\": { \"Stop\": [ { \"hooks\": [ { \"type\": \"command\",\n  \"command\": \"${CLAUDE_PROJECT_DIR}/.claude/hooks/tests-must-pass.sh\" } ] } ] }\n# script: run the suite; exit 0 when green, else emit decision \"block\" with the failure output\n# Claude cannot end the turn until the suite is green",
+  "sources": [
+   "fde-enablement-hub-complete.md:3735",
+   "fde-enablement-hub-complete.md:3822",
+   "fde-enablement-hub-complete.md:7193",
+   "claude-certified-architect-principles.md:339",
+   "claude-certified-architect-principles.md:340"
+  ]
+ },
+ {
+  "id": "D3-020",
+  "domain": 3,
+  "task": "3.6",
+  "scenario": "ci-cd",
+  "type": "single",
+  "stem": "A GitHub Actions step runs claude \"Review the failing tests and suggest fixes\". On a developer laptop the command works, because the developer answers Claude's follow-up questions. In CI the job sits idle until the workflow timeout kills it. Which change fixes the root cause?",
+  "options": [
+   "Add --ci-mode so Claude suppresses its clarifying questions whenever it detects a pipeline environment.",
+   "Invoke it as claude -p \"Review the failing tests and suggest fixes\" so it runs non-interactively.",
+   "Set the environment variable CLAUDE_HEADLESS=1 in the workflow step before invoking claude.",
+   "Add --batch so the review is queued and the step no longer waits on an interactive session."
+  ],
+  "correct": [
+   1
+  ],
+  "explanation": "Without -p, claude starts an interactive session; when Claude asks a clarifying question in CI, nobody answers and the job hangs until the timeout. -p (long form --print) is the non-interactive mode: one prompt, one response, a clean exit, and an exit code scripts can branch on. Plausible-sounding alternatives such as --ci-mode, --batch, or CLAUDE_HEADLESS are recurring fabricated distractors.",
+  "whyWrong": [
+   "--ci-mode is a fabricated flag; it does not exist.",
+   "Correct. -p or --print is the single valid way to run Claude Code headless in a pipeline.",
+   "CLAUDE_HEADLESS is a fabricated environment variable; it does not exist.",
+   "--batch does not exist as a Claude Code CLI flag."
+  ],
+  "concept": "-p for non-interactive CI runs; fabricated flags",
+  "plainExample": "Leaving a voicemail that ends with a question is pointless if nobody will ever listen and call back; the conversation just stalls. In a pipeline you need a message that says everything up front and expects no reply.",
+  "technicalExample": "# Hangs: interactive session waits for answers\nclaude \"Review the failing tests and suggest fixes\"\n# Works: non-interactive, prints and exits with a status code\nclaude -p \"Review the failing tests and suggest fixes\" --output-format json\n# Do not exist: --ci-mode, --batch, --headless, CLAUDE_HEADLESS",
+  "sources": [
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:15",
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:23",
+   "lesson_13.pdf p3",
+   "lesson_13.pdf p5",
+   "fde-enablement-hub-complete.md:3763",
+   "claude-code-command-reference.md:107"
+  ]
+ },
+ {
+  "id": "D3-021",
+  "domain": 3,
+  "task": "3.6",
+  "scenario": "ci-cd",
+  "type": "single",
+  "stem": "A pipeline runs a Claude review with claude -p, and a later step blocks the merge if any finding is critical. That step greps the prose output for the word 'critical', and it has both blocked clean pull requests and passed a real critical bug that Claude described as 'severe'. The merge check must decide on a field the pipeline controls, not on phrasing. Which change best meets that requirement?",
+  "options": [
+   "Instruct Claude to end every response with the exact line 'VERDICT: PASS' or 'VERDICT: FAIL', then grep for that line.",
+   "Grep case-insensitively for a maintained list of synonyms such as critical, severe, and blocker.",
+   "Submit the review through the Message Batches API instead, since it returns a structured result for each request.",
+   "Add --output-format json and --json-schema with a severity enum, then gate the step with jq -e on structured_output."
+  ],
+  "correct": [
+   3
+  ],
+  "explanation": "Default prose suits humans and is unreliable for machines. --output-format json with --json-schema puts schema-conforming output in the structured_output field, and jq -e turns a field into the gate, so the model's wording and confidence are never consulted. Batches are the wrong tool for anything blocking.",
+  "whyWrong": [
+   "Better than free prose, but the gate still depends on the model's phrasing rather than a schema-defined field the pipeline owns.",
+   "A longer synonym list is still pattern-matching on prose and will keep producing false blocks and false passes.",
+   "Batches have a 24-hour window and no latency guarantee, so they are inappropriate for a blocking pre-merge check.",
+   "Correct. The schema fixes the shape, the enum removes phrasing ambiguity, and jq -e makes the step fail on a parsed value."
+  ],
+  "concept": "structured output as the CI gate",
+  "plainExample": "A form with a tick box marked 'critical: yes or no' can be sorted by a machine; a free-text note saying 'this looks pretty bad' cannot. The pipeline needs the tick box, not the note.",
+  "technicalExample": "claude -p \"Review the diff on stdin; classify each finding\" \\\n  --output-format json \\\n  --json-schema \"$(cat .github/review.schema.json)\" < diff.patch > result.json\n# schema: findings[].severity enum [\"critical\", \"major\", \"minor\"]\njq -e '[.structured_output.findings[] | select(.severity == \"critical\")] | length == 0' result.json",
+  "sources": [
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:31",
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:63",
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:67",
+   "fde-enablement-hub-complete.md:3763",
+   "fde-enablement-hub-complete.md:8147",
+   "claude-certified-architect-principles.md:350"
+  ]
+ },
+ {
+  "id": "D3-022",
+  "domain": 3,
+  "task": "3.6",
+  "scenario": "ci-cd",
+  "type": "single",
+  "stem": "A pull-request review job runs claude -p on every push to an open pull request. Each small follow-up commit triggers a full re-review, and Claude reposts the same comments it made on earlier pushes; developers have started muting the bot. The runners are ephemeral containers. Which change best stops the duplicates while still catching problems in new commits?",
+  "options": [
+   "Fetch Claude's earlier PR comments with gh in a prior step and pass them into the fresh -p session, asking only for new issues.",
+   "Use claude -c -p to continue the previous review session so Claude remembers the comments it already posted on this pull request.",
+   "Run the review only on the first push to each pull request and skip the review on every later push to that pull request.",
+   "Tell Claude to report only critical findings so that far fewer comments are posted each time a new commit is pushed."
+  ],
+  "correct": [
+   0
+  ],
+  "explanation": "Each CI run is a fresh session with no memory of earlier reviews, so it re-reviews everything. The documented fix is the deduplication loop: fetch the previous PR comments, pass them into the fresh session's context, and ask for net-new comments only. That keeps fresh-session objectivity while ending notification fatigue.",
+  "whyWrong": [
+   "Correct. Handing prior findings explicitly to a fresh session keeps the review objective and non-repetitive, and it works on ephemeral runners.",
+   "Continuing depends on conversation state an ephemeral runner does not keep, and a same-session reviewer tends to rationalize its earlier reasoning.",
+   "This removes duplicates by never reviewing the new code, so new problems go unreviewed.",
+   "Suppressing lower-severity findings hides legitimate issues and still re-reports the same critical ones on every push."
+  ],
+  "concept": "passing prior findings to deduplicate CI reviews",
+  "plainExample": "A new proofreader who has not seen your earlier notes will circle the same typos again. Hand them the list of what has already been flagged and ask them to mark only what is new.",
+  "technicalExample": "- name: Load prior review findings\n  run: gh pr view \"$PR\" --comments > prior_findings.txt\n- name: Review new changes (fresh session)\n  run: |\n    claude -p \"Prior findings: $(cat prior_findings.txt). Review the diff on stdin; report only issues not already listed.\" \\\n      --output-format json < diff.patch > findings.json",
+  "sources": [
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:47",
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:51",
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:39",
+   "lesson_13.pdf p9",
+   "fde-enablement-hub-complete.md:5895"
+  ]
+ },
+ {
+  "id": "D3-023",
+  "domain": 3,
+  "task": "3.6",
+  "scenario": "ci-cd",
+  "type": "multi",
+  "stem": "A conventions gate runs claude -p on a shared self-hosted runner. It must apply the repository's committed CLAUDE.md and .claude/rules/ conventions, must not execute any hooks from engineers' ~/.claude settings on that machine, and should see the pull request diff without being granted shell access. Which TWO changes meet these requirements? (Select TWO.)",
+  "options": [
+   "Add --bare so the run skips auto-discovery of the hooks, skills, plugins, and MCP servers on the machine.",
+   "Add --permission-mode plan so that user-scope hooks are prevented from executing during the review.",
+   "Add --setting-sources project so project configuration loads while user and local configuration is skipped.",
+   "Add --allowedTools \"Bash(git diff*)\" so that Claude can fetch the diff itself under a narrowly scoped permission rule.",
+   "Compute the diff in an earlier step, pipe it to claude -p on standard input, and allow only Read, Grep, and Glob."
+  ],
+  "correct": [
+   2,
+   4
+  ],
+  "explanation": "--setting-sources project and --bare solve different problems: the first keeps project configuration and drops personal configuration, while the second drops all auto-discovered configuration, CLAUDE.md included. Because this gate exists to apply the committed conventions, --setting-sources project is the fit. Piping the data in, rather than granting a shell to fetch it, is the least-privilege way to supply the diff.",
+  "whyWrong": [
+   "--bare also skips CLAUDE.md auto-discovery, so the committed conventions the gate exists to apply would not load; it suits jobs that must ignore what the repository ships.",
+   "Plan mode governs edits, not configuration discovery; user-scope hooks would still load and run.",
+   "Correct. It loads the repository's configuration and excludes user and local configuration, so personal hooks stay out.",
+   "It grants shell access the job does not need, and without the space the rule also matches commands such as git diff-index.",
+   "Correct. Piping the diff removes any need for a Bash permission, and a read-only allowlist is least privilege."
+  ],
+  "concept": "--setting-sources vs --bare; pipe data in",
+  "plainExample": "When you borrow a colleague's desk for the day, you want the company handbook on it but not their personal sticky notes telling you to do things their way. And if all you need is one document, someone hands it to you; you do not get the keys to the filing room.",
+  "technicalExample": "git diff origin/main...HEAD > /tmp/diff.patch\nclaude -p \"Review the diff on stdin against CLAUDE.md and .claude/rules/\" \\\n  --setting-sources project \\\n  --allowedTools \"Read,Grep,Glob\" \\\n  --output-format json < /tmp/diff.patch\n# --bare would also skip CLAUDE.md, and needs ANTHROPIC_API_KEY set explicitly",
+  "sources": [
+   "fde-enablement-hub-complete.md:3763",
+   "fde-enablement-hub-complete.md:7995",
+   "fde-enablement-hub-complete.md:8072",
+   "fde-enablement-hub-complete.md:8074",
+   "claude-certified-architect-principles.md:347",
+   "claude-certified-architect-principles.md:349",
+   "claude-certified-architect-principles.md:319"
+  ]
+ },
+ {
+  "id": "D3-024",
+  "domain": 3,
+  "task": "3.6",
+  "scenario": "ci-cd",
+  "type": "single",
+  "stem": "A pipeline job uses claude -p to generate unit tests for changed code, then continues the same session with claude -c -p to review those tests before they are committed. The review almost never flags anything, yet the generated tests routinely miss negative paths. The team wants a review that critiques rather than rationalizes. Which change is best?",
+  "options": [
+   "Keep the continued session but instruct Claude to be highly critical and to list at least three weaknesses.",
+   "Increase --max-turns on the review step so Claude has more room to examine each generated test.",
+   "Run the review as a separate job in a fresh claude -p session, with test standards supplied by the project CLAUDE.md.",
+   "Add --output-format json to the review step so its findings can be parsed and acted on by the later pipeline steps."
+  ],
+  "correct": [
+   2
+  ],
+  "explanation": "A session that wrote the code retains the reasoning behind it and tends to review by rationalizing; a fresh session has no prior reasoning to defend. The CI architecture rule is separate jobs, separate sessions, with the project CLAUDE.md loading the shared test standards into each new session automatically. JSON output and turn limits address other problems.",
+  "whyWrong": [
+   "The session still holds the reasoning that produced the tests, so Claude tends to rationalize it; a quota of weaknesses invites invented findings, not objectivity.",
+   "More turns give a biased reviewer more time without removing the bias.",
+   "Correct. The fresh session reads the tests for what they are, and CLAUDE.md supplies the standards without carrying over the generation context.",
+   "Machine-readable output helps gating, but it does not change the quality of the review itself."
+  ],
+  "concept": "session isolation for CI review",
+  "plainExample": "Asking the author of an essay to proofread it straight away rarely finds much, because they read what they meant to write. A colleague who did not write it sees what is actually on the page.",
+  "technicalExample": "job generate-tests:\n  claude -p \"Write unit tests for the changed files\" ...\njob review-tests:   # separate job, fresh session\n  claude -p \"Review these tests for missing negative paths against the CLAUDE.md test standards\" \\\n    --output-format json < tests.diff\n# Not: claude -c -p (continues the session that wrote the tests)",
+  "sources": [
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:39",
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:43",
+   "research/transcripts/ep-13-claude-code-ci-cd-pipelines.txt:55",
+   "lesson_13.pdf p7",
+   "fde-enablement-hub-complete.md:3739",
+   "claude-code-command-reference.md:110"
+  ]
+ }
+]

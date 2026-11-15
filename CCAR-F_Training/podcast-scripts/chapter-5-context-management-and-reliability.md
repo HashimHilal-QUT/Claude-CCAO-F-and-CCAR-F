@@ -1,0 +1,1779 @@
+# Chapter Five: Context Management and Reliability
+
+## Cold open
+
+Chapter five. Let's open with a story.
+
+Picture a refund agent. It's forty-five turns into a chat with an unhappy customer.
+
+Early on, the customer said the order cost one hundred and fifty-nine dollars and ninety-nine cents. The order system said one hundred and forty-nine ninety-nine. And the refund window stood at day twenty-eight of thirty.
+
+Then the conversation got long. The system tidied up its own memory twice, the way it was designed to. And somewhere around turn forty, the agent asked the customer for the amount again. Then it quoted the wrong figure back.
+
+Nobody changed the model. Nothing crashed. No error appeared in any log.
+
+The system simply forgot the one number that mattered. And it forgot it politely.
+
+[beat]
+
+That is this chapter in one story.
+
+Domain five of the Claude Certified Architect, Foundations exam is called Context Management and Reliability. It carries fifteen percent of the exam weight. That's roughly nine questions on a sixty-question paper.
+
+It has six task statements. We'll take them in order, one part each.
+
+First. Keeping critical information alive through long conversations.
+
+Second. Deciding when a system should stop and fetch a human, and what it should do when a request is unclear.
+
+Third. How failures travel between agents without turning into false good news.
+
+Fourth. Exploring a large codebase without drowning the model in it.
+
+Fifth. Human review, and whether a model's confidence number means anything.
+
+And sixth. Keeping track of where every claim came from when several sources are combined.
+
+[beat]
+
+Here's the thread that runs through all six.
+
+The exam keeps showing you failures that look identical from the outside. An agent that contradicts itself. An answer that is confidently wrong. A review queue nobody trusts. They all present as "the system is unreliable."
+
+But each has a different cause and a different fix. And the fixes are not interchangeable.
+
+The tempting wrong answer is almost always a global remedy. A bigger memory. A retry. A higher threshold. More sources. Those make a symptom rarer, without touching its cause.
+
+The second recurring axis is cost. Often two answers both work. The credited one buys the same reliability with fewer tokens, fewer hours of human review, or fewer round trips to the customer.
+
+Keep those two ideas in your pocket for the whole chapter. One, find the actual cause. Two, watch the cost.
+
+[beat]
+
+Coming up in part one: keeping critical information alive in long conversations. And yes, we'll come back to that refund agent.
+
+## Part one: Keeping critical information alive in long conversations
+
+Part one. Keeping critical information alive.
+
+By the end of this part, you'll know why a long conversation quietly degrades, the four ways to keep the facts that matter, and how to choose between them.
+
+[beat]
+
+Let's start with the most important fact in the whole domain. And it surprises people.
+
+The plain version first. The model does not remember your conversation between turns.
+
+Every time it replies, the entire conversation so far is handed to it again. Read from the top. And paid for again.
+
+So the model's working memory behaves less like a cupboard, and more like luggage.
+
+Anything in a cupboard costs you nothing to keep. Anything in your luggage comes with you on every trip, and you pay for the weight every time.
+
+A bigger suitcase lets you bring more. It does not make the extra weight free. And it does not help you find your passport once the bag is stuffed.
+
+That second half matters most. As the bag fills, the model gets worse at using what is in it. So a fuller memory is not only more expensive. Past a certain point, it is less effective.
+
+[beat]
+
+In exam terms, this is the context window.
+
+The underlying API, the application programming interface, is stateless. That means nothing persists between calls unless you send it again.
+
+What counts against the window? Everything. The system prompt. Every message. Every tool result. Images and documents. The definitions of the tools themselves. And the model's output, including extended thinking.
+
+There are two separate limits.
+
+The hard limit is the window size. Go over it, and you get an error.
+
+The soft limit is more dangerous. Anthropic's engineering guidance calls it context rot. As the window fills, attention is stretched across more and more material. And quality drops silently, while you are still nominally within budget.
+
+[beat]
+
+A note on numbers, because the exam loves a trap here.
+
+The study notes record that, as of August twenty twenty-six, current models carry a one million token window by default. Output is capped separately, at one hundred and twenty-eight thousand tokens per request. And older models, such as Sonnet four point five and Haiku four point five, sit at two hundred thousand.
+
+Those figures move. Verify them against the current documentation before you design against them.
+
+The principle does not move.
+
+[beat]
+
+Now the trap. Two wrong answers appear again and again.
+
+The first is "move to a model with a larger context window." That raises the ceiling and changes nothing else. The same degradation comes back, just later in the session.
+
+The self-check in the notes describes exactly this. A team moves from two hundred thousand tokens to one million. Six weeks later, the same failure reappears, further into each session. They treated a density problem as a capacity problem.
+
+The second wrong answer is "raise the maximum output tokens." That is a separate budget. It gives the model more room to write. It does nothing about the noise the model is reading.
+
+Hold on to this line. The context window is a budget you spend, not a container you fill. And a bigger one is not a strategy.
+
+[beat]
+
+So what is the strategy? The first tool is what I'll call the sticky note.
+
+The plain version. Go back to our refund agent.
+
+A good human call-centre agent writes three things on a sticky note at the top of her screen. The confirmed order number. The refund amount. And the deadline.
+
+And here's the crucial part. She copies them from the order system. Not from what the caller half-remembers.
+
+However long the call runs, she glances at the note. She doesn't try to recall a figure from twenty minutes ago.
+
+[beat]
+
+The technical name for this is a case-facts block.
+
+It's a compact block of transactional facts. Things like the customer ID, the order ID, the refund amount, and the policy-window day. It's pinned at the top of the context, and rewritten every turn.
+
+It's small. Typically under a couple of hundred tokens.
+
+And it does two jobs at once.
+
+One. It removes your dependence on whatever a summary chose to keep.
+
+Two. It keeps those facts out of the middle of the context, which is where material is used least reliably. We'll come back to that middle problem in a moment.
+
+[beat]
+
+Here's how the exam tests it.
+
+Question one.
+
+Here's the scenario. It's our exact refund story. Forty-five turns. A customer who said one hundred and fifty-nine ninety-nine. An order system that said one hundred and forty-nine ninety-nine. Memory tidied twice. And the agent quoting the wrong figure back.
+
+There are four options. Which one fixes it?
+
+Take a second.
+
+The answer. A facts block, refreshed from tool-confirmed data.
+
+The facts block holds verified tool data only. Never unverified customer claims.
+
+Now the wrong turns.
+
+Wrong: a bigger window. Why? We've already dismissed it. It raises the ceiling and nothing else.
+
+Wrong: keep summarising, but instruct the summariser to preserve every amount and date it judges important. Why? That still depends on a lossy, model-chosen summary. The instruction improves the odds. It guarantees nothing.
+
+Wrong: a facts block refreshed from each customer message. Why? This one is the near miss. It looks almost identical to the right answer. Right structure, wrong source. If you pin what the customer said, you pin the wrong one hundred and fifty-nine ninety-nine.
+
+The stem word that decides it is the moment the tool corrected the customer. When you hear that, think verified-only facts.
+
+Takeaway. Pin the facts at the top, and pin only what a tool has confirmed.
+
+[beat]
+
+The second tool is trimming. It's about the biggest, noisiest thing in the window: tool output.
+
+The plain version. A clerk gets a forty-page delivery report every morning. She needs only four lines of it.
+
+If she stacks every full report on her desk, within a week she can't find anything.
+
+So she copies the four lines onto an index card. She files the report in a cabinet. And she writes the drawer number on the card.
+
+Nothing is lost. It's just not on the desk.
+
+[beat]
+
+In exam terms, you trim tool output before it accumulates, at the hook layer.
+
+In Claude Code, a hook is a small script the system runs automatically at a set point.
+
+A PostToolUse hook runs right after a tool returns. And it can replace what the model sees with a trimmed version.
+
+[beat]
+
+Question two.
+
+Here's the scenario. A continuous integration job, CI for short. Each test-runner call returns about twenty thousand tokens of log. The agent needs only failing test names, file paths, line numbers and assertion messages. After five or six calls, the agent starts blaming the wrong files.
+
+And one more constraint: "the full logs must remain available for later audit."
+
+What's the fix?
+
+Take a second.
+
+The answer. A post-tool hook that keeps only the failing test identifiers, paths and messages. And it saves each raw log as a file, referenced by its path.
+
+About sixty tokens reach the context, instead of twenty thousand.
+
+The study notes show the same move on a server diagnostic. A roughly nine-hundred-token dump, reduced to a sixty-token finding. It keeps the exact names, the numbers, the open question. And one last line pointing at the raw output on disk.
+
+That last line is the difference between trimming and destroying.
+
+[beat]
+
+Now the wrong turns. And this trap is subtle, because the wrong answers are real platform features.
+
+Wrong: server-side tool-result clearing. Why? Clearing removes old tool results outright once a token threshold is passed. So an identifier that lived only in a cleared log is not blurred. It's gone. And nothing points back to it.
+
+Wrong: server-side compaction. Why? Compaction summarises the accumulated history into a short narrative. That's lossy and model-written. And file paths and test identifiers are exactly the details that degrade first.
+
+Notice that both of those act after the bloat. The hook acts before it.
+
+And the constraint word that seals it is "the full logs must remain available for later audit." When a stem says auditable later, think raw-output path.
+
+Takeaway. Trim before it piles up, and always keep a path back to the original.
+
+[beat]
+
+Those two features just appeared as distractors. So let's name them properly.
+
+This is a genuine contrast segment, because the exam checks whether you can tell them apart.
+
+The plain version. Think of the luggage again. There are three moves.
+
+Compaction is repacking. You swap the bulky originals for a short written note of what they contained. And you accept that a note is not the thing.
+
+Context editing is lifting named items out of the bag. More precise, because you say what goes. But what goes is gone.
+
+Writing facts to disk is checking a bag through. It costs nothing to carry, and one errand to retrieve.
+
+[beat]
+
+Now the technical version. One caveat first. These identifiers come from the study notes, and they were in beta when the notes were written. So check current documentation.
+
+Server-side compaction is identified as compact_20260112.
+
+Here's what it does. It watches input tokens against a trigger. It generates a summary. It returns a compaction block. And on later requests, the API drops everything before that block.
+
+The notes say the trigger defaults to one hundred and fifty thousand input tokens, and cannot go below fifty thousand.
+
+The default summary asks for four things. Conversation state. Next steps. Learnings. And decisions.
+
+There's an option called instructions. And here's the catch. It replaces the default summarisation prompt entirely. It doesn't add to it. So anything you still want from the default has to be restated.
+
+[beat]
+
+Context editing is the surgical pair.
+
+It uses a strategy called clear_tool_uses_20250919, to drop the oldest tool results past a threshold.
+
+And a strategy called clear_thinking_20251015, to manage thinking blocks.
+
+When you use both, the clear_thinking_20251015 edit must come first in the list of edits.
+
+The notes add that context editing is switched on with a beta header: context-management-2025-06-27.
+
+All of these run server-side, before the prompt reaches the model. So your own client still holds the full, unmodified history.
+
+[beat]
+
+Now the trap. When compaction damages identifiers, three tempting fixes appear.
+
+Question three.
+
+Here's the scenario. A regulatory agent invented a rule identifier after compaction. What's the right fix?
+
+Take a second.
+
+The answer. Write each identifier to a durable record at the moment it is discovered. And have the agent read identifiers from that record, not from conversation history.
+
+Two more things help. You can tell compaction's instructions to reproduce identifiers verbatim. And you can use a PreCompact hook, which fires before compaction, to archive the transcript.
+
+Both help. But the persisted record is the stronger guarantee. Why? Because it doesn't depend on a model following an instruction.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: raise the compaction trigger, so it fires less often. Why? That delays the failure rather than preventing it. A long-lived session crosses any trigger eventually.
+
+Wrong: disable compaction. Why? On a long-lived session, that leads to a hard overflow. And warnings about remaining budget preserve nothing.
+
+Wrong: swap compaction for clearing, because clearing doesn't rewrite anything. Why? That's true, but clearing deletes. An identifier that lived only in a cleared result is simply gone. That's at least as bad.
+
+Hold on to this line. Extract before you clear. Persist before you summarise.
+
+Identifiers, exact figures, file paths and line numbers are never summarisable.
+
+[beat]
+
+Now the middle problem I promised.
+
+The plain version. Hand someone a thick stack of papers, with one crucial instruction buried on page two hundred. They're more likely to miss it than if it sat on the first page or the last.
+
+The top and the bottom of the pile are where things get found.
+
+[beat]
+
+In exam terms, here's what Anthropic's prompting guidance says. Put long documents and bulk inputs near the top of the prompt, above the query and instructions.
+
+It reports that putting the question at the end can improve response quality by up to thirty percent in tests. Especially with complex multi-document inputs.
+
+This lines up with a research finding called "lost in the middle." Material near the start or end of a long input is used most reliably. Material in the middle, least.
+
+Treat that as a tendency, not a law. It was measured on particular tasks and models, and modern models handle it better.
+
+So the practical layout has three layers. Facts at the top. Trimmed results in the middle. And last, a one-line recap of constraints, plus the question.
+
+[beat]
+
+Question four.
+
+Here's the scenario. A practice question puts one hard constraint in the middle of a three-hundred-and-eighty-thousand-token document set. The constraint is: never report on entities incorporated outside the European Union.
+
+What's the best answer?
+
+Take a second.
+
+The answer has three pieces. It names the position effect. It moves documents first and instructions last. And it also validates the constraint outside the model.
+
+That last clause matters. Placement improves the odds. It never makes a hard constraint reliable.
+
+This connects to the enforcement ladder from earlier chapters. Anything that must happen every time belongs in code.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: the input exceeds the usable window and should be split. Why? Splitting breaks the cross-document reasoning.
+
+Wrong: anything outside the system prompt is ignored. Why? That overstates it.
+
+Wrong: blame vague wording, "regardless of where it sits." Why? That contradicts the placement guidance.
+
+And watch for one more reversal. Wrong: an option that moves the bulk material after the question. Why? That's backwards.
+
+Takeaway. Bulk material first, the question last, and hard constraints checked in code as well.
+
+[beat]
+
+The last concept in this part is choosing among the preservation strategies. And it's where the exam likes a phase change.
+
+The plain version. You've just had a long brainstorming meeting, and half the ideas were rejected. You don't hand the builder the full recording.
+
+You give them a one-page work order. What was decided. What was ruled out. And the exact addresses they need.
+
+Whatever is not on the page will not reach them. So you write it carefully.
+
+[beat]
+
+The technical version is a four-way choice. Let's take them one at a time.
+
+One. Trim in place. Use it when the output is bulky and low density, and the facts are easy to list. It has the lowest ongoing cost. The risk is losing an identifier you didn't know you needed.
+
+Two. Summarise, through compaction or your own summary turn. Use it when the reasoning path matters more than the raw artifacts. The risk is that it's lossy and model-chosen.
+
+Three. Persist to disk and reload on demand. Use it for anything that must survive word for word. The cost is a little latency. The risk is stale files.
+
+Four. Start a fresh session with a handoff brief. Use it when the task has changed phase, or when the history is more contradiction than context. It has the highest one-off authoring cost, and the cheapest steady state. And its risk is total. Anything not in the brief is gone.
+
+[beat]
+
+The notes' honest reading is this. Persist-to-disk is the default for facts. Compaction is the default for narrative. And they combine well.
+
+Anthropic's guidance calls that pairing structured note-taking alongside compaction.
+
+Quick recap before the last question. Trim bulk. Summarise narrative. Persist facts. And start fresh when the task has changed phase.
+
+[beat]
+
+Question five.
+
+Here's the scenario. Four hours in one Claude Code session, investigating a flaky build. The investigation is done. The work has moved to implementing a fix. The history is full of abandoned hypotheses. And the agent keeps reverting to an approach the developer ruled out two hours ago.
+
+What's the best move?
+
+Take a second.
+
+The answer. A fresh session, with a handoff brief. The brief carries the two locked decisions, the ruled-out approach, and the exact file paths.
+
+And one detail. Findings from the old session that are not yet confirmed go in as hypotheses to validate. Not as facts.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: add a strongly worded reminder. Why? It's one more sentence competing with hours of contradiction. And it's the first thing lost.
+
+Wrong: trigger compaction. Why? Compaction suits a session where the reasoning path matters. But here the path is mostly abandoned ideas. A model-chosen summary may keep them, and blur the paths.
+
+Wrong: a bigger window. Why? It keeps all the contradiction in view.
+
+The stem words that flip the answer are "the work has moved on" and "keeps reverting." Phase change, plus contradictory history, means a fresh brief.
+
+[beat]
+
+So when do you compact, and when do you start fresh?
+
+Compact when the journey is the value, and you're continuing the same task.
+
+Start fresh when the journey is mostly wrong turns, and the task has changed.
+
+In both cases, write the must-survive facts down first.
+
+[beat]
+
+That's part one.
+
+If you remember one thing, make it this. Trim bulk, summarise narrative, persist facts, and start fresh with a careful brief when the history has turned against you.
+
+Coming up in part two: escalation and ambiguity resolution. When to fetch a human, and what to do when a request is unclear.
+
+## Part two: Escalation and ambiguity resolution
+
+Part two. Escalation and ambiguity.
+
+By the end of this part, you'll know which triggers should send a case to a human, why a request for a human is its own rule, how many clarifying questions an agent gets, and what to do when the policy itself has a hole.
+
+[beat]
+
+Let's start with a picture.
+
+Every organisation that lets people act on their own also tells them when to fetch someone senior. The versions that work describe the situation. Not the person's feelings.
+
+Imagine a shop manager who tells staff, "call me whenever a customer sounds angry." She spends the whole day on easy returns. Meanwhile, a genuinely unusual case slips through, because a clerk improvised.
+
+Now try a different rule. "Call me when the customer asks for me, when our policy does not cover it, or when you have tried everything." That one gets her to the right cases.
+
+And "come and get me if you are unsure" is worse still. Why? Because it turns the trigger into a fact about the clerk's mood that day. Not a fact about the case.
+
+[beat]
+
+The technical name for this is escalation criteria. And the exam wants them checkable against the record.
+
+The valid triggers come in four kinds.
+
+One. An explicit request for a human.
+
+Two. A policy gap. That means no rule matches, or two playbooks conflict.
+
+Three. Being genuinely stuck after reasonable attempts. Tools exhausted, and no progress.
+
+Four. A hard tier, for safety or legal risk, and for irreversible or high-consequence actions.
+
+The rules are evaluated in order. The first match wins. And the system records which rule fired, on the ticket.
+
+That record is what makes the policy auditable and revisable. Without it, nobody can explain afterwards why any ticket was, or was not, escalated.
+
+[beat]
+
+The study notes lay out a sample rule set, in tiers. Let's walk down it.
+
+First, a hard-escalate tier. Here, no automated reply is sent at all. It covers safety or self-harm. A legal threat. An explicit request for a human, a manager or a callback. An active regulatory complaint, chargeback or subpoena. An action that would move funds, close an account, or change contract terms. And enterprise-tier or high-value accounts.
+
+Second, an escalate-after-one-attempt tier.
+
+Third, proceed automatically. But only when the intent matches a documented playbook, every required field is present, and no escalation condition matched.
+
+Fourth, ask one clarifying question.
+
+And finally, an abstention path. We'll get to that one.
+
+[beat]
+
+One tension to flag.
+
+That sample rule set lists money-moving actions in the hard tier. Yet the practice questions have the agent resolve policy-covered refunds on its own.
+
+So read the sample as a threshold choice. Like the notes' own example: "any refund over five hundred dollars."
+
+On the exam, follow the stem. If the scenario says the playbook covers the case, resolving it automatically is correct.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A support agent escalates any ticket with a strongly negative sentiment score. The human queue is overloaded with angry customers whose refunds were fully covered by policy. Meanwhile, a partial refund on a bundled item, which no playbook covered, was handled automatically, with a guessed amount.
+
+The lead wants two things. Fewer escalations. And fewer unsafe automated actions.
+
+What's the best answer?
+
+Take a second.
+
+The answer. Escalate only on checkable triggers: an explicit human request, a policy gap, or no progress. And resolve covered cases even when the customer is upset.
+
+That single change does both jobs. It cuts the angry-but-covered volume. And it catches the bundle case.
+
+[beat]
+
+Now the wrong turns. Each one is a different unreliable proxy.
+
+Wrong: raise the sentiment threshold, and add a policy-gap check as a secondary signal. Why? It's still escalating on mood. And the right signal has been demoted.
+
+Wrong: add a self-assessed confidence score, and escalate below seven out of ten. Why? Self-reported confidence is noise. Formalising it into a number keeps the volatility.
+
+Wrong: escalate anything needing more than three lookups or two policy conditions. Why? Complexity alone is not a trigger. Complex cases call for care, not handoff.
+
+[beat]
+
+A second practice scenario from the notes adds two more symptoms worth memorising.
+
+Symptom one. Escalation volume swinging between eight and thirty-four percent over three weeks, with no change in the ticket mix.
+
+Symptom two. A support lead who cannot tell an auditor why any ticket was escalated.
+
+What do they point to? Swinging volume points to a self-report trigger. Unexplainable decisions point to no recorded rule.
+
+The fix is the same as before. Ordered, checkable conditions. An explicit rule for human requests. And an abstention path.
+
+[beat]
+
+That scenario has two more wrong turns.
+
+Wrong: a fixed escalation quota, say fifteen percent a week. Why? It makes escalation depend on how many tickets arrived earlier in the week. And it can suppress a genuine hard case.
+
+Wrong: review everything for thirty days, in order to refine the wording of the confidence instruction. Why? That keeps the trigger inside the model's self-assessment.
+
+[beat]
+
+Now a source disagreement you should know about.
+
+The lesson eighteen deck says customer sentiment is never an escalation trigger.
+
+The study notes' sample rule set allows it, in the second tier. Escalate after one resolution attempt, if sentiment is negative on two consecutive customer turns.
+
+Here's the good news. Both sources agree on the part the exam tests. Sentiment alone is the wrong trigger. Explicit criteria, plus an explicit request for a human, are the right ones.
+
+So. If a question offers sentiment as the sole or primary trigger, it's wrong. If a question frames sentiment as a secondary signal, after a failed resolution attempt, answer in the question's terms.
+
+Hold on to this line. Escalate on facts you can check against the record. Never on mood, complexity, or self-reported confidence.
+
+[beat]
+
+The request for a human deserves its own segment. The exam treats it as a separate axis.
+
+The plain version. If a customer asks to speak to a person, they get a person. Even if the machine would have handled it perfectly, and faster.
+
+It's not a question of how risky the request is. It's a question of what the customer agreed to.
+
+[beat]
+
+In exam terms, an explicit request for a human is a hard escalation. It's evaluated before any playbook match.
+
+And there's a list of things you don't do. No automated reply sent first. No attempt to resolve it. No asking why. And no pushing the customer to a self-service portal.
+
+The notes call stated preference a separate axis from severity.
+
+Severity measures the consequence of getting the request wrong. Preference measures consent.
+
+A system that overrides a stated preference, because it calculated the request as low risk, has substituted its own judgment for the customer's.
+
+[beat]
+
+The trap is a stem that tells you the automation succeeds ninety-nine percent of the time, and the customer would probably be satisfied.
+
+That number is irrelevant. Which is the whole point.
+
+The failure from overriding is not a wrong answer. It's a trust breach. Sometimes a compliance breach. And it surfaces in a complaint, rather than a metric.
+
+Takeaway. A customer who asks for a human gets a human, immediately.
+
+[beat]
+
+Next, ambiguity. What should the agent do when the request itself is unclear?
+
+The plain version. A waiter hears "I'll have the special" on a night with two specials.
+
+He asks once. The fish, or the risotto?
+
+He doesn't guess. And he doesn't fire off ten questions. If the answer is still unclear, he fetches the manager, rather than turning dinner into an interview.
+
+[beat]
+
+The technical name is a bounded clarification budget.
+
+Three conditions switch it on. The intent matches a playbook. Exactly one required field is missing or ambiguous. And the customer can supply it directly.
+
+Then the agent asks one specific clarifying question, and re-evaluates the rules.
+
+The limit is one clarifying question per ticket. A second ambiguity routes to a human.
+
+The notes put the reasoning memorably. Hold on to this line. Clarifying questions are cheap individually, and corrosive in aggregate.
+
+Why? Because a system that asks three questions before doing anything has moved the work back onto the customer. While still charging them the wait.
+
+[beat]
+
+Question two. This one is select two.
+
+Here's the scenario. A customer writes, "please refund my order, it arrived broken." The account has two orders delivered this week. The playbook needs an order ID. Everything else is present.
+
+Which two behaviours are correct?
+
+Take a second.
+
+The answers. First, ask one question, naming both candidate orders. Second, if the reply is still ambiguous, route to a human, rather than asking again.
+
+Now the wrong turns.
+
+Wrong: refund the most recent order. Why? That's a guess on a money-moving action. It produces a confident wrong refund, and the customer finds it, not you.
+
+Wrong: escalate immediately, because any ambiguity means uncertainty. Why? That's over-escalation.
+
+Wrong: collect the order ID, damage photos, refund method and a reason code, all in one message. Why? That's interrogation. It asks for fields the playbook does not need.
+
+Takeaway. One missing field the customer can supply earns one question. A second ambiguity earns a human.
+
+[beat]
+
+Now the contrast the exam builds its hardest escalation questions on. Ambiguity in the request, versus ambiguity in the policy.
+
+The plain version. A new cashier finds two store rules that contradict each other, for one return.
+
+Quietly picking one hides the problem.
+
+Asking the customer which rule they prefer also hides it. Because the customer cannot settle a contradiction in the rulebook.
+
+The right move? Call the supervisor. And add the case to a list the manager reads every week, so the rulebook gets fixed.
+
+[beat]
+
+The technical name is the abstention path. The notes describe it as the escape hatch, not a failure state.
+
+When does it apply? Three situations. When no rule matched. When two playbooks match with conflicting actions. Or when the required action is not covered by any playbook.
+
+Then the agent routes the case to the human queue, with a reason code of policy_gap.
+
+It attaches three things. The ticket. The playbooks it considered. And the specific decision it could not make. That makes the case fast for a human to decide.
+
+And there are things it doesn't do. It doesn't guess. And it doesn't send a holding reply that implies a resolution.
+
+Finally, the volume in that queue is reviewed weekly, as the input to the next policy revision.
+
+Why weekly review? Because a queue nobody reviews collects the evidence of a policy gap, and changes nothing.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A damaged clearance item matches two playbooks. The warranty playbook says replace. The clearance playbook says final sale, store credit only.
+
+Leadership wants each case handled safely. And it also wants to learn how often the policy is incomplete.
+
+What should the agent do?
+
+Take a second.
+
+The answer. Abstain, with a policy-gap reason, both playbooks attached, and weekly review.
+
+That second goal, learning how often the policy is incomplete, is what points at the weekly review.
+
+Now the wrong turns.
+
+Wrong: apply the cheaper playbook. Why? It's still a guess. And it hides the gap.
+
+Wrong: ask the customer to choose. Why? That's a clarifying question masking a policy problem.
+
+Wrong: escalate, while telling the customer the replacement has been approved. Why? That's exactly the prohibited holding reply.
+
+[beat]
+
+So when do you ask, when do you escalate, and when do you proceed? Three options, each with a cost and a risk.
+
+Proceed when a playbook matches and everything is present. The cost is one model turn. The risk of choosing wrongly is a confident wrong action, found by the customer.
+
+Ask one question when exactly one input is missing, and the customer can supply it. The cost is a round trip. The risk is interrogation loops, or masking a policy problem.
+
+Escalate for hard-tier conditions, an explicit request, or no matching policy. The cost is human time and queue latency. And the risk of overdoing it is a drowned queue, where reviewers start rubber-stamping, and the control you paid for quietly disappears.
+
+That last point, over-escalation as its own failure, is tested directly.
+
+[beat]
+
+That's part two.
+
+If you remember one thing, make it this. A gap in the policy is never the customer's question to answer. Abstain, file it, and review it weekly.
+
+And this connects forward. In a multi-agent system, the thing that most often needs escalating is not a customer. It's a subagent that could not do its job.
+
+Coming up in part three: error propagation across multi-agent systems.
+
+## Part three: Error propagation across multi-agent systems
+
+Part three. Error propagation.
+
+By the end of this part, you'll know how a failure should travel from one agent to another, what words it should use, when to retry it, and who is to blame when a gap disappears.
+
+[beat]
+
+Let's start with a picture.
+
+You send three people to check eight rooms of a building for damp. One of them cannot get the key to two rooms.
+
+The report that comes back says "no damp in the building."
+
+Every sentence in it is true. And the report is a lie.
+
+What's the fix? It's not to make the report sound less sure.
+
+The fix is for that person to come back and say this. Rooms six and seven not entered. Key missing. Someone with the key can do it in ten minutes. And no reading is not the same as a dry reading.
+
+[beat]
+
+That is the whole of this part.
+
+Where one agent hands work to another, information is thinnest exactly where it matters most. And silence reads as good news to everyone downstream.
+
+[beat]
+
+The technical version. The notes put it this way. Hold on to this line. An error that crosses an agent boundary as prose becomes a rumour.
+
+Picture a coordinator receiving "I was unable to complete the analysis." What can it decide? Nothing.
+
+It cannot tell total from partial failure. It cannot tell whether a retry could help. And it cannot tell which units went uncovered.
+
+So it does one of the two worst things available. It retries blindly. Or it treats the missing result as an absence of findings, and reports success.
+
+[beat]
+
+There are two layers. And the exam separates them.
+
+First, the tool layer. Here the API defines a specific channel. A tool result block can carry a flag called is_error, set to true, with content describing the failure.
+
+The documentation names three categories. Tool execution errors. Invalid tool names. And server tool errors. And it says descriptive error content helps the model recover.
+
+On the Model Context Protocol wire, the same flag is spelled isError. Both spellings are correct, on their own surface.
+
+Second, the agent layer. Here there is no protocol at all. There is only the contract you impose on what a subagent returns.
+
+[beat]
+
+That contract is a structured result. Let's build it piece by piece.
+
+It has a status, such as partial.
+
+It has a completed section, with the findings that succeeded.
+
+It has a failures list. Each failure names quite a lot. The unit of work. The phase. An error_class. An error_code. A human-readable detail. A retryable flag. A retry_would_help_if field, stating the condition under which a retry would help. The number of attempts. And a pointer to evidence, such as a log path.
+
+It carries coverage counts. Units requested. Units completed. Units failed.
+
+And it carries a claim_scope. That's a sentence stating which units were not examined, and that the absence of findings for them is not evidence they are clean.
+
+One more. If it carries a confidence level, that comes with an explicit basis. Such as what the data is current as of, and what went unscanned. Why? Because a bare confidence level cannot be evaluated.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A research coordinator fans out five search subagents. Two hit upstream timeouts. They catch the exception, and return an empty findings list with status success. The synthesis step then reports that no published evidence exists for those two subtopics.
+
+The team wants the smallest change that stops these false negatives, while keeping the three good results.
+
+What is it?
+
+Take a second.
+
+The answer. Subagents return failures distinctly from empty results, with error_class, retryability, and coverage counts.
+
+That lets the coordinator do three things. Keep the good results. Retry the transient failures, within a bound. And propagate any remaining gap.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: have the synthesis agent lower its confidence, and add a caveat when a subtopic looks thin. Why? It doesn't name the gap. So the subtopics still read as searched and empty.
+
+Wrong: discard everything and restart all five whenever any comes back short. Why? It throws away three good results. That's the exact waste a partial-result contract exists to prevent.
+
+Wrong: raise the timeout, and retry every failed search until it returns at least one result. Why? That's an unbounded retry. And it also pressures the system to manufacture findings, where a true empty was possible.
+
+Hold on to this line. An empty result is not a success. "Not searched" and "nothing found" must look different when they cross the boundary.
+
+Takeaway. Failures cross agent boundaries as structured facts. Never as prose. And never disguised as empty results.
+
+[beat]
+
+The second concept is vocabulary.
+
+The plain version. Imagine every hospital department used its own word for urgent. The triage desk would spend its day translating, and still get some wrong.
+
+One shared set of labels changes that. Say urgent, routine, and needs authorisation. The desk can route instantly. And a notes field keeps the detail for the doctor.
+
+[beat]
+
+In exam terms, use the same error class vocabulary at the agent layer that the tool layer already uses.
+
+The earlier chapter on tool design classifies tool failures three ways. Transient. Business. And permission.
+
+Reuse exactly those three values in the subagent's failure objects.
+
+The error_class field tells the coordinator what to do.
+
+Transient gets a bounded retry.
+
+Business changes the plan.
+
+Permission escalates.
+
+The situational detail goes in a separate error_code field. Things like auth_denied, or upstream_timeout, or tenant_boundary. And that one is for the human.
+
+So a permission failure routes to escalation whether its code says auth_denied or tenant_boundary. That is the whole point of a taxonomy.
+
+[beat]
+
+Question two.
+
+Here's the scenario. A CI coordinator delegates dependency, licence and secrets scans to three subagents. Each invented its own failure labels: ACCESS_PROBLEM, flaky, blocked, denied_maybe. And the coordinator keeps retrying authorisation failures, while escalating simple timeouts. The tools already classify their own errors.
+
+What's the fix?
+
+Take a second.
+
+The answer. Report error_class with the tool layer's three values, and put the detail in error_code.
+
+Now the wrong turns.
+
+Wrong: keep the invented labels, and add a translation table in the coordinator. Why? That's exactly the cost a shared vocabulary avoids. And it breaks every time a new label appears.
+
+Wrong: return plain-language descriptions, and let the coordinator's model decide from the wording. Why? That's the rumour problem again.
+
+Wrong: collapse everything into one retryable true-or-false flag. Why? It loses the difference between business and permission failures. Both are non-retryable. But they need different actions.
+
+Takeaway. One error vocabulary across every layer. error_class decides the action. error_code records what happened.
+
+[beat]
+
+The third concept is retry discipline. It ties the first two together.
+
+The plain version. If a door is locked, knocking harder does not help. Knocking again helps only if someone might have been in the shower.
+
+So before you try again, you need to know which kind of problem it was.
+
+[beat]
+
+In exam terms. Hold on to this line. Classification overrides the retry counter.
+
+A failure classified as non-retryable is never retried. No matter how much budget remains.
+
+An authorisation failure, an HTTP four-oh-three, reproduces identically forever.
+
+The notes use three attempts per unit as their house number. And they're explicit that this is house guidance, not a platform limit.
+
+The retry_would_help_if field turns "should I retry?" from a guess into a lookup. For example: retry would help if the token is granted read access on that repository.
+
+[beat]
+
+Question three. This one is select two.
+
+Here's the scenario, from the notes. A subagent could not read a private repository's manifest. The coordinator retried three times, got the same failure, and reported no vulnerabilities across four repositories.
+
+Which two changes are correct?
+
+Take a second.
+
+The answers. And notice they fix two separate defects.
+
+First. A structured failure, with class, retryability, and the unblocking condition. So the permission failure is not retried.
+
+Second. Coverage counts, plus the names of the unexamined repositories, in the human-facing report.
+
+Now the wrong turns.
+
+Wrong: raise the retry limit to six, with exponential backoff. Why? It treats a deterministic failure as transient. And it makes the waste worse.
+
+Wrong: lower the report's confidence from high to medium. Why? The security team still treats the unread repository as clean.
+
+Takeaway. Never retry what is classified non-retryable. Name the condition that would unblock it instead.
+
+[beat]
+
+Which brings us to the coordinator's side of the bargain. And the word the notes use for getting it wrong: laundering.
+
+The plain version. A team assistant receives a note saying "thirty-six of forty files checked, four were illegible."
+
+Then the assistant tells the boss, "none of the forty files had the problem."
+
+Every word the assistant received was accurate. The gap vanished at the last step.
+
+[beat]
+
+In exam terms, the coordinator must propagate the coverage gap into its own output. Not absorb it.
+
+Hold on to this line. Error propagation that stops one level short of the human is not propagation. It is laundering.
+
+So the report has to do three things. Say eleven of thirteen, or thirty-six of forty. Name the missing units. And say why.
+
+Why the why? Because the unblocking action is often the most useful output of the whole run.
+
+[beat]
+
+Question four.
+
+Here's the scenario. A contract-extraction coordinator sends forty contracts out. One subagent returns a well-formed partial result. Thirty-six extracted. Four failed on unreadable scans. And a claim_scope saying those four were not examined.
+
+The coordinator then tells the legal team, "no change-of-control clauses found across the forty contracts."
+
+Where is the defect?
+
+Take a second.
+
+The answer. In the coordinator. The subagent did its job perfectly.
+
+Now the wrong turns.
+
+Wrong: blame the subagent for not retrying the unreadable scans. Why? An unreadable scan fails the same way every time. And the subagent already reported correctly.
+
+Wrong: add "medium confidence" to the report. Why? It doesn't say which four contracts were skipped.
+
+Wrong: have the coordinator re-extract all forty itself. Why? That's the named anti-pattern of a coordinator re-reading what its subagents read. It pays full cost twice, and still doesn't fix how the gap is reported.
+
+And the notes stress why this is a reliability defect, rather than a wording nicety. Legal and security teams act on absence of findings.
+
+[beat]
+
+So, a contrast. Is it a subagent defect, or a coordinator defect?
+
+Ask where the information about the gap last existed.
+
+If the subagent returned prose, or a fake empty success, the defect is in the subagent's contract.
+
+If the subagent returned a correct partial result, and the gap disappeared in the summary, the defect is in the coordinator.
+
+[beat]
+
+That's part three.
+
+If you remember one thing, make it this. Lowering confidence is not naming the gap. The human-facing report says how many of how many, and which ones.
+
+Coming up in part four: managing context in large codebase exploration.
+
+## Part four: Managing context in large codebase exploration
+
+Part four. Exploring a large codebase.
+
+By the end of this part, you'll know why you search before you read, what should stay in the window, and what makes delegating the exploration worth it.
+
+[beat]
+
+Let's start with a picture.
+
+Suppose you need to know which of four hundred supplier contracts mention one particular company.
+
+You could read all four hundred. Nobody does.
+
+You search the index. You get a list of contracts and clause numbers. And then you read just those clauses, closely.
+
+Reading everything cover to cover leaves you exhausted. You're holding four hundred contracts' worth of detail. And you're still unsure you caught them all.
+
+[beat]
+
+Exploring a large codebase is the same move, under one extra pressure.
+
+The reading is not free. And it does not go away once done.
+
+Everything the model reads stays in front of it for the rest of the session. Competing with everything it reads afterwards.
+
+[beat]
+
+In exam terms, exploration is a retrieval problem. And the winning pattern is search, then read.
+
+Step one. A symbol search, such as the Grep tool in Claude Code, covers the whole codebase cheaply. It returns file paths and line numbers. That's a map.
+
+Step two. Read only the matched ranges, plus enough surrounding lines to establish scope.
+
+Step three. Follow one level of definitions and callers.
+
+Step four. Write down what you learned, before going further.
+
+And the opposite? Reading files in the hope of encountering the symbol. That's a linear scan, with no upper bound on cost, and no guarantee of completeness.
+
+[beat]
+
+The notes give three reasons why reading whole files is usually wrong.
+
+One. The density is terrible. A two-thousand-line service file typically holds perhaps thirty lines relevant to your question. The other one thousand nine hundred and seventy sit in the window for the rest of the session.
+
+Two. It crowds out later evidence. And because it usually lands in the middle of a long context, it's also the material the model uses least reliably.
+
+Three. It hides the structure you actually need. Knowing which twelve files reference a symbol tells you more about a change's blast radius than reading any one of them completely.
+
+[beat]
+
+Question one.
+
+Here's the scenario. Before a refactor, a developer asks Claude Code to find every call site of a deprecated charge-card function, in a three-thousand-file monorepo. The first attempt read the payments directory file by file, and used most of the window before the refactor started. The developer needs two things. A complete list. And a main session with room left for implementation.
+
+What's the right approach?
+
+Take a second.
+
+The answer. Search for the symbol to get paths and line numbers. Read only the matched ranges. And delegate the wide sweep to a subagent that returns file-and-line hits.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: read the payments and billing directories in full first, because most call sites probably live there. Why? Terrible density. And no completeness guarantee outside those directories.
+
+Wrong: load the whole repository into the large window, so nothing is missed. Why? It maximises cost and minimises density. And recall degrades as the window fills, even when it fits.
+
+Wrong: list every file, and read each in turn with a running prose summary. Why? That's an unbounded scan. And its summaries drop the exact paths and line numbers the refactor needs.
+
+Notice that last one. Prose summaries losing identifiers is the same failure we met in part one, in a different costume.
+
+Takeaway. Search to build a map, then read only what the map points to.
+
+[beat]
+
+The second concept is what stays in the window.
+
+The plain version. You want to see who is affected by a changed office policy. You don't photocopy every employee's full file.
+
+You pull the list of people the policy applies to. Then you read the one relevant line in each file.
+
+The list alone tells you most of how far the change reaches.
+
+[beat]
+
+The technical name is just-in-time retrieval, from Anthropic's context engineering guidance.
+
+Keep lightweight identifiers in context. Paths, symbol names, and line ranges. And load content through tools only when it's needed.
+
+Hold on to this line. Identifiers, not content.
+
+[beat]
+
+Question two.
+
+Here's the scenario. An engineer wants the blast radius of renaming a widely used config loader. The current prompt pastes the diff, plus the full contents of all sixty files that import the loader. Then it asks for a risk review. Reviews keep missing issues in files near the middle of the pasted material.
+
+What's the fix?
+
+Take a second.
+
+The answer. Keep the diff and the list of importing paths in context. Search for the loader's call patterns. And read only matched ranges and direct callers.
+
+[beat]
+
+Now the wrong turns. Each one rearranges, shrinks, or splits the same flawed approach.
+
+Wrong: paste the files after the question, so the recent material sits closest to the request. Why? That contradicts the placement guidance, which puts bulk first and the question last. And it does nothing about density.
+
+Wrong: split the sixty files into batches of ten, in separate sessions, and concatenate the reports. Why? It breaks the cross-file reasoning a blast-radius review needs. No batch can see the others.
+
+Wrong: paste only the ten most recently modified importers. Why? Recency is a proxy, not retrieval. It misses importers that haven't changed lately.
+
+[beat]
+
+The notes carry a sibling scenario worth knowing.
+
+A prototype loads the twelve most recently modified files of a twenty-three-hundred-file repository into the system prompt, on every request.
+
+Three things happen. It answers questions about those twelve well. It misses cross-file relationships. And it gets worse on the loaded files as the conversation lengthens.
+
+The right design keeps a lightweight index of paths and symbols. It exposes search and ranged-read tools. And it delegates wide exploration to a subagent.
+
+[beat]
+
+That sibling scenario has three wrong turns too.
+
+Wrong: load fifty recent files instead of twelve. Why? That scales the flaw.
+
+Wrong: move the twelve files to the end of the context. Why? It misapplies a real principle. Placement cannot help with the two thousand two hundred and eighty-eight files that are not there at all.
+
+Wrong: concatenate the whole repository into one document. Why? It maximises cost. And it will stop fitting after a year of growth anyway.
+
+Takeaway. Keep the list in the window, and fetch the pages when you need them.
+
+[beat]
+
+The third concept is delegation. And the part of delegation that actually matters.
+
+The plain version. You send an assistant to the archive.
+
+If they come back saying "it all looked fine, mostly," you have to go yourself. The trip was wasted.
+
+If you tell them up front to bring back file numbers, page numbers, and what they didn't get to, their trip replaces yours.
+
+[beat]
+
+In exam terms, a subagent runs with its own context.
+
+The cost of forty searches and a dozen partial reads accrues in the subagent's window. And it's discarded when the subagent finishes. What returns is the conclusion.
+
+In Claude Code, you can get this isolation in two ways. From a subagent. Or from a skill set to run in a forked context.
+
+But the value of that isolation depends entirely on the return contract.
+
+[beat]
+
+What does a good return sound like? Something like this.
+
+Authentication is enforced in the auth middleware file, lines forty-four to ninety-one.
+
+Three handlers in the legacy handlers file register through a raw registration path that skips the middleware chain. Here are their line numbers.
+
+Here is the test that would have caught it.
+
+And here is what was not examined.
+
+That's a few hundred tokens, standing in for tens of thousands. And it carries the identifiers the main session needs to act.
+
+[beat]
+
+Question three.
+
+Here's the scenario. An exploration subagent, run as a forked-context skill, is asked why some legacy endpoints skip authentication. It returns, "authentication looks mostly fine; a few legacy handlers might be worth a look." The main session then re-reads the handler files itself. That roughly doubles the cost of every investigation.
+
+What's the fix?
+
+Take a second.
+
+The answer. Specify the subagent's return contract. Exact files and line ranges. The bypass path. The test that would catch it. And what went unexamined.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: drop the subagent and explore in the main session. Why? It throws away the context isolation. And it fills the main window with the very files the subagent existed to keep out.
+
+Wrong: keep the design, but always re-read every file the subagent read. Why? That's the named anti-pattern of a coordinator re-reading what its subagents read. Paying full cost twice, and calling it verification.
+
+Wrong: run the subagent on a bigger model. Why? It produces a more fluent impression. One that still lacks paths and line numbers.
+
+The principle in the rulebook is short. Hold on to this line. Write the return contract before you delegate.
+
+[beat]
+
+So when do you search in the main session, and when do you delegate?
+
+Search directly when the question is narrow, and the hits will be few. The map and a handful of ranged reads are cheap.
+
+Delegate when the sweep will be wide, and the main session needs its room for the real work that follows.
+
+Either way, what comes back should be identifiers, not impressions.
+
+And a cross-reference. The chapter on agent architecture warns against writing a delegation prompt as though the child shares your conversation. A subagent starts with none of your context. So the prompt must stand alone.
+
+[beat]
+
+That's part four.
+
+If you remember one thing, make it this. Delegation buys you a discarded context, and the return contract is what makes the purchase worth it.
+
+And this connects to what's next. A conclusion returned from a subagent is a claim you eventually have to decide whether to trust, without redoing the work.
+
+Coming up in part five: human review workflows and confidence calibration.
+
+## Part five: Human review workflows and confidence calibration
+
+Part five. Human review and confidence.
+
+By the end of this part, you'll know when a model's confidence number means something, why averages hide failures, and how three kinds of human review fit together.
+
+[beat]
+
+Let's start with a picture.
+
+A weather forecaster says "ninety percent chance of rain." That's something checkable.
+
+Write down every day they said ninety. Count how many were wet. If it comes out near nine in ten, the number means what it says.
+
+If it comes out at six in ten? The forecaster said it with the same conviction. And you've learned the number cannot carry the weight you were about to put on it.
+
+That tally is calibration. It's something you measure against what happened afterwards. It is not something the forecaster can hand you along with the forecast.
+
+[beat]
+
+A model's stated confidence is similar. With one difference.
+
+The forecaster is scored, and knows it. A model that writes "confidence zero point nine" has not been scored on anything.
+
+The number is a claim, produced by the same process that produced the answer.
+
+It's often useful. And often in the right order. Items marked point nine usually are more reliable than items marked point seven.
+
+But none of that makes point nine mean ninety percent.
+
+[beat]
+
+In exam terms. A stated confidence is a token sequence, not a measured probability. Until it has been measured against outcomes.
+
+A signal is calibrated when its stated level matches the observed frequency of correctness.
+
+How do you establish that? Take a labelled sample, meaning items where you know the right answer. Bucket them by stated confidence. And compute accuracy per bucket.
+
+There are two common findings.
+
+First. The mapping is monotonic but compressed. So point seven and point nine five do separate the population. But point nine five might mean eighty-two percent in practice.
+
+Second. The mapping differs by input type.
+
+Once you have that table, you set a threshold to a stated target error rate. And you re-measure whenever the inputs change.
+
+Choosing point nine because it sounds high is, in the notes' phrase, not calibration but decoration.
+
+[beat]
+
+The second idea is segmentation.
+
+The plain version. A train line runs ninety-four percent on time. It can still have one service that is late every single morning. If that's your train, ninety-four percent describes someone else's life.
+
+In exam terms, report accuracy by document type, and by intake channel. And show the volume of each segment alongside its accuracy.
+
+An average across types that behave differently hides the one that fails.
+
+The notes' example. Ninety-eight percent on native digital invoices. Ninety-six on clean scans. And sixty-one on scanned handwritten notes, which are six percent of volume.
+
+The average barely moves. And every reviewer who handles handwritten notes stops trusting the whole system.
+
+Quick recap before the questions. Confidence means nothing until counted against outcomes. And accuracy has to be reported per segment, with volumes.
+
+[beat]
+
+Question one.
+
+Here's the scenario. An invoice pipeline will auto-post any extraction with self-reported confidence of point nine or higher. The threshold was chosen after a random two-hundred-document evaluation showed ninety-five percent accuracy overall.
+
+The volume is eighty percent native invoices in Portable Document Format, or PDF. Fifteen percent scanned receipts. And five percent handwritten delivery notes.
+
+Finance allows at most two percent error on auto-posted items.
+
+What should happen before go-live?
+
+Take a second.
+
+The answer. Label a sample stratified by document type. Measure accuracy per confidence bucket within each type. And set per-type thresholds to the two percent target.
+
+Stratified means you deliberately draw enough from each type, oversampling the small ones.
+
+And here's the give-away number. A random sample of two hundred contains only about ten handwritten notes. So the aggregate can hide a failing segment.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: go live, because ninety-five percent overall looks fine. Why? That's the averaging mistake, with an untested threshold.
+
+Wrong: raise the global threshold to point nine seven. Why? It's still uncalibrated. It raises review cost everywhere. And it may still admit a bad handwritten segment.
+
+Wrong: ask the model to justify each score in a sentence, and auto-post only if it cites fields. Why? The justification comes from the same process as the score. It establishes no link to correctness.
+
+[beat]
+
+The notes add a few more wrong answers in the same family.
+
+Leadership asks for the false-negative rate on unreviewed items, and nobody can produce it. What's wrong here?
+
+Wrong: report the average stated confidence as a proxy.
+
+Wrong: raise the threshold, to shrink the unreviewed pile.
+
+Wrong: switch on extended thinking, so confidence becomes "better grounded."
+
+Why are all three wrong? Because only measurement against outcomes establishes the relationship.
+
+[beat]
+
+One more from the notes. A pipeline reports ninety-four percent, but adjusters re-key claims by hand.
+
+The first step is to segment the accuracy, with volumes.
+
+Wrong: increase the sample size. Why? It just tightens the interval around the wrong statistic.
+
+Wrong, at least as a first step: add a second extraction pass and flag disagreements. Why? It's a legitimate technique. But it doubles cost, and skips the diagnosis of which inputs are systematically hard.
+
+Takeaway. A confidence number means nothing until you have counted it against outcomes, per input type, against a target you stated.
+
+[beat]
+
+The next concept is choosing a review design. There are three. And the exam wants you to know what each buys.
+
+The plain version. You can check every piece of work before it goes out. You can let confident work through automatically, and check the doubtful ones. Or you can spot-check a random handful from every category, to see how the whole operation is doing.
+
+They sound like alternatives. They are actually three different jobs.
+
+[beat]
+
+In exam terms. Let's take them one at a time.
+
+One. Review everything.
+
+Choose it for irreversible or regulated decisions, a brand-new pipeline, or no labelled data yet.
+
+It's the most expensive, and it scales with volume.
+
+Its residual risk is reviewer fatigue. Review turns into rubber-stamping. So measured accuracy drifts up, while real accuracy does not.
+
+[beat]
+
+Two. Stratified sampling.
+
+Choose it when you need an unbiased accuracy estimate per segment. Especially for low-volume, high-risk types.
+
+The cost is moderate and predictable.
+
+Its residual risk is that individual bad outputs still ship. Because sampling measures the system, rather than gating items.
+
+[beat]
+
+Three. Confidence-thresholded review.
+
+Choose it only once confidence has been calibrated against outcomes.
+
+It's the cheapest per item. And it concentrates spend on the uncertain tail.
+
+Its residual risk is that confidently wrong items pass unseen. And calibration drifts silently as inputs change.
+
+[beat]
+
+The mature design runs all three at once. Why? Because their roles do not overlap.
+
+Thresholding gates individual items.
+
+Stratified sampling audits the population. Including the items thresholding let through. That's the only way to see that a threshold has gone stale.
+
+Full review is reserved for the segments and action classes where one error costs more than reviewing them all.
+
+And whatever any of the three learns feeds back into the thresholds and routing.
+
+Hold on to this line. A review workflow with no feedback path is just an expensive delay.
+
+[beat]
+
+Question two.
+
+Here's the scenario. A brand-new multi-agent system drafts regulatory-change briefings, which compliance officers file with a regulator. There is no labelled accuracy data. Leadership wants to auto-approve any briefing on which three independent agent runs agree.
+
+What should happen?
+
+Take a second.
+
+The answer. Review every briefing at launch, and record the verdicts.
+
+Those verdicts build the labelled set that later justifies calibrated thresholds and sampling. That's how full review stops being permanent.
+
+And notice, three conditions each independently point to full review. Regulated output. A new pipeline. No labels.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: auto-approve when three runs agree. Why? Runs sharing the same criteria share the same blind spots. Unanimity is not correctness.
+
+Wrong: auto-approve above a synthesis confidence of point eight. Why? That number has never been measured against anything.
+
+Wrong: review a five percent random sample, while the rest goes to the regulator. Why? That measures the system, but lets individual bad briefings through.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A claims pipeline already has calibrated per-type thresholds. Only below-threshold items go to review. Reviewer capacity is fixed at about ten percent of volume. A new insurer template arrives next quarter. And the team fears the thresholds will quietly go stale.
+
+What should they do?
+
+Take a second.
+
+The answer. Audit a stratified random sample of the auto-accepted items, per document type, oversampling the new template. And feed the labels back into the thresholds.
+
+That fits inside capacity. In the example, roughly seven percent on the gate, and two percent on the audit.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: route everything to review for a quarter. Why? It blows the capacity, and invites rubber-stamping.
+
+Wrong: track the weekly average stated confidence of auto-accepted items. Why? It can stay high while accuracy falls. And confidently wrong items are exactly what a confidence monitor cannot see.
+
+Wrong: raise every threshold by a fixed safety margin. Why? It's a global remedy without measurement. It raises cost everywhere, and still produces no error rate.
+
+[beat]
+
+So, threshold versus sampling versus full review.
+
+Thresholds decide about each item.
+
+Sampling tells you whether the thresholds are still true.
+
+Full review is for where one mistake is too expensive to risk. And for the start, when you have nothing to calibrate against.
+
+[beat]
+
+And the stem words that flip it.
+
+"Regulated," "new," "no labelled data." Those point to full review.
+
+"Fixed reviewer capacity," and "drift" or "new template." Those point to a stratified audit of what was auto-accepted.
+
+"Chosen because it felt right," or "cannot state the false-negative rate." Those point to calibration on a labelled sample.
+
+[beat]
+
+That's part five.
+
+If you remember one thing, make it this. Thresholds gate items, sampling audits the gate, full review covers what you cannot yet trust, and every verdict feeds back.
+
+The notes close this part with a bridge to the next. The most useful thing you can hand a reviewer is not a confidence number. It is the evidence.
+
+Coming up in part six: provenance and uncertainty in multi-source synthesis.
+
+## Part six: Provenance and uncertainty in multi-source synthesis
+
+Part six. Provenance and uncertainty.
+
+By the end of this part, you'll know how to keep every claim tied to its source, what to do when sources disagree, and where the platform's citation feature helps and where it stops.
+
+[beat]
+
+Let's start with a picture.
+
+A colleague tells you the deadline is the fifteenth. If it matters, you have two choices. Trust them. Or go and check yourself.
+
+Now suppose they say this instead. The fifteenth, from procurement's email on Tuesday, third paragraph.
+
+Checking takes twenty seconds.
+
+The claim did not become more true. It became cheap to verify.
+
+And that is the difference between a summary that saves you work, and a summary that just moves the work somewhere else.
+
+[beat]
+
+In exam terms, synthesis without provenance is unverifiable. And unverifiable output makes the reviewer redo the work.
+
+Think about it. A system reads six sources and produces one fluent paragraph. The only way to check it is to read all six. So the system saved nobody anything.
+
+A claim-to-source mapping changes that. It converts review from re-derivation into spot-checking.
+
+[beat]
+
+The notes name four parts of provenance. And the exam expects you to know all four.
+
+First. Claim-to-source mapping. Each assertion is tied to the specific source and location that supports it. Not a bibliography at the end.
+
+Second. Temporal handling. When each source was retrieved, and what date or period it describes. Why? Because two sources that disagree may both be right, about different dates.
+
+Third. Conflict annotation. Surfacing disagreement, instead of resolving it silently.
+
+Fourth. Coverage gaps. Stating what was not found, so absence of evidence is not read as evidence of absence.
+
+[beat]
+
+What does it look like concretely? Two linked lists.
+
+The first is a claims list. Each claim has an ID, its text, and the IDs of the sources supporting it.
+
+The second is a sources list. Each source has an ID, a title, a locator such as a section and page, a verbatim quote, a retrieved-at timestamp, and an effective date.
+
+The shared source ID is the link.
+
+And here's the rule the exam tests. A step that consumes structured findings and outputs only prose breaks the chain.
+
+Hold on to this line. Render the prose from the arrays, not instead of them.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A pipeline extracts figures from an annual report, two quarterly filings, and an analyst note. It puts them into records that each carry a source ID and a page. Then a final merge step writes one company-profile paragraph for credit analysts. The analysts cannot tell which filing a revenue figure came from. So they end up re-reading all four.
+
+Where did it go wrong, and what's the fix?
+
+Take a second.
+
+The answer. The provenance existed, and it broke at the merge step. So have the merge step output claims and sources arrays, linked by source ID, with a quote and page per claim. And render the prose from them.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: append a bibliography of the four documents. Why? It lists what was read. But not which source supports which claim.
+
+Wrong: write "according to the filings" beside each figure. Why? That's vague attribution. It isn't verifiable.
+
+Wrong: add an overall confidence rating. Why? It tells the analyst nothing about where a figure came from.
+
+So, bibliography versus claim mapping. A bibliography answers "what did you read?" A claim mapping answers "where does this particular number come from?" Only the second saves the reviewer time.
+
+Takeaway. Every claim keeps a link to its source, with a quote and a location, all the way to the final prose.
+
+[beat]
+
+The second concept is what to do when the sources disagree. And here the exam's answer is, at first hearing, a refusal to answer.
+
+The plain version. A colleague is asked for a deadline, and finds two emails with different dates.
+
+The helpful reply goes like this. Procurement says the fifteenth. Finance says the twentieth. The finance email is newer, but may cover a different step, so someone needs to confirm. And I found nothing about the Asia office.
+
+That reply doesn't pick a winner. It hands you a decision you can make in two minutes.
+
+[beat]
+
+In exam terms. When sources conflict, and there is no basis for choosing, any single figure is wrong as an output. Why? Because it hides the fact that there is no one answer.
+
+So what does the output carry?
+
+One. Both claims, with their quotes, locators, retrieval times, and effective dates.
+
+Two. A conflict annotation. That names which claims are in tension, and the nature of the disagreement. It gives a temporal note explaining it, if dates are involved. It states explicitly that this agent did not resolve it. And it gives a reviewer action, naming the specific question a human must settle.
+
+Three. An explicit unresolved status on the answer. The notes use conflicted_unresolved.
+
+Four. A list of coverage gaps.
+
+This is the principle from the earlier chapters. Give the model a truthful way to say "I do not know," rather than forcing a choice between a fabrication and a format violation.
+
+[beat]
+
+Question two. This one is select two.
+
+Here's the scenario. A research system is asked for the size of the battery-recycling market. One subagent cites a twenty twenty-four industry report, at twelve billion dollars. Another cites a twenty twenty-six government release, at nine billion, under a narrower definition. Nothing settles which definition the requester means. And no data was found for Southeast Asia.
+
+Which two elements belong in the output?
+
+Take a second.
+
+The answers.
+
+First. Both claims, with quote, locator, retrieval time and source date. Plus an unresolved conflict annotation, naming the human decision needed.
+
+Second. A coverage-gap statement that no Southeast Asia data was found. So the absence is not read as a zero market.
+
+[beat]
+
+Now the wrong turns. They're three different ways of resolving the conflict silently.
+
+Wrong: report the newer figure, and footnote the older as superseded. Why? Recency is a heuristic about currency, not evidence about which source governs. And here the definitions differ too.
+
+Wrong: search for more reports, and take whichever figure most sources support. Why? Agreement among retrieved sources is not authority. Adding sources to a definitional dispute produces a vote, not an answer.
+
+Wrong: average the two into a blended estimate. Why? That's a number neither source supports. It hides the disagreement behind a confident blend.
+
+[beat]
+
+The notes' own worked example is a data retention question.
+
+A named governing policy, from twenty twenty-four, says seven years. A finance records schedule, from twenty twenty-six, citing a regulatory update, says ten.
+
+Why not just return the newer figure? Because the older document is the named authority in the policy register. And the newer one may not have the power to change it.
+
+The real finding is that the organisation's documents are out of sync. A confident "ten years" would have hidden that control gap. Possibly for years.
+
+And the same scenario shows why gating on stated confidence fails. The problematic answer was already high confidence. So a check that rejects low confidence would never have fired.
+
+Takeaway. When sources conflict, show both, explain the dates, name the decision a human must make, and say what you did not find.
+
+[beat]
+
+The last concept is what the platform does for you. And where it stops.
+
+The plain version. A reporter can footnote quotes from published reports, with page numbers.
+
+For a fact learned in a phone call, there is no page. So the reporter logs who said it, when, and the call reference.
+
+Both kinds of fact need a trail. Just a different kind of trail.
+
+[beat]
+
+In exam terms, the Citations feature is enabled per document. You set citations, with enabled set to true, on that document in the request.
+
+The API then returns citation objects attached to the answer text. Each one carries three things.
+
+cited_text, which is the exact source passage.
+
+A document_index.
+
+And a location. That's char_location for plain text, or page_location for PDF documents.
+
+The documentation, as the notes record it, says three more things. The API parses citations into valid pointers. That improves citation quality over asking the model to write references itself. And cited_text does not count toward output tokens.
+
+Where citations don't apply, for example when synthesising across tool results rather than documents, you carry provenance in your own record structure. The tool name. The record ID. And the retrieval time.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A support knowledge assistant combines policy PDFs with live results from an order-management tool. Compliance requires every statement to be traceable to its exact source. Citations are enabled on the policy documents only.
+
+What else is needed?
+
+Take a second.
+
+The answer. Carry provenance for the tool-derived statements in the team's own records. Tool name, record ID, retrieval time.
+
+Now the wrong turns.
+
+Wrong: nothing more is needed, because the citations will cover the tool results too. Why? Citations point into the documents they were enabled on.
+
+Wrong: instruct the model to write a page number after every statement. Why? That's less reliable than parsed pointers. And it's meaningless for a tool result, which has no page.
+
+Wrong: paste the full cited policy pages into the answer. Why? It bloats the answer, without mapping any statement to its passage.
+
+[beat]
+
+One honest caveat.
+
+The notes say Citations cover supplied documents, not tool results. That reflects the documentation when the notes were written. Product behaviour may have moved since.
+
+Don't let that distract you. The exam point is not a feature boundary. It's that every claim-to-source mapping stays intact, whichever mechanism carries it.
+
+If a question tells you a statement has no citation pointer, the answer is to carry its provenance yourself.
+
+[beat]
+
+And one last contrast for this part. Confidence versus sources.
+
+A confidence rating tells a reviewer how sure the system claims to be. A source tells the reviewer how to check.
+
+When an option offers a confidence label as the fix for a provenance problem, it is the wrong answer every time.
+
+[beat]
+
+That's part six.
+
+If you remember one thing, make it this. Use citations for documents, your own provenance records for tool results, and never let a merge step drop the link.
+
+Coming up: the trap round. Rapid fire, across the whole chapter.
+
+## Trap round
+
+The trap round. Rapid fire.
+
+I'll say the thing you might see in an answer option. Then what you should think. We'll go in the order of the parts.
+
+[beat]
+
+First, long conversations.
+
+If you see a bigger context window as the fix for a long session going wrong, think density and placement, not capacity. The failure comes back later.
+
+If you see more output tokens, think wrong budget. It changes what the model can write, not what it is reading.
+
+If you see instruct the summariser to keep the important numbers, think a lossy summary with better odds. Pin the facts in a block, or persist them.
+
+If you see a facts block filled from what the customer said, think right structure, wrong source. Tool-verified values only.
+
+[beat]
+
+Still on long conversations.
+
+If you see clearing old tool results, think gone, not blurred, and no pointer back.
+
+If you see compaction for identifiers, think identifiers degrade first.
+
+If you see raise the compaction trigger, think delay, not prevention.
+
+If you see disable compaction, think hard overflow.
+
+If you see "the logs must stay auditable," think trim at the hook and keep the raw-output path.
+
+If you see "the agent keeps reverting" after a phase change, think fresh session with a handoff brief. Where anything left out is gone.
+
+If you see documents placed after the question, think backwards. Bulk first, question last.
+
+If you see a hard constraint buried in the middle, think move it, and also check it in code.
+
+[beat]
+
+Next, escalation.
+
+If you see escalation on sentiment, complexity, or a one-to-ten self-rating, think unreliable proxy. Escalate on checkable criteria.
+
+If you see an escalation quota, think arbitrary. And it can suppress a real hard case.
+
+If you see a customer asking for a human and a high automation success rate, think the success rate is irrelevant. Escalate now.
+
+If you see guess the most likely order, think confident wrong action.
+
+If you see ask for four fields, think interrogation. One question, then a human.
+
+If you see two playbooks in conflict, and an option to ask the customer to choose, think policy gap. Abstain, attach both, review weekly.
+
+If you see a holding reply saying it has been approved, think prohibited.
+
+[beat]
+
+Next, errors between agents.
+
+If you see an empty result with status success after a timeout, think not searched is not nothing found.
+
+If you see retry until at least one result, or raise the retry limit on a four-oh-three, think classification overrides the counter.
+
+If you see each subagent with its own error labels, or a translation table, think one vocabulary. Transient, business, permission. With detail in error_code.
+
+If you see lower the confidence or add a caveat as the fix for a coverage gap, think name the gap. How many of how many, and which ones.
+
+If you see the coordinator re-read or redo the subagent's work, think full cost twice. Fix the return contract.
+
+[beat]
+
+Next, codebase exploration.
+
+If you see a subagent return "looks mostly fine," think the trip was wasted. Files, line ranges, the finding, the test, what was not examined.
+
+If you see a bigger model for the subagent, think a more fluent impression. Still no line numbers.
+
+If you see read the likely directories first, preload recent files, or concatenate the repository, think search, then read the matched ranges.
+
+If you see split the files into batches in separate sessions, think no batch can see the others.
+
+[beat]
+
+Next, review and confidence.
+
+If you see a threshold chosen because it sounds right, or ninety-five percent on a random sample, think calibrate. On a labelled, stratified sample, per type, against a stated target.
+
+If you see a higher global threshold, think still uncalibrated, and costlier everywhere.
+
+If you see average stated confidence as the error rate, think confidently wrong items are invisible to it.
+
+If you see the model justify its own score, or extended thinking to ground confidence, think same process, no measurement.
+
+If you see three runs agree, so approve, think shared blind spots agree too.
+
+If you see a random sample as the only control for regulated output, think sampling measures. It does not gate.
+
+[beat]
+
+And last, provenance.
+
+If you see a bibliography, "according to the sources," or an overall confidence rating as provenance, think claim-level mapping, with quote and locator.
+
+If you see newest source wins, majority vote, or an average of two figures, think silent resolution. Show both, mark it unresolved, name the human decision.
+
+If you see citations assumed to cover tool results, think your own provenance record. Tool, record ID, retrieval time.
+
+[beat]
+
+That's the trap round. Notice how many of those wrong answers were a global remedy. A bigger memory, a retry, a higher threshold, more sources.
+
+Coming up: the closing recap. Ten things to remember.
+
+## Closing recap: ten things to remember
+
+The closing recap. Ten things to remember from chapter five.
+
+For each one, I'll give you the plain idea first, then the technical name.
+
+[beat]
+
+First. The model rereads everything every turn. So memory is luggage you pay for on every trip. And a bigger bag is not a plan. The technical name is the context window as a budget, with context rot as the silent limit.
+
+Second. Pin the facts that matter at the top. And only facts a tool confirmed. That is the case-facts block, refreshed each turn.
+
+Third. Cut the noise out of tool output before it piles up, and keep a pointer to the original. That is trimming at the post-tool-use hook, with a raw-output path.
+
+[beat]
+
+Fourth. Write down names, numbers and file locations the moment you find them, because summaries lose them first. That is extract before you clear, persist before you summarise. Compaction and clearing are both lossy, in different ways.
+
+Fifth. Put the bulk first and the question last. And when the history has turned against you, start again with a careful one-page brief. That is placement against the lost-in-the-middle tendency, and a fresh session with a handoff brief.
+
+[beat]
+
+Sixth. Fetch a human for reasons you can point to in the record. Give a human to anyone who asks. Ask at most one clarifying question. And file policy holes instead of guessing. That is checkable escalation criteria, an explicit-request hard trigger, a one-question clarification budget, and a policy-gap abstention path reviewed weekly.
+
+Seventh. When part of a job fails, say exactly which part, what kind of failure, and whether trying again could help. And carry that all the way to the person reading the report. That is a structured partial result with error_class, error_code, retryable, coverage counts and claim_scope. And no laundering by the coordinator.
+
+[beat]
+
+Eighth. To explore a big codebase, search first, and read only what the search points to. And when you send a helper, tell them exactly what to bring back. That is search-then-read, just-in-time retrieval, and a subagent return contract.
+
+Ninth. A confidence number means nothing until you have counted it against real outcomes, separately for each kind of input. And the three kinds of review do three different jobs. That is calibration on a labelled, stratified sample with per-segment thresholds. Plus thresholding, stratified auditing and full review, running together with a feedback loop.
+
+Tenth. Every claim keeps its link to the source. Conflicts are shown rather than settled. And what you did not find is part of the answer. That is claim-to-source mapping, temporal handling, conflict annotation with an unresolved status, and coverage gaps. Using Citations for documents, and your own records for tool results.
+
+[beat]
+
+That is domain five. Fifteen percent of the exam.
+
+And almost all of it comes down to one habit. When something goes wrong, find the actual cause. And prefer the fix that costs less, for the same reliability.

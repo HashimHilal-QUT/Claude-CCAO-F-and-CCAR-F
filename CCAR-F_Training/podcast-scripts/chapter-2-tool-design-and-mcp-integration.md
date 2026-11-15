@@ -1,0 +1,1941 @@
+# Chapter 2: Tool Design and MCP Integration
+
+## Cold open
+
+Let's open with a story.
+
+It's a busy Monday on a customer support desk. The desk is run by an agent.
+
+Somewhere behind the scenes, the order database starts timing out. And every time the agent asks for a customer's orders, the tool quietly hands back an empty list.
+
+What does the agent do? Exactly what you would do if you believed that list. It tells customer after customer that they have no orders on file. And it cheerfully offers to open a new account for each of them.
+
+Dozens of people hear this before anyone notices.
+
+[beat]
+
+So what went wrong?
+
+Nothing was wrong with the model. Nothing was wrong with the prompt. The tool told a lie by staying silent. And the agent believed it.
+
+Why? Because the tool is the only window the agent has onto your systems.
+
+[beat]
+
+That's what this chapter is about.
+
+Domain two is Tool Design and Model Context Protocol Integration. It carries eighteen percent of the exam. So roughly one question in six.
+
+The idea underneath the whole domain is simple to say, and easy to forget.
+
+The model cannot see your database. It cannot read your source code. It cannot ask a colleague what a field means.
+
+So what does it see? Four things. A tool's name. A written description. A list of parameters, each carrying its own description. And whatever comes back when it calls.
+
+That's its whole world at the moment of choosing. There's no side channel. And no second opinion.
+
+[beat]
+
+So tool design is architecture, not plumbing.
+
+A vague description produces a wrong call. A raw data dump clogs the model's working memory. A permission failure flattened into a generic "try again" produces an agent that retries forever.
+
+Here's the catch. None of those look like tool bugs during triage. They look like model failures. And teams swap models for weeks, when the defect sits in a forty-word description.
+
+[beat]
+
+Now, how does the exam test this domain? Hold on to this, because it applies to every question that follows.
+
+You'll be handed a system that works, but is degrading. And you'll be asked which structural change fixes the root cause.
+
+The best answer changes the contract. That means the description, the schema, the error payload, the tool set, the configuration scope, or the kind of capability the server exposes.
+
+The best answer almost never rewords a prompt.
+
+And the distractors? They're real fixes, aimed at symptoms. A prompt rule for a bad description. A retry for a denial. A forcing setting for too many tools. A new subagent for what is really a wording problem.
+
+[beat]
+
+Here's the plan. We'll go through the five official task statements, in order.
+
+Part one. Designing tool interfaces with clear descriptions and boundaries.
+
+Part two. Structured error responses.
+
+Part three. Distributing tools across agents, and configuring tool choice.
+
+Part four. Integrating Model Context Protocol servers into Claude Code and agent workflows. From now on, I'll call that M C P.
+
+Part five. Choosing and using the built-in tools well.
+
+Then a rapid trap round. And a closing recap of ten things to remember.
+
+## Part one: Designing tool interfaces with clear descriptions and boundaries
+
+Part one. Designing tool interfaces.
+
+By the end of this part, you'll know how to write a tool description the model can actually use. When to rename, when to split, and when to merge tools. And why the strongest guarantee is a tool the agent simply doesn't have.
+
+[beat]
+
+Let's start with a picture.
+
+You're going somewhere with no phone signal. You leave a note for the person looking after your house.
+
+"Feed the cat." That's accurate. And it will still go wrong.
+
+Now try this version. "Half a cup of the dry food in the pantry, twice a day. She will act starving regardless. The tins in the fridge belong to the neighbour's cat."
+
+That version survives your absence.
+
+The difference isn't effort, or politeness. The note has to answer the questions the sitter would otherwise ask you. Because asking is not on offer.
+
+[beat]
+
+A tool description is that note.
+
+The technical name for what the model sees is the tool definition. It has a name, a description, and an input schema. And each parameter carries its own description.
+
+Anthropic's own documentation is blunt about this. Detailed descriptions are by far the most important factor in tool performance. The documented floor is at least three to four sentences per tool. More if the tool is complex.
+
+So what does a good description cover? Seven things.
+
+One. What the tool does.
+
+Two. When to reach for it.
+
+Three. When not to.
+
+Four. What each parameter means, in terms someone can act on.
+
+Five. What shape the result comes back in.
+
+Six. How recent, and how complete, the data is.
+
+Seven. What the tool does not return.
+
+[beat]
+
+In exam terms, here's the trap. Thinking that description length is verbosity.
+
+It isn't. Once the description is the only thing available at the moment of choosing, length is coverage.
+
+Anything you leave out becomes a guess. And the guess happens quickly, repeatedly, and with nobody watching.
+
+Hold on to this line. The description is the interface, and the model knows only what you wrote.
+
+[beat]
+
+Now the single most tested sentence in a description. It's also the one architects skip most often.
+
+Picture a shop sign that just says "Groceries." You wander the aisles looking for stamps.
+
+Now picture a sign that says "Groceries. No post office counter, that is next door." That one sends you to the right place first time.
+
+Telling people what you don't do is as useful as telling them what you do.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A support agent has a tool called order_status_get. Its description says only "Returns order status."
+
+When customers ask where their parcel is, the agent calls order_status_get two or three times, with rephrased arguments, before giving up. Yet carrier tracking lives in a separate tool, called shipment_tracking_get.
+
+Tracking is needed in about one conversation in ten. And the carrier's service is slow, and billed per call.
+
+What best reduces the redundant calls?
+
+Take a second.
+
+The answer. Rewrite the description.
+
+It lists the fields the tool returns. That's status, placed date, and line items, for one order. It says plainly that it does not return carrier tracking or a delivery estimate. And it points to shipment_tracking_get for those.
+
+The technical name is a negative boundary, plus a named next hop.
+
+Why were there repeated calls at all? Because the agent keeps hoping the missing data will appear. The boundary sentence ends that hope.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: merge the two tools into a single order_status_get that always calls the carrier and returns everything. Why? Consolidation is a real pattern. But it suits tools that are always called together. Here, tracking is needed one time in ten. So the other nine conversations would pay for a slow, billed call they never needed.
+
+The constraint words that decide it are "about one conversation in ten" and "slow and billed per call." When you hear "rarely needed" or "expensive upstream," don't merge.
+
+Wrong: add a rule to the system prompt saying tracking questions must use shipment_tracking_get. Why? That patches a description defect with prompt text. And prompt text competes with everything else in the model's context. The description is what the model reads at the moment it chooses a tool. So fix the defect where selection actually happens.
+
+[beat]
+
+Wrong: force shipment_tracking_get with the tool_choice setting, whenever the customer mentions parcel, tracking or delivery. Why? tool_choice is a per-request lever, not a keyword router. Wrapping keyword logic around it papers over the description problem. And it misfires on messages that mention delivery for other reasons.
+
+Hold on to this line. Say what the tool does not return, and name the tool that does.
+
+[beat]
+
+Next, two tools that sound alike.
+
+Picture two kitchen drawers, both labelled "Utensils." You open whichever is nearer, and hope.
+
+Now relabel them. "Cooking spoons and spatulas." And "Table cutlery, spatulas are in the other drawer." Nobody opens the wrong one again.
+
+You could also hire someone to stand by the drawers and direct traffic. It would work. And it's an expensive answer to a labelling problem.
+
+[beat]
+
+Question two.
+
+Here's the scenario. A research agent has two tools. search_web, described as "Searches for information." And search_documents, described as "Searches documents for information."
+
+For questions about the company's internal policies, the agent alternates between them almost at random. And web results sometimes contradict internal policy.
+
+The team has one week. It wants the lowest-complexity fix that addresses the cause.
+
+Take a second.
+
+The answer. Rename them to search_public_web and search_internal_policies. And give each description its corpus, and a pointer to the other.
+
+The technical terms here are namespacing, and mutually exclusive boundaries.
+
+[beat]
+
+Why does renaming work? A name with real meaning narrows selection before the description is even read.
+
+Good practice is to namespace by service, then by resource. So jira_issues_search sits beside jira_users_search and github_pulls_search. And the model narrows by prefix.
+
+A note on naming rules. The Claude Developer Platform requires tool names made of letters, digits, underscores and hyphens, up to sixty-four characters. M C P itself allows up to one hundred and twenty-eight, and also permits a dot.
+
+So design to the narrower rule. That keeps your tools portable.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: move each search tool into its own subagent, under a coordinator. Why? That adds a coordination layer and a handoff, to fix overlapping wording.
+
+Wrong: add a routing classifier in front of the agent. Why? That's the high-complexity last resort. And the one-week, lowest-complexity constraint rules it out.
+
+Wrong: set tool_choice to any on research turns. Why? It forces the agent to call a search tool. But it still has to choose between two indistinguishable ones.
+
+Hold on to this line. Forcing a call never makes the right call.
+
+[beat]
+
+There's a close cousin of this question in the study notes.
+
+A support server has lookup, described as "Look up a customer." And lookup_v2, described as "Look up a customer with the new schema." The agent picks the legacy one about half the time, and gets stale data.
+
+A developer proposes a system prompt paragraph saying lookup_v2 is always correct.
+
+That's the weaker fix. Why? Because the ambiguity lives in the tool catalog. And the model consults the catalog at selection time.
+
+The strong fix has two moves. Retire lookup entirely, removing the candidate. And rename lookup_v2 to a descriptive, namespaced name, with a full description.
+
+Hold on to this line. When two tools sound alike, fix the names and boundaries before you touch the architecture.
+
+[beat]
+
+A third flavour. A custom tool losing to a built-in one.
+
+Picture a new restaurant opening next to a famous one. Its sign reads only "Food." Everybody keeps going to the place they already know.
+
+Then the sign changes. It now reads "slow-cooked stews, better than next door when you want something hearty." And the right diners start walking in.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A team built a custom M C P tool called code_semantic_search. It's described as "Tool to search through the codebase."
+
+For intent questions, such as "where do we retry failed payments," the agent almost always uses the built-in Grep instead. And it misses logic that never uses the word retry.
+
+The team wants the agent to keep using Grep for exact-string lookups.
+
+What should they do first?
+
+Take a second.
+
+The answer. Rewrite the description. Four things go in.
+
+It finds code by what it does, not by exact words.
+
+It returns file paths, line numbers and snippets, ranked by relevance.
+
+Use it instead of Grep when the question describes behaviour or intent.
+
+And don't use it for exact strings or symbol names, because Grep is faster there.
+
+Why does this matter? Custom tools compete with built-in tools for selection. And a one-line description loses that competition.
+
+[beat]
+
+Now the wrong turns. These teach you a ranking the exam calls on again and again.
+
+Wrong: remove Grep, so the custom tool is the only option. Why? It violates the stated constraint that Grep must stay for exact lookups.
+
+Wrong: add few-shot examples to the system prompt. That means worked examples of which question goes to which tool. Why is it wrong here? It's a legitimate move. But it's the second move. It comes after the description says when to prefer the tool.
+
+Wrong: add a routing subagent that classifies each question. Why? That's architecture to fix a language problem. And it comes last.
+
+[beat]
+
+So here's the order to remember for misrouting. Four steps.
+
+First. Rename and split.
+
+Second. Expand the descriptions.
+
+Third. Add examples.
+
+And only then, fourth. Consider classifiers, or new architecture.
+
+The word "first" in a stem is your cue to reach for the top of that ladder.
+
+Hold on to this line. A custom tool that loses to a built-in needs a better sign before it needs a bouncer.
+
+[beat]
+
+Now the judgment the exam likes most. When to split a tool, and when to merge tools. It's a favourite because both directions fail.
+
+Too many narrow tools make selection ambiguous. And they force the agent to chain calls.
+
+One broad tool becomes what the notes call a god-tool. Its description cannot honestly explain everything it does.
+
+So what's the underlying rule? Shape tools around the decisions an agent makes. Not around the endpoints your platform happens to expose.
+
+Anthropic's own example: build one schedule_event tool. Rather than shipping list_users, list_events and create_event, and hoping the agent assembles them.
+
+[beat]
+
+When do you merge? Three situations.
+
+First. When several tools are always called in sequence to answer one question. One tool that runs the sequence removes the chaining turns, and the chance of stopping halfway.
+
+Second. When operations share one resource and differ only in the verb. Like creating, reviewing and merging a pull request. Those can sit behind a single tool, with an action parameter.
+
+Third. When a tool exists only because an interface happens to have that endpoint.
+
+[beat]
+
+The study notes give a vivid example of that third one.
+
+A logistics server registers thirty-eight tools, one per endpoint. Creating a shipment takes over five model turns on average. And in fourteen percent of sessions, the agent stops after fetching rates, and never creates the shipment.
+
+The fix? One create_shipment tool. It works out carrier, service level, rate and address validation internally. And you retire the intermediate tools.
+
+Now the wrong turns.
+
+Wrong: defer the thirty-eight definitions. Why? That would save context, but leave the five-hop workflow untouched.
+
+Wrong: force tool calls. Why? That would keep the agent busy without ever reaching creation.
+
+The technical name for the defect is an endpoint-mirroring catalog.
+
+[beat]
+
+And when do you split? Also three situations.
+
+First. When risk differs, like reading versus deleting.
+
+Second. When return shapes are incompatible, and the caller must branch on the result.
+
+Third. When a parameter is required only if another parameter takes a certain value.
+
+That last one is a favourite. Picture one paper form for both passport renewals and driving licences. It carries a note: "fill in box seven only if you ticked driving licence." People skip box seven constantly.
+
+Now picture two separate forms, each demanding exactly its own boxes. That stops the mistake before the form is handed in.
+
+[beat]
+
+Question four.
+
+Here's the scenario. An extraction pipeline has one tool, submit_document_fields. It has a doc_type field that can be invoice or contract.
+
+Line items are required only for invoices. Governing law is required only for contracts. So neither can be listed as required in the schema.
+
+About twelve percent of calls omit the field their type needs, and fail downstream validation.
+
+What's the best redesign?
+
+Take a second.
+
+The answer. Split it into record_invoice_fields and record_contract_fields. Each one marks its own type-specific fields as required.
+
+Now, in the input schema, the required list can express each job honestly. So an omission fails at validation, instead of downstream.
+
+The notes also mention an action discriminator as an alternative pattern. But in this item, the split is the answer.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: a system prompt paragraph listing which fields each type needs. Why? It restates the rule without enforcing it.
+
+Wrong: mark both fields required on every call. Why? It forces a value where none applies. That pushes the model to invent a governing law for every invoice.
+
+Wrong: a downstream validator that re-queues failures. Why? It catches the problem later, and more expensively. And it leaves a schema that still cannot express the requirement.
+
+Hold on to this line. A conditionally required parameter means one tool is doing two jobs.
+
+[beat]
+
+The other split trigger, risk, gets its own item. And it connects to a principle that runs through the whole exam.
+
+Picture a garage. It gives its trainee one key that opens both the parts cupboard and the car lifts. Then it pins up a note saying trainees must not use the lifts.
+
+A guard checking every door would work. But the simplest guarantee is a key that only opens the parts cupboard.
+
+[beat]
+
+Question five.
+
+Here's the scenario. A continuous integration pipeline gives its review agent one tool, manage_deployment. It has an action parameter of plan, apply or rollback.
+
+The review stage must run plan on every pull request. But it must never be able to change production. And the security team insists the guarantee cannot rest on the model following instructions.
+
+What's the best design?
+
+Take a second.
+
+The answer. Split it into a read-only deployment_plan tool, plus separate apply and rollback tools. And grant the review agent only deployment_plan.
+
+[beat]
+
+The technical name for the principle is the enforcement ladder. Three rungs.
+
+Rung one. Withhold the capability. The agent simply does not have the tool.
+
+Rung two. Deny it deterministically, in code. For example, with a PreToolUse hook. That's a small script that runs before every tool call, and can refuse it.
+
+Rung three. Validate a record after the fact.
+
+And a strongly worded instruction? It's on none of the rungs.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: a description sentence saying "never call apply from review." Why? It loses immediately, because the stem rules out relying on the model.
+
+Wrong: a PreToolUse hook that blocks apply and rollback. Why? It's deterministic, and far better than a prompt. But it's second on the ladder. It filters the risk at call time, rather than removing it.
+
+Wrong: have the server declare readOnlyHint true. Why? That's doubly wrong. Annotations like that are untrusted hints, never authorization. And labelling a tool that can apply to production as read-only is simply false.
+
+We'll come back to annotations in part four. And hooks get their full treatment in the Claude Code configuration chapter.
+
+[beat]
+
+There's an honest counter-argument here. And the self-check asks for it.
+
+What's the strongest case for keeping manage_deployment whole? Cohesion. Three verbs on one resource, with one identity model. So one honest description covers all three.
+
+The resolution is to split on the destructive path, not on verb count. Plan stands alone, as the safe tool. Apply and rollback go where they can be permissioned, annotated and audited apart.
+
+Hold on to this line. Split tools where the risk changes, then withhold the risky one.
+
+[beat]
+
+A few schema habits round out this task statement. They turn up inside answer options. There are five.
+
+One. Give every parameter its own description, saying what is and is not accepted. For example, that a search field does not accept Jira Query Language.
+
+Two. Enumerate closed value sets with enum. That way, an invalid project key fails schema validation, instead of reaching your business logic.
+
+Three. Bound numbers with minimum, maximum and default. And say when to raise the value.
+
+Four. Set additionalProperties to false, so unexpected fields fail validation.
+
+And five. Mark only genuinely required fields as required. A search tool needs only its query. But a tool whose whole job is to produce a record requires every field of that record.
+
+[beat]
+
+Quick recap. When do you fix a description, when do you add a prompt rule, and when do you add architecture?
+
+Fix the description when the model is choosing the wrong tool, or calling the right one repeatedly. Because that's where the choice happens.
+
+Examples come second.
+
+Prompt rules that name tools are almost always the distractor.
+
+And architecture, meaning subagents or classifiers, is for when the job genuinely divides by role. Not when two labels overlap.
+
+[beat]
+
+That's part one.
+
+If you remember one thing, make it this. The description is the interface. So say what the tool does, say what it does not return, and name the tool that does.
+
+Coming up in part two: structured error responses for M C P tools.
+
+## Part two: Implementing structured error responses for MCP tools
+
+Part two. Structured error responses.
+
+By the end of this part, you'll know which of two channels a failure belongs in. The four classes of execution error, and what each one tells the agent to do. And how one error can serve both the model and your code.
+
+[beat]
+
+Here's the picture.
+
+You send someone to the pharmacy for you. They come back empty-handed.
+
+"It didn't work" tells you nothing. But four other answers each change what should happen next.
+
+One. The shop was shut, and opens at nine. So going back later works.
+
+Two. They don't stock it, and won't for a month. So the errand itself needs rethinking.
+
+Three. They won't release that prescription to anyone but you. So no amount of persistence helps. Someone with standing has to step in.
+
+Four. The address you wrote down doesn't exist. So the errand was broken before it started.
+
+[beat]
+
+An agent reading a tool failure is standing in exactly that hallway. With one difference.
+
+It will act on whatever you tell it, immediately. And it has no instinct that stops it going back to a closed shop forty times.
+
+So what's a structured error for? It makes three messages legible to something that cannot infer them. "Come back later." "This will never work, do something else." And "I am not allowed."
+
+[beat]
+
+First concept. The two channels.
+
+Picture a kitchen that gets two kinds of bad tickets.
+
+Some are unreadable, or ask for a dish that isn't on the menu. The cook sends those straight back to the front desk.
+
+Others are perfectly clear, but ask for something that can't be done today. Those go back with a note, explaining what the diner can have instead.
+
+[beat]
+
+In M C P terms, the first kind is a protocol error.
+
+M C P messages travel in a format called JSON-RPC. That stands for JavaScript Object Notation Remote Procedure Call. A protocol error is a JSON-RPC error object. It's for an unknown tool name, a malformed request, or a server fault.
+
+The second kind is a tool execution error. It comes back inside a normal, successful result, with the isError flag set to true, plus actionable prose. That covers upstream service failures, input validation, business rules, and permission denials.
+
+The M C P specification states the consequence directly. Execution errors carry actionable feedback the model can use to correct itself, and retry with adjusted parameters. Protocol errors describe problems with the request structure that models are less likely to fix.
+
+[beat]
+
+So how do you decide the channel? Carry this rule into the exam.
+
+If a well-formed call reached your logic, and your logic decided the answer, it's an execution error, returned as a result.
+
+If the call never made sense as a call, it's a protocol error.
+
+[beat]
+
+One spelling note, so it doesn't look like a typo.
+
+On the M C P wire, the flag is isError, in camel case, on the result. In the Messages application programming interface, the tool_result block uses is_error, with an underscore.
+
+Same idea. Two surfaces. Both correct where they appear.
+
+[beat]
+
+Question one. This one is select two.
+
+Here's the scenario. A refund service reports most failures as results with isError set to true. The team adopts the rule that anything a well-formed call reached belongs in the result.
+
+Which two belong in the JSON-RPC protocol error channel instead?
+
+Take a second.
+
+The answers. First, the client invoking a tool name the server has never registered. Second, a request so malformed the server cannot parse it as a tool call.
+
+Neither one reached tool logic.
+
+[beat]
+
+Now the wrong turns. All three distractors reached the server's logic.
+
+Wrong: an upstream payments service returning a five-oh-three, service unavailable. Why? That's a transient execution error, with a retry hint.
+
+Wrong: a refund rejected because the order shipped outside the ninety-day window. Why? That's a legitimate business outcome of a well-formed call.
+
+Wrong: a service account missing write scope. Why? That's a permission outcome. It's returned as a non-retryable result, telling the agent to stop and escalate.
+
+[beat]
+
+The study notes add a worked version of the business case.
+
+A payments server returns a refund outside the window as a JSON-RPC error. It says only "refund failed." The agent retries four or five times. Then it tells the customer the payment system is down.
+
+What's the fix? A result with isError true. Prose saying the order shipped ninety-four days ago, against a ninety-day window. An instruction not to retry. And the name of the goodwill-credit tool to use instead.
+
+[beat]
+
+Now the wrong turns. Watch these neighbouring distractors.
+
+Wrong: relabel it as an invalid-parameters protocol error. Why? The request was not malformed.
+
+Wrong: return isError false, with the rejection as text. Why? That presents a failure as success. And it invites the agent to report a refund that never happened.
+
+Wrong: stuff the policy document into a protocol error's data field. Why? It still uses the channel the model cannot act on.
+
+Hold on to this line. If your logic decided it, it's a result with isError true. If the call never made sense, it's a protocol error.
+
+[beat]
+
+Second concept. The silent failure. That's the story from the cold open.
+
+Picture asking a colleague to check the stockroom. They come back saying "nothing there." But actually, the door was locked. So you cancel the order you should have chased.
+
+"I couldn't get in, try again in ten minutes" is a completely different message. And it leads to the right next step.
+
+[beat]
+
+Question two.
+
+Here's the scenario. order_search returns an empty list in two situations. When a customer genuinely has no orders. And when the database times out.
+
+During an incident, the agent told dozens of customers they had no orders. The team wants outages handled correctly, without retrying genuinely empty results.
+
+What should order_search return on a timeout?
+
+Take a second.
+
+The answer. A result with isError true, stating a transient timeout that is retryable, with a short retry hint. Meanwhile, genuine zero matches stay as a plain empty list, with no error flag.
+
+The dedicated flag separates failure from a legitimately empty answer.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: keep the empty list, and add a prompt rule to retry twice on every empty result. Why? It still can't tell the two cases apart. It retries every genuine empty result, which the stem explicitly does not want. And it still misreports a long outage as no orders.
+
+Wrong: throw an uncaught exception, so the pipeline stops. Why? It leaves the model with no context and no recovery path. That's the all-or-nothing anti-pattern.
+
+Wrong: return a JSON-RPC protocol error. Why? It treats an upstream timeout, which is an execution failure, as a malformed request. And it strips the text the model uses to recover.
+
+The constraint phrase to listen for is "without retrying genuinely empty results." It rules out any answer that cannot distinguish the two cases.
+
+Hold on to this line. An empty list on failure is a lie. Mark failures as failures.
+
+[beat]
+
+Third concept. The four classes of execution error. This is the vocabulary the whole exam reuses.
+
+One. Transient. That means a timeout, a rate limit, an upstream server error, or a reset connection. The agent should retry the same call, within a bound, then report. The payload says retryable is true, and carries a retry hint.
+
+Two. Validation. The input was wrong. So the agent fixes the input, or escalates.
+
+Three. Business. The call was valid, and the answer is no, like the refund window. It's not retryable. The payload names the rule and an alternative path, often in a field called next_action. Why? Because the parameters were never the problem, so changing them cannot help.
+
+Four. Permission. This caller may not do this. It's not retryable. The payload names the required scope, and the agent stops and escalates to a person. The system audits the attempt. And scope is never widened automatically.
+
+[beat]
+
+Picture a courier, told at reception that only the named recipient can sign for a parcel.
+
+If the note just says "didn't work, try again," they come back six times, and annoy everyone.
+
+If it says "only the recipient can sign, go back to the sender," they stop after one visit.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A research subagent calls fetch_filing on a licensed financial database. For filings outside the subscription, the server returns isError true, with the text "Request failed, please try again."
+
+The subagent retries each one six times, exhausting its budget. And the provider's audit log flags hundreds of denied requests.
+
+What's the fix?
+
+Take a second.
+
+The answer. Classify it as a non-retryable permission error. One that names the missing entitlement, and tells the agent to stop.
+
+[beat]
+
+Now the wrong turns. They're instructive.
+
+Wrong: lower the retry cap from six to two. Why? That treats the symptom. Two retries of a denial are still two wasted calls, and two audit entries.
+
+The principle behind this is one of the most quotable on the exam. Hold on to this line. Classification overrides the retry counter. A failure classified as non-retryable is never retried, however much budget remains.
+
+Wrong: return the denial as a JSON-RPC error. Why? It makes it read as a server fault. And that invites more retries, not fewer.
+
+Wrong: have the server silently leave unsubscribed filings out of its results. Why? That's the silent-failure pattern again. The coordinator can't tell coverage is incomplete. So it reports partial research as complete.
+
+The gap must reach the coordinator, not disappear.
+
+[beat]
+
+Now the mirror image, from the notes.
+
+A server calls a geocoding service, which returns a four twenty-nine, too many requests. The server returns isError true, with the text "geocoding unavailable."
+
+Agents respond by switching to a worse text-search fallback. And they never retry the geocoder, even though the limit clears in seconds.
+
+Here, the error is under-signalled, in the other direction.
+
+The fix keeps isError true. It states that it's a transient rate limit. It tells the agent to retry the same call after a short pause. And it puts a retry hint and a correlation identifier in the structured payload.
+
+Wrong: remove the fallback tool. Why? That punishes the agent for a signalling defect on the server.
+
+[beat]
+
+So the same design principle cuts both ways.
+
+A denial written as "try again" causes endless retries.
+
+A transient failure written as "unavailable" causes premature giving up.
+
+Hold on to this line. Transient means retry within a bound. Business means change the plan. Permission means stop and escalate.
+
+[beat]
+
+Fourth concept. Two readers of one error.
+
+Picture a hospital chart. It has a handwritten note for the next nurse. And a coloured sticker on the cover, for the porter who moves patients.
+
+The porter doesn't read handwriting to decide where to go. They read the sticker.
+
+Remove the note, and the nurse is lost. Remove the sticker, and the porter is guessing.
+
+[beat]
+
+In technical terms, the result carries two things.
+
+A content block, with prose for the model.
+
+And a structuredContent object, with machine-readable fields for your orchestration code.
+
+The fields the sources name are error_class, retryable, retry_after_seconds, upstream, and correlation_id. And for business and permission errors, things like rule, next_action, and required_scope.
+
+Why both? The prose is for the model, which reasons in language. The classification is for code, which needs a stable field to branch on.
+
+[beat]
+
+Question four.
+
+Here's the scenario. An extraction pipeline's orchestrator must decide, for every failed document, whether to requeue it, send it to a person, or drop it.
+
+Today, failures come back as prose only. The orchestrator parses the text with regular expressions, which break whenever a message is reworded. The model's own recovery from the prose works well.
+
+What's the fix?
+
+Take a second.
+
+The answer. Keep the prose in the content block. And add error_class, retryable and a retry hint in structuredContent.
+
+[beat]
+
+Now the wrong turns. Each one breaks one of the two readers.
+
+Wrong: standardise the wording, and keep the regular expressions. Why? It leaves the orchestrator coupled to phrasing. So the next rewording breaks it again.
+
+Wrong: move every failure to JSON-RPC errors with numeric codes. Why? It gives code something to switch on. But it strips the text the model recovers from.
+
+Wrong: replace the prose with a compact JSON block. Why? It drops the explanatory sentence the model uses to choose its next step.
+
+The constraint phrase here is "without hurting the model." That tells you the prose must survive.
+
+[beat]
+
+This connects to a cross-cutting principle. One vocabulary across layers.
+
+The same error_class values, transient, business and permission, are reused by subagent failure reports. So a coordinator routes on a single taxonomy.
+
+You'll meet that again in the chapter on agentic architecture and orchestration.
+
+Hold on to this line. Prose for the model, structured fields for the code, and never make either read the other's.
+
+[beat]
+
+Fifth concept. Where recovery should happen, in a multi-agent system.
+
+Picture a member of a survey team who finds a shop closed for lunch. Do they phone the manager, who then cancels the whole survey? No. They wait ten minutes, and try again.
+
+They only call in if the shop stays shut. And even then, the manager keeps everyone else's completed forms.
+
+[beat]
+
+Question five.
+
+Here's the scenario. A research subagent's web fetch occasionally times out. Today, it returns the raw failure to the coordinator on the first timeout. And the coordinator aborts the whole research run, discarding findings the other subagents already returned.
+
+The timeouts usually clear within seconds.
+
+What's the best change?
+
+Take a second.
+
+The answer. The subagent retries transient failures locally, with a bound. And it escalates a structured error only when retries run out.
+
+The coordinator then merges the partial findings, and carries the gap into the final report. Something like "eleven of twelve sources covered."
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: have the coordinator re-run every failed fetch itself. Why? It pushes work up to an agent that then duplicates the subagent, costing context and turns.
+
+Wrong: raise the subagent's turn cap. Why? That's a global remedy for a missing policy. The subagent isn't short of turns. It lacks a recovery rule.
+
+Wrong: return an empty result on timeout. Why? That's the silent failure again. So the coordinator reports incomplete research as complete.
+
+Hold on to this line. Recover locally, escalate with structure, and never let one failure sink the run.
+
+[beat]
+
+Quick recap. When does an agent retry, when does it change plan, and when does it stop?
+
+Not when a counter says so. The class decides.
+
+Transient. Retry within a bound.
+
+Business. Change the plan, using the named alternative.
+
+Permission. Stop and escalate.
+
+Protocol. Fix the client or the server, because there's little the model can do.
+
+And the anti-patterns the notes name. There are three. Generic "try again" messages. Business or permission outcomes sent as protocol errors. And isError false on a failure.
+
+[beat]
+
+That's part two.
+
+If you remember one thing, make it this. The class of the failure decides what happens next. So say it clearly, in words for the model, and in fields for the code.
+
+Coming up in part three: distributing tools across agents, and configuring tool choice.
+
+## Part three: Distributing tools across agents and configuring tool choice
+
+Part three. Distributing tools, and tool choice.
+
+By the end of this part, you'll be able to tell apart three levers that people run together. You'll know what goes in each agent's toolbag. And you'll know which tool_choice value fits which job.
+
+[beat]
+
+Two separate questions hide inside this task statement. The exam pulls them apart, because practitioners run them together.
+
+The first question. What goes into someone's toolbag before they leave for the job?
+
+The second. Do you insist they come back with a completed form?
+
+[beat]
+
+Take the first one.
+
+A plumber called out for a dripping tap doesn't carry the whole van up the stairs. And the reason isn't the weight.
+
+Rummaging costs time. And two spanners that look alike get picked wrong under pressure.
+
+An agent has the same failure mode. And it has none of the instincts a person uses to recover.
+
+So you pack each agent a bag. It holds what that job needs, and nothing else.
+
+[beat]
+
+The second question stands apart.
+
+Having settled what's in the bag, you can still say one of three things. "Do not come back without the inspection sheet." Or "use your judgment." Or "today I want an answer in words and you touch nothing."
+
+That's about one visit. And it changes nothing about which tools are in the bag.
+
+[beat]
+
+In exam terms, these are two of three separate levers.
+
+One. Distribution decides which tools an agent has.
+
+Two. Permission decides which calls run without asking a person.
+
+Three. tool_choice decides whether the model may answer without calling a tool, on this particular request.
+
+Confusing them is a reliable way to pick a distractor.
+
+And here's the foundational fact. Every registered tool costs context, and adds a candidate to every selection decision. Accuracy degrades with tool count long before the context window fills. Why? Because near-duplicate descriptions collapse into each other.
+
+[beat]
+
+First concept. Shrinking the candidate set.
+
+Picture a help desk where one person answers every question from a wall of twenty-eight binders. And they keep grabbing the wrong one.
+
+Merge the three binders that are always read together into one. Give order questions and letter-writing to two different people, with their own shelves.
+
+The wrong grabs mostly stop.
+
+[beat]
+
+Question one. This one is select two.
+
+Here's the scenario. A customer support coordinator has twenty-eight tools, across billing, orders, shipping, and outbound messages. It picks the wrong tool about one turn in six.
+
+Three of them, get_order_header, get_order_lines and get_order_payments, are called in that order on nearly every order question.
+
+Which two changes are best?
+
+Take a second.
+
+The answers. First, consolidate those three into a single order_details tool. Second, split the work into an order agent and a messaging agent, each with an allowlist of only its role's tools.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: set tool_choice to any on every turn. Why? It makes the agent call something on every turn, including turns where it should just summarise. And it doesn't help it choose.
+
+Wrong: raise the maximum turn count. Why? That just lets it make more wrong calls.
+
+Wrong: a table in the system prompt mapping intents to tool names. Why? It patches catalog ambiguity with instructions. And selection still happens against twenty-eight tools.
+
+[beat]
+
+The notes give a ranking for a crowded catalog. Four steps.
+
+First. Consolidation. Because removing a candidate removes the ambiguity outright.
+
+Second. Distribution. Because it shrinks the set each agent sees.
+
+Third. Description and name repair. Because it only makes the remaining candidates distinguishable.
+
+And last. Deferred loading. Because it cuts context cost without fixing overlap.
+
+[beat]
+
+Now, you may notice that sounds different from part one. There, fixing the description came first. So how do you tell which ladder you're on?
+
+In part one, the stems described two or three tools with vague or overlapping wording. And they asked for the first, or lowest-complexity, step. So: fix the words. Don't add architecture to solve a language problem.
+
+Here, the stem describes a big catalog serving several roles, with tools that are always called together. Removing and redistributing candidates is the structural fix.
+
+Both ladders agree on one thing. Architecture never fixes a labelling problem. And labels never fix a catalog that's simply too big for one agent.
+
+Hold on to this line. Fewer candidates per agent beats better instructions about many candidates.
+
+[beat]
+
+Second concept. Allowlists versus denylists.
+
+Picture an editor who's meant to polish an article. But they keep leaving the office to interview new people.
+
+Telling them to stop rarely sticks. Handing them only a red pen and the draft keeps them editing. Taking away just their phone still leaves the notebook in their pocket.
+
+[beat]
+
+Now the technical detail.
+
+In Claude Code, a subagent declares its tools in the frontmatter, at the top of its definition file.
+
+The tools field is an allowlist. If you omit it, the subagent inherits everything available. That's rarely right for a specialist.
+
+The disallowedTools field is a denylist.
+
+When both are set, disallowedTools applies first. Then tools resolves against what remains. So a tool named in both is removed.
+
+Both accept server-level patterns. That's mcp__ followed by a server name. Or that, plus a trailing star, for all of its tools. And in disallowedTools, the pattern mcp__ followed by a star removes every M C P tool from every server.
+
+[beat]
+
+Question two.
+
+Here's the scenario. A synthesis agent inherits every tool the coordinator has, including web_search and fetch_url. Instead of writing up the findings it was handed, it launches new searches. That blows its budget, and adds unverified sources.
+
+It still needs verify_fact, to check claims.
+
+What's the fix?
+
+Take a second.
+
+The answer. A tools allowlist containing verify_fact and what synthesis needs. And nothing that gathers new sources.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: set disallowedTools to web_search. Why? That's a denylist over an inherited pool. And denylists fail by omission. fetch_url stays granted. And any research tool added later silently arrives.
+
+Wrong: set tool_choice to none. Why? It blocks verify_fact along with everything else. tool_choice controls whether a call is allowed on a request, not which tools the agent has.
+
+Wrong: a prompt instruction not to research. Why? It's a request, not a guarantee.
+
+[beat]
+
+The notes give the same lesson from the security side.
+
+A reviewer subagent is meant to be read-only. It has disallowedTools set to Write. Yet it keeps modifying files.
+
+Why? Denying Write leaves Edit. And it leaves Bash, which can write files through any subprocess.
+
+The fix is an allowlist, such as Read, Grep and Glob.
+
+And if the agent truly needs a shell? Know this. Claude Code's read and edit deny rules cover only the file commands it recognises inside Bash. Not a Python or Node script that opens files itself. An operating-system-level sandbox is the only enforcement that covers every process.
+
+[beat]
+
+Now a name collision to guard against, because the exam likes it. There are three "allowed tools" settings. And they do different things.
+
+One. allowed-tools, with a hyphen. It lives in a skill or slash command's frontmatter. It pre-approves the listed tools, for that invoking turn only. It restricts nothing.
+
+Two. tools, in subagent frontmatter. It restricts. A tool left out is not in that agent's session at all.
+
+Three. allowedTools, in camel case. It's a software development kit option and command-line flag. It permits. It decides which calls run without a prompt.
+
+So check the spelling in the question before you answer.
+
+Hold on to this line. Allowlists close the bag by construction. Denylists forget things.
+
+[beat]
+
+Third concept. Putting a whole server where it's used.
+
+Picture a plumber's entire van of tools being carried into every flat on the job. Including the flats where only the electrician is working. Everyone trips over it.
+
+Leave the plumbing kit with the plumber, and the corridor clears for everyone else.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A team registers an incident-management M C P server, with forty-five tools, in the project's shared configuration.
+
+Only the incident-triage subagent uses it. But every developer's main session now carries those forty-five definitions. And the main agent's tool selection has become less accurate.
+
+What's the fix?
+
+Take a second.
+
+The answer. Remove the server from the shared configuration. And declare it in the triage subagent's own mcpServers field.
+
+The notes call this the sharpest instrument in the task statement. Why? Because it moves the capability and its context cost together, into the one agent that needs both.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: turn on deferred tool loading. Why? It trims the context cost. But it leaves the capability in the wrong agent.
+
+Wrong: a line in the project CLAUDE.md file telling the main agent to ignore those tools. Why? It removes neither the forty-five candidates, nor their cost.
+
+Wrong: move the server into each triage engineer's user-scope configuration. Why? That makes it private per machine. So the team loses a shared, versioned definition.
+
+[beat]
+
+Now deferred loading itself. And here, the sources disagree.
+
+The notes describe it as current behaviour. Claude Code can defer M C P tool definitions, instead of loading them all upfront. And Claude loads the schemas it needs through a tool called ToolSearch.
+
+A whole server can opt out, with alwaysLoad set to true. A single tool can opt out, with anthropic/alwaysLoad set to true in its _meta field.
+
+The Developer Platform has a sibling, the tool search tool.
+
+The lesson eight slide deck, however, says tools cannot be loaded lazily.
+
+[beat]
+
+So how do you handle it? Two rules.
+
+If a question offers deferral as an option, treat it as real, and rank it last. It cuts context cost. But it doesn't make two indistinguishable descriptions distinguishable. And it quietly rewards a catalog nobody cleaned up.
+
+If a question frames lazy loading as a restriction, answer in the question's terms.
+
+Hold on to this line. Declare the server inside the one agent that needs it. Defer only what genuinely has to stay large.
+
+[beat]
+
+Fourth concept. tool_choice. That's the form you insist they bring back.
+
+Picture a council office. It tells visitors they must leave with one of three forms filled in. And each person picks the one that matches their errand.
+
+Insisting everyone fills in the parking form would be wrong for most of them. Merely asking nicely means some people chat at the counter, and leave with nothing.
+
+[beat]
+
+There are four values.
+
+One. auto. It lets the model decide whether to call anything. It's the default when tools are supplied.
+
+Two. any. It forces a tool call, but lets the model pick which.
+
+Three. tool, together with a name. It forces that one named tool.
+
+Four. none. It blocks tool calls on that request. It's the default when no tools are supplied.
+
+And a companion setting, disable_parallel_tool_use, reads differently per mode. Under auto, it means at most one call, and text is still allowed. Under any or tool, it means exactly one call.
+
+[beat]
+
+Question four.
+
+Here's the scenario. A document-intake pipeline has three extraction tools. record_invoice, record_receipt, and record_purchase_order. The document type is only known after the model reads the file.
+
+With tool_choice on auto, about one response in ten is a prose summary the ingestion step cannot parse.
+
+What's the fix?
+
+Take a second.
+
+The answer. any. It forces a tool call, while leaving the choice of schema to the model.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: tool, with the name record_invoice, because invoices are most common. Why? It forces the invoice schema onto receipts and purchase orders.
+
+Wrong: auto, plus a prompt instruction. Why? It still permits a text-only answer. And that's the reported failure.
+
+Wrong: none, with all three schemas pasted into the prompt. Why? It forbids tool calls entirely, and falls back to unvalidated JSON in prose. That's the least reliable option.
+
+[beat]
+
+Now the contrast. And a second source disagreement.
+
+The notes have a mirror-image question. An analytics agent must produce one strictly shaped record, called record_finding, at the end of each investigation. And one run in eight ends in prose.
+
+There, the best answer is tool, with the name record_finding, plus disable_parallel_tool_use. Because a single schema is the deliverable.
+
+Why does any lose in that item? Because with more than one tool registered, the model can satisfy the constraint by calling the wrong tool.
+
+The lesson seven deck puts it more simply. It says to use any to guarantee structured output. The notes prefer naming the tool.
+
+Both guarantee a tool call. The difference is whether they guarantee the right one.
+
+[beat]
+
+So here's the rule.
+
+When several schemas are acceptable, and the model must pick, choose any.
+
+When one schema is the deliverable, name it.
+
+Read the stem for how many acceptable outputs there are.
+
+[beat]
+
+Two more tool_choice traps.
+
+Wrong: set any on every request in an agentic loop, to make the agent more decisive. Why? On a turn where it should summarise, it calls something anyway. It re-fetches data it has, or reaches for the nearest match. That inflates turns, and risks loops.
+
+The right shape is auto for the loop. any or tool for the one request that produces the artifact. And optionally none on the final summarisation turn, so the model cannot start a new chain.
+
+Wrong: use none to suppress one misbehaving tool. Why? It disables every tool on that request.
+
+And forcing a call is also never a fix for a bad description. It guarantees a call, not the right one.
+
+[beat]
+
+That's part three.
+
+Hold on to this line. auto to explore, any when several forms are acceptable, the named tool when one form is the deliverable, none to wrap up.
+
+Coming up in part four: integrating M C P servers into Claude Code and agent workflows.
+
+## Part four: Integrating MCP servers into Claude Code and agent workflows
+
+Part four. Integrating M C P servers.
+
+By the end of this part, you'll know where a server's wiring should live. How secrets get in without being committed. Which of three kinds of capability a feature belongs in. And why a server's own labels are never permission.
+
+[beat]
+
+The plain picture.
+
+A house wired before standard sockets existed had every appliance connected by hand. Moving the toaster meant calling an electrician.
+
+So what makes a standard socket valuable? The appliance and the building can be built by people who never meet.
+
+M C P is that agreement, for the systems an agent reaches into. Your ticket tracker. Your document store. Your internal services. Wire a system up once behind the protocol, and anything that speaks it can reach it.
+
+[beat]
+
+This task statement asks three narrower questions.
+
+One. Where do the wiring instructions live? So the setup behaves the same on your laptop, and on a build server nobody is sitting at.
+
+Two. What names do the tools answer to, once connected?
+
+Three. Which kind of socket does a capability belong in? The protocol offers three. And they differ in who decides.
+
+[beat]
+
+First. Where the wiring lives.
+
+Picture writing the team's shared phone list in your personal notebook. It works perfectly for you. And nobody else has it.
+
+Now pin it on the office noticeboard, with each person's private PIN left for them to fill in. Everyone gets the same list, without exposing anyone's details.
+
+[beat]
+
+In Claude Code, M C P servers load at three scopes.
+
+One. Local scope. It's the default for the claude mcp add command. It's stored in the file at ~/.claude.json, under the current project's path. And it's private to you.
+
+Two. Project scope. It lives in a file called .mcp.json, at the repository root. It's meant to be committed to version control, and shared.
+
+Three. User scope. It also lives in ~/.claude.json, but applies across all of your projects. And it's still private to you.
+
+[beat]
+
+Question one.
+
+Here's the scenario. A developer connected a shared Postgres M C P server with claude mcp add, and no scope flag. It works on their machine. But two teammates who cloned the repository say the database tools aren't there.
+
+The team wants everyone to get the same definition from version control. Without anyone's password being committed.
+
+Take a second.
+
+The answer. Define the server in a project-scoped .mcp.json at the repository root. Reference the password as a variable, DB_PASSWORD, wrapped in the dollar-and-braces expansion syntax.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: re-add it with the user scope flag. Why? That widens the server across the developer's own projects. But it still never reaches teammates.
+
+Wrong: commit ~/.claude.json. Why? It leaks a personal file that can hold private entries, tokens, and other projects' settings.
+
+Wrong: a README telling everyone to run the same command. Why? It relies on manual steps that drift.
+
+The constraint phrase is "teammates lack the tools." That almost always means move it to .mcp.json.
+
+[beat]
+
+Now precedence. The notes test this with a lovely trap.
+
+When the same server name appears at more than one scope, Claude Code connects once. It uses the highest-precedence definition. And it takes that entry whole. Fields are never merged.
+
+The order has five steps. Local. Then project. Then user. Then servers bundled in plugins. Then claude.ai connectors.
+
+[beat]
+
+So picture this. A team adds an Authorization header to the warehouse server, in the committed .mcp.json.
+
+One developer added the same server months ago, with no scope flag. That means local scope.
+
+What happens? Their session connects to their own stale local entry. The header is simply absent. And calls fail authentication.
+
+The fix is to remove the local entry. Not to edit the project file harder.
+
+Wrong: copy the header into a private file. Why? That defeats the point of a shared definition.
+
+Notice how this differs from CLAUDE.md files. There, all scopes are additive, and the model reconciles contradictions by judgment. We cover that contrast properly in the Claude Code configuration chapter.
+
+Hold on to this line. Shared servers go in .mcp.json, and the highest-precedence entry wins whole.
+
+[beat]
+
+Second. Secrets and variable expansion.
+
+Picture a recipe card that says "add the house sauce from your own cupboard." In a borrowed kitchen with no house sauce, a literal-minded cook pours in nothing but the label. And the dish fails at the table, rather than in the kitchen.
+
+The fix is to stock the borrowed kitchen. Not to print the sauce on the card.
+
+[beat]
+
+Claude Code expands two forms inside .mcp.json.
+
+The plain form. A dollar sign, and braces around a variable name. It becomes that variable's value.
+
+The form with a colon and hyphen after the name. It becomes the variable if it's set, and a default otherwise.
+
+Expansion works in five fields. The command, args, env, url, and headers fields.
+
+And the design rule? Defaults on endpoints and paths, so a fresh clone works. And no default, ever, on a secret. So it must come from the developer's environment, or a secret store.
+
+[beat]
+
+Question two.
+
+Here's the scenario. A committed .mcp.json passes an issue-tracker token as a bearer header, using ISSUE_TOKEN, with no default. It works on every laptop.
+
+In the continuous integration job, the server loads. claude mcp list prints a warning. And every call fails authentication.
+
+What's the cause, and what's the fix?
+
+Take a second.
+
+The answer. ISSUE_TOKEN is unset in the build environment. So the literal placeholder text is sent. The fix is to inject the token from the pipeline's secret store.
+
+This is a behaviour worth memorising. An unset variable with no default does not fail loudly. The configuration still loads. The list command warns. And the literal text is used. That surfaces later as an authentication error, rather than a configuration error.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: claim the headers field does not expand variables, and add a second file with a hard-coded token. Why? The claim is factually wrong. And the second file commits the secret.
+
+Wrong: add a default containing a shared service token. Why? That commits a credential to version control.
+
+Wrong: claim project servers need an approval the build cannot give, then disable the server. Why? It misses that the server is already loading. And it removes the tracker, instead of fixing authentication.
+
+[beat]
+
+The notes add a related case.
+
+A committed file hard-codes a bearer token. And staging engineers keep editing the URL locally, and accidentally committing it.
+
+One change fixes both. A variable with a production default, for the URL. And a variable with no default, for the token.
+
+Watch two distractors there.
+
+Wrong: a bare dollar sign before the name, without braces. Why? That's not the supported syntax.
+
+Wrong: put the token in a project .env file. Why? That doesn't take the secret out of the repository.
+
+[beat]
+
+Three smaller traps in the same area.
+
+One. The variable CLAUDE_PROJECT_DIR is set in the server's environment, not in Claude Code's own. So a project-scoped file should give it a default of dot, meaning the current directory.
+
+Two. An HTTP server entry with a url but no type field is a configuration error. Why? Claude Code reads a typeless entry as a local stdio server, and skips it.
+
+Three. Project-scoped servers arrive through a git pull. So Claude Code asks for interactive approval before using them. A non-interactive run cannot show that prompt. So if a server must stay out of automated runs, list it in disabledMcpjsonServers. That blocks it in every mode.
+
+The self-check pairs two of these. They're the two likeliest reasons a committed .mcp.json works on laptops and fails in continuous integration. A missing variable. And an approval assumption.
+
+Hold on to this line. No default on secrets, defaults on endpoints, and an unset secret shows up later as an authentication failure.
+
+[beat]
+
+Third. The three kinds of capability.
+
+Picture a fire alarm button that anyone can lean on. So it goes off whenever someone brushes past.
+
+A glass-fronted box, that you have to open on purpose, is still one step away. But it only goes off when a person decides.
+
+The fix is the housing. Not a sign saying "please do not lean."
+
+[beat]
+
+M C P servers expose three primitives. And the difference is who is in control.
+
+One. Tools are model-controlled. The model discovers them with tools/list, and invokes them with tools/call, on its own judgment.
+
+Two. Resources are application-driven. The host application decides how to bring them in, through a picker, a search, or a mention. It uses resources/list, resources/templates/list, and resources/read. And each resource has a stable address, called a URI. That's a uniform resource identifier.
+
+Three. Prompts are user-controlled. A person selects them deliberately. They're found with prompts/list, and fetched with prompts/get. And in Claude Code, they appear as slash commands.
+
+[beat]
+
+Question three.
+
+Here's the scenario. An internal server exposes run_release_checklist as a tool. Release managers want to start it deliberately, at a moment they choose. But the agent keeps invoking it whenever a conversation mentions a release. And that pages the on-call team.
+
+What's the fix?
+
+Take a second.
+
+The answer. Expose it as an M C P prompt, so a person selects it. For example, as a slash command.
+
+The capability sits in the wrong primitive.
+
+Now the wrong turns.
+
+Wrong: keep it as a tool, with a sentence saying "call only when asked." Why? It leaves a model-controlled primitive in charge of a human decision.
+
+Wrong: expose it as a resource. Why? That hands the decision to the host application. Not to a person, at a moment they choose.
+
+Wrong: set tool_choice to none on every request. Why? It disables every other tool too.
+
+[beat]
+
+The other direction is just as tested.
+
+The notes describe a server with nine thousand four hundred runbooks, behind a fetch_runbook tool that takes a title. Agents fetch the wrong runbook, or three in a row. The titles are stable, and organised by service and failure mode.
+
+The fix? Resources, with a resource template. Its address pattern is runbook, colon, slash slash, then service, then failure mode.
+
+Now the host can list, filter, and select by stable address. And the model never guesses a name.
+
+Resources also support subscribe and listChanged. So a host learns when a document changes, instead of re-fetching. Tools have no equivalent.
+
+[beat]
+
+Now the wrong turns there.
+
+Wrong: a longer description containing all the titles. Why? It floods the context.
+
+Wrong: add a search tool. Why? It adds a hop, without removing the guesswork.
+
+Wrong: prompts. Why? They're for deliberate human workflows, not a retrieval surface.
+
+There's one case where a tool stays right. Retrieval that needs model judgment, like ranked semantic search. There, the model's phrasing of the query is the actual input.
+
+The stem phrase to listen for is "the agent keeps fetching the wrong document." That points to resources.
+
+[beat]
+
+So. Tool, resource, or prompt? Ask who should decide.
+
+If the model should reach for it on its own judgment, it's a tool.
+
+If it's a catalog the application should present, it's a resource.
+
+If a person must start it deliberately, it's a prompt.
+
+Hold on to this line. Match the primitive to who is in control.
+
+[beat]
+
+Fourth. The names things answer to.
+
+Once connected, a server's tools are called mcp__, then the server name, then a double underscore, then the tool name.
+
+That exact string goes in three places. Permission rules. A subagent's tools list. And hook matchers.
+
+Tools from a server bundled inside a plugin carry a longer prefix. It includes the word plugin, and the plugin's name. That's why a matcher written against the bare server key never fires for them.
+
+Resources are referenced with an at sign, the server name, a colon, and the resource address.
+
+Prompts are invoked as a slash, then mcp__, the server name, a double underscore, and the prompt name.
+
+[beat]
+
+Fifth. Annotations.
+
+Picture a box labelled "fragile, books only" by the sender. That tells you how to carry it. Not what's inside.
+
+If you need to be sure nothing risky leaves the building, you check at the door, and decide who may sign for it.
+
+The label is the sender's word. The door check is yours.
+
+[beat]
+
+M C P lets a server annotate its tools with hints. There are four, each with a default.
+
+readOnlyHint defaults to false.
+
+destructiveHint defaults to true.
+
+idempotentHint defaults to false.
+
+And openWorldHint defaults to true.
+
+The specification requires clients to treat annotations as untrusted, unless they come from a trusted server. As the M C P project's own blog puts it, a server can claim to be read-only, and still delete your files.
+
+[beat]
+
+Question four. This one is select two.
+
+Here's the scenario. A third-party server's export_repository tool declares readOnlyHint true. But an export copies the entire repository to external storage.
+
+The team requires a person to confirm every export. And it wants only the release subagent able to export at all.
+
+Which two measures have real enforcement?
+
+Take a second.
+
+The answers. First, grant mcp__vendor__export_repository only in the release subagent's tools allowlist. Second, write a permission rule against that exact tool name, requiring a person to approve each call.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: trust the hint, and skip confirmation. Why? That treats the server's self-description as authorization.
+
+Wrong: a system prompt telling agents to ask first. Why? It's a request. And it can be lost when the conversation is compacted.
+
+Wrong: ask the vendor to switch to destructiveHint true. Why? That swaps one untrusted hint for another.
+
+The notes have a matching story. A host skipped confirmation because a dataset export tool claimed to be read-only. And an agent triggered forty exports, and exhausted the storage budget. The primary error was the host treating a hint as an authorization decision.
+
+[beat]
+
+Two nuances.
+
+First. Advisory does not mean inert. The Agent software development kit uses readOnlyHint when deciding whether a tool can run in parallel with other read-only tools. So the hint can change scheduling. That's how the agentic architecture chapter uses it. But it never grants permission.
+
+Second. If a specific operation must always be confirmed, Claude Code honours a field in the tool's _meta called anthropic/requiresUserInteraction, set to true in its tools/list entry.
+
+Hold on to this line. Annotations are the sender's label. Enforcement is your tool set and your permission rules.
+
+[beat]
+
+Finally, one protocol change you should know exists.
+
+The M C P specification dated the twenty-eighth of July, twenty twenty-six, replaced the stateful, session-based model with a stateless request-and-response protocol.
+
+The plain version? Picture a corner shop that used to keep a tab under your name. Now it treats every purchase as standing on its own. So any branch can serve you. And a lost ledger costs nothing.
+
+[beat]
+
+Technically, here's what changed.
+
+The initialize handshake and the Mcp-Session-Id header are gone.
+
+Requests are self-describing. So any server instance behind a load balancer can take them.
+
+Multi Round-Trip Requests carry mid-call questions, like confirmations, without a held-open connection.
+
+Method and tool names travel in HTTP headers, so gateways can route without opening the body.
+
+Tool, prompt and resource lists carry a time-to-live, and a cache hint.
+
+Roots, Sampling, Logging, and the legacy HTTP plus Server-Sent Events transport are deprecated, with at least a twelve-month offramp.
+
+And tools, resources and prompts are untouched. So everything in this part still holds.
+
+[beat]
+
+One exam caution. The exam guide, version one point oh, effective July twenty twenty-six, predates this specification. So an exam item may still assume the older session model.
+
+Build against the new one in real work.
+
+[beat]
+
+That's part four.
+
+If you remember one thing, make it this. Shared servers go in the committed project file, with secrets pulled from the environment. And each capability goes in the primitive that matches who decides.
+
+Coming up in part five: selecting and applying the built-in tools effectively.
+
+## Part five: Selecting and applying the built-in tools effectively
+
+Part five. The built-in tools.
+
+By the end of this part, you'll know exactly what each of Claude Code's six built-in tools does. How to explore a big codebase without drowning in it. And what you give up when you reach for the shell instead.
+
+[beat]
+
+The plain picture.
+
+A kitchen drawer holds a bread knife, a peeler, and a pair of scissors. A decent pocket knife does all three jobs. So the drawer looks like sentiment.
+
+Why does it survive? Two reasons.
+
+First. Each dedicated tool does its own job better.
+
+Second. When someone watches you pick up the peeler, they know roughly what's about to happen. Watching you reach for the pocket knife tells them nothing.
+
+[beat]
+
+Claude Code's six built-in tools are the drawer. And Bash is the pocket knife.
+
+The exam's real target isn't that these tools exist. It's what you give up by reaching past them.
+
+So here's each tool, precisely. Six of them.
+
+[beat]
+
+One. Read.
+
+It returns file contents with line numbers, and expects absolute paths. When a file is too big, it returns the first page, with a partial-view notice explaining how to continue, using offset and limit.
+
+It renders images. It reads PDFs in page ranges. It returns notebook cells with outputs. And it does not read directories.
+
+Two. Write.
+
+It creates a file, or overwrites it entirely. No append. No merge. And overwriting an existing file requires having read it in the conversation.
+
+[beat]
+
+Three. Edit.
+
+It replaces an exact old_string with a new_string. There's no regular expression, and no fuzzy matching.
+
+Three checks gate it. The file must have been read. old_string must match byte for byte, including whitespace. And it must appear exactly once, unless replace_all is set to true.
+
+[beat]
+
+Four. Grep.
+
+It searches file contents. It's built on ripgrep. So it uses ripgrep's regular expression syntax, not traditional grep's. That means literal braces need escaping.
+
+It has three output modes. files_with_matches, the default, which returns paths only. content, which returns matching lines, with file and line numbers. And count.
+
+You can scope it by a file pattern, or by language type. And you can turn on multiline, to match across lines.
+
+It respects .gitignore, unless you pass an ignored path directly.
+
+[beat]
+
+Five. Glob.
+
+It finds files by name pattern, with a double star for recursion. Results are sorted by modification time, and capped at one hundred files. There's a truncation flag, so Claude can narrow the pattern.
+
+And unlike Grep, Glob ignores .gitignore by default.
+
+Six. Bash.
+
+It runs commands, each in a separate process. The working directory carries over within the project. But environment variables do not.
+
+Aliases and functions from your shell startup file are available, because Claude Code sources that file at session start.
+
+Output is bounded. Roughly thirty thousand characters for a successful result. And ten thousand for a failure.
+
+[beat]
+
+First concept. Explore incrementally.
+
+Picture finding every page of a thick manual that mentions a recalled part. You use the index, and open only those pages.
+
+Reading the whole manual first leaves you too tired to fix anything. And flipping through the chapter titles won't show you where the part is mentioned.
+
+[beat]
+
+Question one.
+
+Here's the scenario. An agent must replace every call to a deprecated legacyAuth function, in a monorepo of about four thousand files.
+
+It currently globs every source file, and reads each in full before planning. And it runs out of context before touching the first call site.
+
+What should it do instead?
+
+Take a second.
+
+The answer. Grep for the function name followed by an opening parenthesis, to list the files. Read only the relevant regions. Then Edit each call site.
+
+The technical name is incremental exploration. Let Grep tell you what to read.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: read every file under the source folder first. Why? That's the named anti-pattern of bulk reading. Irrelevant files fill the context window before any reasoning starts.
+
+Wrong: run grep through Bash, save the output to a file, and read that whole file. Why? It routes a search through the unconstrained shell. And it loses Grep's structured output, truncation signal, and precise permission matching.
+
+Wrong: glob all TypeScript files, then read each one. Why? That's still bulk reading. Glob matches names, never contents. So it cannot locate call sites.
+
+"Read all the files first" is the classic distractor in this task statement.
+
+Hold on to this line. Grep says where, Read looks there, Edit changes only that.
+
+[beat]
+
+Second concept. When Edit fails.
+
+Picture telling a painter to repaint "the blue door," on a street with seven blue doors. You get confusion. Or seven red doors.
+
+"The blue door next to the bakery" gets exactly one done.
+
+And knocking the house down and rebuilding it to change one door? That's the other way to go wrong.
+
+[beat]
+
+Question two.
+
+Here's the scenario. An agent must change a timeout of thirty to sixty, in the payments handler of a two-and-a-half-thousand-line configuration module.
+
+The Edit call fails, because that exact timeout line appears seven times. And only the payments handler should change.
+
+On earlier tasks, full-file rewrites of this module silently dropped unrelated blocks.
+
+What's the next move?
+
+Take a second.
+
+The answer. Retry Edit, with old_string widened to include the payments handler's surrounding lines. So it matches exactly once.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: replace_all set to true. Why? It changes all seven, including six handlers that must stay at thirty.
+
+Wrong: read the whole module, and regenerate it with Write. Why? It reintroduces the dropped-code risk the stem warns about.
+
+Wrong: a file-wide sed command through Bash. Why? It hits all seven occurrences. And it moves a file edit into the shell, where permission rules match command strings, rather than intent.
+
+[beat]
+
+Here's the third source disagreement.
+
+The lesson nine deck says that when Edit fails, fall back to Read plus Write. The notes say widen the anchor text first. And treat Read plus Write as the fallback only when no unique anchor can be built.
+
+The practice question sides with the notes. And so should you.
+
+If a stem says a unique anchor genuinely cannot be constructed, the fallback becomes legitimate. And the stem phrase "full-file rewrites dropped code before" is there to steer you away from Write.
+
+Hold on to this line. When Edit finds too many matches, give it more context, not a bigger hammer.
+
+[beat]
+
+Third concept. Grep versus Glob, and the gitignore asymmetry.
+
+Picture a records room with two clerks. One reads the labels on the folders. The other reads the documents inside.
+
+Ask the label reader to find every letter that mentions a customer, and they can't. Ask the document reader to find folders by name, and they're the wrong person too.
+
+Each is fast and trustworthy at their own job.
+
+[beat]
+
+Question three.
+
+Here's the scenario. A continuous integration agent has two jobs. First, list every file named with the pattern star dot env dot example, including files under a generated folder that's listed in .gitignore. Second, find every line in tracked source that mentions API_KEY.
+
+The security team wants permission rules that name capabilities precisely, rather than match shell command strings.
+
+Which tools should it use?
+
+Take a second.
+
+The answer. Glob with a recursive pattern, for the file list. And Grep in content mode, for the API_KEY lines.
+
+Why does that work? Glob sees the ignored generated folder, because it ignores .gitignore by default. Grep respects .gitignore, which suits tracked source. And both are narrow, read-only tools a permission rule can name directly.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: Grep for both. Why? Grep searches contents, not names. And it would also skip the generated folder.
+
+Wrong: Glob for both. Why? Glob never looks inside files.
+
+Wrong: Bash, with find and grep. Why? It gets results, but fails the security constraint.
+
+The constraint phrase is "name capabilities precisely." And the asymmetry itself, that a file can be invisible to Grep and visible to Glob in the same repository, explains a lot of apparently inconsistent search results.
+
+Hold on to this line. Glob reads the labels and sees ignored files. Grep reads the contents and respects .gitignore.
+
+[beat]
+
+So why is Bash for search a design smell? The exam expects all four reasons.
+
+One. You lose structure. Grep returns typed modes. Shell grep returns whatever lands on standard output, inside the Bash output budget.
+
+Two. You lose safety rails. Grep and Glob are read-only, and do not prompt inside the working directory. Bash prompts by default. And once allowed, it's a general-purpose execution channel.
+
+Three. You lose enforceability. A rule against Grep is precise. A rule against Bash must pattern-match command strings. And read and edit deny rules only cover file commands Claude Code recognises.
+
+Four. You lose tuned behaviour. Truncation flags. Gitignore semantics. And ripgrep's diagnostics, which let the model fix a bad pattern and retry.
+
+[beat]
+
+The notes have an item on this.
+
+An agent granted Bash for grep and find gets silently truncated results. It reports that a symbol does not exist, when it does. And it leaves an audit that cannot show which paths were read.
+
+The fix is to grant Read, Grep and Glob instead.
+
+Now the wrong turns.
+
+Wrong: Bash output is unbounded. Why? That's false.
+
+Wrong: Glob searches contents. Why? That's also false.
+
+Wrong: blame regular expression syntax. Why? It explains neither the truncation, nor the missing audit.
+
+Bash stays necessary for jobs nothing narrower fits. The discipline is to reach for it last. Not because it's closest to hand.
+
+[beat]
+
+Fourth concept. What persists between Bash calls.
+
+Picture ringing a call centre, and reaching a different agent each time. The branch recorded on your account carries over. But whatever you told the last agent out loud is gone.
+
+If the next agent needs to know it, say it in the same call.
+
+[beat]
+
+Question four.
+
+Here's the scenario. An agent runs export DEPLOY_ENV equals staging, in one Bash call. Then it runs a preflight script, in the next call.
+
+The script reports it's checking production. That's its default when the variable is unset.
+
+An earlier change of directory did carry over between the same two calls.
+
+What's the cause, and what's the fix?
+
+Take a second.
+
+The answer. Each Bash call runs in a separate process. So the export is lost.
+
+The fix is to set the variable in the same command as the script. Either inline, before the script name. Or chained with a double ampersand.
+
+[beat]
+
+Now the wrong turns.
+
+Wrong: blame truncated output. Why? The script ran, and clearly reported which environment it used.
+
+Wrong: claim the working directory also reset. Why? That contradicts the stem, which shows the directory change carried over.
+
+Wrong: claim shell aliases are not loaded. Why? That's false. Claude Code sources the startup file at session start.
+
+Hold on to this line. In Bash, the folder carries over, and the environment does not.
+
+[beat]
+
+One naming collision to close.
+
+Both product surfaces call their tools "built-in."
+
+The six we just covered are Claude Code's built-in tools. That's what this task statement names.
+
+The Claude Developer Platform ships a separate built-in set. There are server tools that run on Anthropic's infrastructure, such as web search, web fetch, code execution, and tool search. And there are client tools you run yourself, such as memory, bash, and the text editor. With computer use in beta.
+
+Those carry dated version identifiers, and you pin a specific version. So if an answer option contains a version string, treat it as a fact to check, not decoration.
+
+[beat]
+
+That's part five.
+
+If you remember one thing, make it this. Use the narrow built-in tool that fits. Grep, then Read, then Edit. And reach for Bash last.
+
+Coming up: the trap round.
+
+## Trap round
+
+The trap round. Rapid fire.
+
+Here's how it works. I'll tell you what you might see in a question. Then I'll tell you what to think. If you see... think.
+
+[beat]
+
+First, the traps from part one. Descriptions, and the shape of tools.
+
+If you see a system prompt rule naming which tool to use, think: fix the description instead, because that is where selection happens.
+
+If you see a tool called repeatedly with rephrased arguments, think: the description never says what the tool does not return.
+
+If you see "merge the tools" and the stem says the second tool is rarely needed, or slow and billed, think: do not merge.
+
+If you see tools that are always called in sequence, think: consolidate into one.
+
+If you see a parameter required only when another has a certain value, think: split the tool.
+
+If you see plan and apply in one tool, and "cannot rely on instructions," think: split on risk, and withhold the risky tool.
+
+If you see a hook versus withholding a tool, think: withholding is the top rung. The hook is second.
+
+If you see two near-synonym descriptions, and "lowest complexity" or "first," think: rename and bound. Not a subagent, and not a classifier.
+
+If you see a custom tool losing to Grep, think: better description first, examples second, routing last.
+
+[beat]
+
+Next, the traps from part two. Errors.
+
+If you see an empty list returned on a timeout, think: silent failure. Return isError true, transient.
+
+If you see "please try again" on a denial, think: permission error. Not retryable. Name the scope. Stop.
+
+If you see "lower the retry cap," think: classification overrides the counter.
+
+If you see a business rule returned as a JSON-RPC error, think: it reached your logic, so it belongs in a result.
+
+If you see an unknown tool name, or an unparseable request, think: that one really is a protocol error.
+
+If you see code parsing error prose with regular expressions, think: add structuredContent, and keep the prose.
+
+If you see a coordinator aborting a whole run on one timeout, think: local bounded retry, structured escalation, keep partial results.
+
+[beat]
+
+Now part three. Distribution, and tool choice.
+
+If you see a denylist over an inherited pool, think: it fails by omission. Use an allowlist.
+
+If you see tool_choice none used to stop one tool, think: it blocks every tool on that request.
+
+If you see tool_choice any on every loop turn, think: it forces calls on summary turns. Use auto.
+
+If you see several acceptable schemas, and a need for a guaranteed call, think: any.
+
+If you see one schema as the deliverable, think: name the tool.
+
+If you see a large server that only one subagent uses, think: inline mcpServers in that subagent, not deferral.
+
+If you see deferral offered for overlapping descriptions, think: deferral cuts cost. It does not fix overlap.
+
+[beat]
+
+Part four. M C P servers.
+
+If you see teammates missing a server that works for one developer, think: local scope. Move it to .mcp.json.
+
+If you see a committed header ignored, think: a local entry wins whole. Remove it.
+
+If you see a default value on a token, think: never. Defaults go on endpoints.
+
+If you see an authentication failure in continuous integration only, think: an unset variable was sent as literal text. Inject the secret.
+
+If you see an HTTP entry without a type, think: it is read as stdio, and skipped.
+
+If you see a tool the agent fires on its own, when a person should start it, think: make it a prompt.
+
+If you see "keeps fetching the wrong document," think: resources, with a stable address.
+
+If you see readOnlyHint used to skip confirmation, think: annotations are untrusted. Use permission rules and the tool set.
+
+[beat]
+
+And part five. The built-in tools.
+
+If you see "read all files first," think: Grep, then Read, then Edit.
+
+If you see Edit failing on a non-unique match, think: widen old_string. Not replace_all. Not Write.
+
+If you see Glob used to search contents, or Grep used to find names, think: wrong clerk.
+
+If you see Bash granted for search, think: lost structure, lost safety rails, lost enforceability, lost tuned behaviour.
+
+If you see an exported variable missing in the next Bash call, think: separate processes. Put it in the same command.
+
+[beat]
+
+That's the trap round.
+
+Coming up: the closing recap. Ten things to remember.
+
+## Closing recap: ten things to remember
+
+The closing recap. Ten things to remember from this chapter.
+
+For each one, I'll give you the plain idea first. Then the technical names to go with it.
+
+[beat]
+
+One. The model only knows what you wrote. So the description is the interface. And saying what a tool does not return is the most valuable sentence in it.
+
+The technical name is the tool description, with a negative boundary, and a named next tool.
+
+Two. When two tools sound alike, fix the names and boundaries before adding any architecture.
+
+The technical names are namespacing, mutually exclusive boundaries, and the misrouting ladder. Rename, describe, examples, then classifiers.
+
+Three. Merge tools that always travel together. Split tools that differ in risk, or in result shape, or that need a field only sometimes.
+
+The technical names are consolidation, the action parameter, the god-tool anti-pattern, and conditional required parameters.
+
+[beat]
+
+Four. The strongest guarantee is not having the capability at all. A code check comes second. And an instruction is not a guarantee.
+
+The technical name is the enforcement ladder. Withhold, deny with a PreToolUse hook, validate a record.
+
+Five. Failures that reached your logic come back as results the model can read. Only broken requests use the protocol's error channel.
+
+The technical names are isError true, versus a JSON-RPC error object.
+
+Six. The kind of failure decides what happens next. Not a retry counter.
+
+The technical names are the error classes transient, business and permission. The retryable field. And the rule that classification overrides the counter.
+
+Seven. Give the model words, and give your code fields, side by side. And recover locally before escalating.
+
+The technical names are the content block, structuredContent with error_class and retryable, and bounded local retry with structured escalation.
+
+[beat]
+
+Eight. Give each agent the smallest bag of tools for its job. And decide separately whether a request must end in a tool call.
+
+The technical names are the tools allowlist, disallowedTools, inline mcpServers, and tool_choice, with auto, any, a named tool, or none.
+
+Nine. Shared servers live in the committed project file, with secrets pulled from the environment. And each capability goes in the primitive that matches who decides.
+
+The technical names are .mcp.json at project scope, and variable expansion with no default on secrets. Then tools, resources and prompts, as model-controlled, application-driven, and user-controlled. With annotations treated as untrusted.
+
+Ten. Use the narrow built-in tool that fits. Search contents to find where, read only there, and change only that. And remember what survives between shell calls.
+
+The technical names are Grep then Read then Edit, a widened old_string, the gitignore asymmetry between Grep and Glob, and Bash keeping the working directory but not the environment.
+
+[beat]
+
+That is Domain two.
+
+In the next chapter, we move into Claude Code configuration and workflows. That's where the hooks, permission rules and scopes we touched on here get their full treatment.

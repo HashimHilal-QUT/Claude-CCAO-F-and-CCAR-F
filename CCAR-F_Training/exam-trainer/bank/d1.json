@@ -1,0 +1,1085 @@
+[
+  {
+    "id": "D1-001",
+    "domain": 1,
+    "task": "1.1",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "An invoice-extraction agent runs a hand-written Messages API loop that exits as soon as the first content block of a response has type text. About one invoice in twelve ends with no extracted record and no error. The transcripts for those runs show a final response containing a short text block such as \"Let me check the vendor master first\" followed by a tool_use block. What is the most likely root cause?",
+    "options": [
+      "The max_tokens limit is too low, so those responses are truncated before the extraction tool call completes.",
+      "The loop checks content block types, not stop_reason, so it exits on a tool_use turn and drops the call.",
+      "The vendor-master tool is returning an empty result, and the model reads that result as a signal to stop working.",
+      "The loop has no turn cap, so the batch runner terminates long runs before the extraction tool is ever called."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "A single response can carry a text block and a tool_use block together, and the stop_reason on that response is tool_use, meaning Claude is waiting for a result. Breaking on the first text block ends the loop mid-task without any error, which matches the silent missing records. The fix is to branch on stop_reason: continue on tool_use and handle every other value explicitly.",
+    "whyWrong": [
+      "Truncation shows up as stop_reason max_tokens with incomplete content; these transcripts contain a complete tool_use block, so nothing was cut off.",
+      "Correct. Content type and stop_reason measure different things; \"thinking out loud\" before a tool call is normal, and only stop_reason says Claude is waiting on a tool.",
+      "The failing runs never execute the vendor-master call at all, because the loop exits first, so that tool's result cannot be the cause.",
+      "A scheduler kill leaves no clean final response, but these runs have one; a turn cap is a safety valve, not the missing piece here."
+    ],
+    "concept": "stop_reason vs content-type checking",
+    "sources": [
+      "lesson 1.pdf p12",
+      "lesson 1.pdf p9",
+      "fde-enablement-hub-complete.md:1690",
+      "claude-certified-architect-principles.md:44"
+    ],
+    "plainExample": "A waiter hears a diner say \"hmm, let me think\" and walks away, even though the diner was about to order. The words sounded like the end of the conversation, but the diner was still waiting to be served. The right cue is whether the diner has actually closed the menu, not what they happened to say.",
+    "technicalExample": "# Wrong: exits on a mixed text + tool_use response\nif response.content[0].type == \"text\":\n    break\n# Right: branch on the structured signal, stop_reason\nif response.stop_reason == \"tool_use\":\n    run_tools_and_append_results(); continue\nelif response.stop_reason == \"end_turn\":\n    return verify_and_finish(response)"
+  },
+  {
+    "id": "D1-002",
+    "domain": 1,
+    "task": "1.1",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "An internal engineering research assistant uses a server-side web search tool inside a Messages API loop. The loop continues only while stop_reason is tool_use and returns the text for any other value. On broad questions, users receive answers that stop mid-thought with no error, and the logs show stop_reason pause_turn on the final response. Which change fixes this with the least added cost?",
+    "options": [
+      "Raise max_tokens so the model has enough output budget to finish its answer in a single response.",
+      "Treat pause_turn like a refusal, read stop_details, and retry the same request on a fallback model.",
+      "On pause_turn, append the assistant content and send another request to continue the same turn.",
+      "Raise the loop's turn cap so the server-side search tool is allowed more iterations before it stops."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "pause_turn means a server-tool loop reached its iteration limit (default ten) and the turn is not finished; it is a continuation point, not a completion. Sending the assistant content back resumes the same turn, so the answer completes without redoing earlier work. Code that treats everything except tool_use as an exit abandons that work silently.",
+    "whyWrong": [
+      "Output truncation reports max_tokens, not pause_turn; more output budget does nothing for a server-tool iteration limit.",
+      "refusal is a separate terminal value; pause_turn is not a policy decision, and restarting on another model throws away progress and doubles cost.",
+      "Correct. pause_turn means \"still going, send it back\": append the assistant content and continue the same turn.",
+      "The loop's own turn cap never fired; the loop exited because it misread pause_turn as completion, so a higher cap changes nothing."
+    ],
+    "concept": "pause_turn continuation",
+    "sources": [
+      "fde-enablement-hub-complete.md:1695",
+      "fde-enablement-hub-complete.md:1698",
+      "fde-enablement-hub-complete.md:1743",
+      "claude-certified-architect-principles.md:48"
+    ],
+    "plainExample": "A courier reaches the end of a shift halfway through a delivery route and leaves a note saying \"route paused at stop ten\". If the dispatcher files that note as \"delivered\", half the parcels never arrive. The note is asking someone to pick the route up where it left off.",
+    "technicalExample": "if reason == \"pause_turn\":\n    # continuation point inside one turn, not a completion\n    messages.append({\"role\": \"assistant\", \"content\": response.content})\n    continue\nif reason in (\"max_tokens\", \"model_context_window_exceeded\"):\n    return {\"status\": \"truncated\"}   # different problem, different fix"
+  },
+  {
+    "id": "D1-003",
+    "domain": 1,
+    "task": "1.1",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "A contract-extraction pipeline processes merger document bundles of several hundred pages in one conversation. On the largest bundles the final response arrives with stop_reason model_context_window_exceeded, and the partial JSON has been quietly stored as if complete. The team proposes doubling max_tokens. Which change actually addresses the failure?",
+    "options": [
+      "Double max_tokens as proposed, so the model has room to emit the full JSON record for the largest bundles.",
+      "Retry the same request at a lower temperature so the model produces a more compact JSON representation.",
+      "Treat the response as complete but run a JSON repair step that closes any unterminated arrays or objects.",
+      "Mark it truncated, then compact the context or move per-document extraction into fresh subagents."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "model_context_window_exceeded is truncation caused by the model's context window being full, not by the output limit, so raising max_tokens cannot help. The response must be marked truncated rather than parsed, and the work restructured so each piece fits: compaction, summarization, or per-document subagents that each start with a fresh window.",
+    "whyWrong": [
+      "This is the remedy for max_tokens, not for a full context window; the window is still full however large the output limit is.",
+      "Temperature does not change how much context the bundle consumes; this is a global remedy applied without diagnosing the cause.",
+      "Repairing syntax yields valid JSON with missing clauses, which is worse than a visible failure because it looks complete downstream.",
+      "Correct. Truncated output is never parsed as a finished artifact, and a full window is solved by reducing what one context has to hold."
+    ],
+    "concept": "model_context_window_exceeded vs max_tokens",
+    "sources": [
+      "fde-enablement-hub-complete.md:1693",
+      "fde-enablement-hub-complete.md:1698",
+      "fde-enablement-hub-complete.md:2292",
+      "claude-certified-architect-principles.md:47",
+      "claude-certified-architect-principles.md:29"
+    ],
+    "plainExample": "A filing cabinet is so full that no new folder fits. Buying a bigger envelope for the report does not help, because the problem is the cabinet, not the envelope. You either clear out the cabinet or spread the files across several cabinets.",
+    "technicalExample": "if reason == \"max_tokens\":\n    ...  # output limit hit: raise max_tokens or continue the response\nelif reason == \"model_context_window_exceeded\":\n    # window full: raising max_tokens will not help\n    mark_truncated(bundle_id)\n    for doc in split_by_document(bundle):\n        delegate_to_subagent(doc)   # each starts with a fresh window"
+  },
+  {
+    "id": "D1-004",
+    "domain": 1,
+    "task": "1.1",
+    "scenario": "customer-support",
+    "type": "multi",
+    "stem": "A refund agent's loop has a turn cap of 30 and exits on end_turn. Two problems appear in production: some cases are logged as resolved although no refund was issued and no escalation ticket exists, and some runs call lookup_order with identical arguments over and over until the turn cap fires. Leadership wants both failure classes caught without raising cost. Which two changes should the architect make? (Select TWO.)",
+    "options": [
+      "Add a system prompt sentence telling the agent not to finish until the customer's issue is fully resolved.",
+      "Have code verify that a refund id or escalation ticket exists before any case is logged as resolved.",
+      "Raise the turn cap to 60 so that the repeated lookups have room to eventually reach a useful result.",
+      "Scan the agent's final reply for the word \"resolved\" and treat its presence as confirmation of success.",
+      "Hash each tool name plus arguments, and halt after a bounded run of turns with no new call signature."
+    ],
+    "correct": [
+      1,
+      4
+    ],
+    "explanation": "end_turn means the model stopped talking, not that the task succeeded, so only an acceptance check your code evaluates can separate resolved from abandoned. The repeated identical lookups are a busy-but-stuck loop that a turn cap merely bounds; no-progress detection on duplicate call signatures stops it early and cheaply. Each guard catches a failure the other cannot.",
+    "whyWrong": [
+      "A prompt sentence is advisory; the model can still emit end_turn on an unresolved case, and nothing in code checks it.",
+      "Correct. Your code, not the model, decides whether an end_turn satisfied the goal, using evidence such as a refund id or ticket.",
+      "A higher cap makes the stuck runs more expensive and still does not notice that nothing new is happening.",
+      "Parsing the model's words to decide completion is an anti-pattern; wording varies and \"resolved\" can appear without evidence.",
+      "Correct. Duplicate-signature detection catches the loop that is busy, stuck, and nowhere near its cap."
+    ],
+    "concept": "termination guards: acceptance check and no-progress detection",
+    "sources": [
+      "fde-enablement-hub-complete.md:1794",
+      "fde-enablement-hub-complete.md:6885",
+      "claude-certified-architect-principles.md:58",
+      "claude-certified-architect-principles.md:61",
+      "lesson 1.pdf p10"
+    ],
+    "plainExample": "A new hire says \"done\" at the end of every shift, and keeps phoning the same supplier who never answers. A manager needs two checks: look for the signed delivery note before accepting \"done\", and step in when the same call has been made three times with nothing new. Asking the hire to try harder fixes neither.",
+    "technicalExample": "sig = (block.name, json.dumps(block.input, sort_keys=True))\nprogressed = sig not in seen\nstagnant = 0 if progressed else stagnant + 1\nif stagnant >= NO_PROGRESS_LIMIT:\n    return {\"status\": \"halted\", \"reason\": \"no_progress\"}\n# after end_turn, code decides success:\nif not (refund_id or ticket_id):\n    return {\"outcome\": \"needs_human\", \"why\": \"claimed_done_without_evidence\"}"
+  },
+  {
+    "id": "D1-005",
+    "domain": 1,
+    "task": "1.1",
+    "scenario": "code-generation",
+    "type": "single",
+    "stem": "To cut token spend, an engineer changes a hand-written coding agent's loop so that after each tool call it appends only the user message holding the tool_result, and skips the assistant message that held the tool_use block. Requests immediately start failing with API errors on the second iteration. What is the correct explanation and fix?",
+    "options": [
+      "The API is stateless, so each request must carry the assistant tool_use message followed by a matching tool_result.",
+      "The API remembers the assistant turn server-side, so the errors come from a stale session id that must be refreshed.",
+      "The tool_result lacks is_error set to false, so the API cannot tell whether the call succeeded and rejects it.",
+      "The max_tokens value is too low for the second request, so it must be raised to fit the added tool output."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "The Messages API keeps no state between calls; your loop owns the history and must send it in full. Each tool_result must reference a tool_use id from the immediately preceding assistant message, so removing that message orphans the result, which is an API error rather than a degraded answer. Token savings have to come from elsewhere, such as trimming tool output.",
+    "whyWrong": [
+      "Correct. Append the assistant message first, then a user message with one tool_result per tool_use id, results first in the content array.",
+      "The Messages API holds no server-side memory of earlier turns; the architect is responsible for carrying state.",
+      "is_error is optional, so its absence cannot cause a rejection, whereas an orphaned tool_result does.",
+      "Output length is unrelated to a malformed history; this is a pairing error, not truncation."
+    ],
+    "concept": "stateless messages array and tool_use/tool_result pairing",
+    "sources": [
+      "lesson 1.pdf p4",
+      "lesson 1.pdf p5",
+      "fde-enablement-hub-complete.md:1792",
+      "claude-certified-architect-principles.md:52",
+      "claude-certified-architect-principles.md:53"
+    ],
+    "plainExample": "Picture a pen-pal who forgets everything between letters. If you reply \"yes, here is the answer\" without restating the question they asked, they cannot make sense of it. Every letter has to carry the whole thread.",
+    "technicalExample": "messages.append({\"role\": \"assistant\", \"content\": response.content})  # holds tool_use id toolu_01\nmessages.append({\"role\": \"user\", \"content\": [\n    {\"type\": \"tool_result\", \"tool_use_id\": \"toolu_01\", \"content\": result}\n]})\n# Skipping the assistant append leaves toolu_01 unmatched -> API error"
+  },
+  {
+    "id": "D1-006",
+    "domain": 1,
+    "task": "1.1",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A pull-request review agent in CI runs a loop of the form \"while iterations < 6\", and when the counter reaches six it posts whatever it has as the finished review. Small pull requests finish in three iterations; large ones are routinely cut off and their partial reviews are posted as complete. The team wants accurate reviews without unbounded runs. Which change is best?",
+    "options": [
+      "Raise the counter to 30 so that large pull requests have enough iterations to finish their reviews.",
+      "Remove the counter entirely and rely on end_turn as the only way the review loop is allowed to exit.",
+      "Make stop_reason the primary exit and keep the counter as a safety valve that marks the run halted.",
+      "Have the agent end each review with \"REVIEW COMPLETE\" and exit the loop when that phrase appears."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "An iteration cap is a circuit breaker, not a termination condition: used as the primary stop it wastes calls on small tasks and cuts large ones off. The primary exit should be the structured stop_reason, with the cap kept for the tail and reported as a halt, so a partial review is never presented as finished.",
+    "whyWrong": [
+      "A bigger arbitrary number still makes the cap the primary stop, and still posts a partial review as complete whenever it fires.",
+      "Removing the safety valve leaves no bound on a stuck or runaway run; the cap should be demoted, not deleted.",
+      "Correct. stop_reason decides normal completion; the cap bounds the worst case, and its firing is reported as a halt.",
+      "Parsing words in the output is an anti-pattern; phrasing varies, and the phrase can appear without the work being done."
+    ],
+    "concept": "iteration cap as safety valve, not primary stop",
+    "sources": [
+      "lesson 1.pdf p11",
+      "lesson 1.pdf p13",
+      "fde-enablement-hub-complete.md:1794",
+      "fde-enablement-hub-complete.md:1798",
+      "claude-certified-architect-principles.md:59"
+    ],
+    "plainExample": "A kitchen timer is useful to stop a pot boiling dry, but a cook who serves every dish the moment the timer rings will serve raw roasts and burnt toast. The timer is the backstop; the cook still checks whether the food is actually done.",
+    "technicalExample": "while iterations < MAX_ITERATIONS:          # safety valve\n    r = client.messages.create(...)\n    iterations += 1\n    if r.stop_reason == \"end_turn\":         # primary exit\n        return {\"status\": \"complete\", \"review\": r.content}\n    ...\nreturn {\"status\": \"halted\", \"reason\": \"turn_cap\"}   # never \"complete\""
+  },
+  {
+    "id": "D1-007",
+    "domain": 1,
+    "task": "1.2",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "A market-research coordinator spawns four parallel subagents, one each for analyst reports, regulatory filings, earnings-call transcripts, and social sentiment. Each returns a solid, well-cited summary of its own lane, and runs are fast. Clients complain that the final report never connects a regulatory change to the sentiment shift that followed it. What should the architect change?",
+    "options": [
+      "Give each subagent a larger context window so it can also hold material from the other three sources.",
+      "Let the four subagents exchange findings directly with each other so they can spot cross-source links.",
+      "Give every subagent access to all four source tools so each one can research the full picture itself.",
+      "Add an explicit synthesis step, such as a cross-source subagent, whose job is finding intersections."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "The four lanes are genuinely independent, so the parallel fan-out is correct; what is missing is any stage responsible for cross-domain synthesis. Siloed output from a multi-agent system usually signals a missing aggregation step, not a model or context configuration problem. Adding that step keeps the parallelism and supplies the intersections.",
+    "whyWrong": [
+      "Window size is a false culprit; nothing in the design asks any agent to connect the lanes, however much it can hold.",
+      "Subagents should not talk to each other directly; all routing goes through the coordinator to keep observability and central error handling.",
+      "This undoes the decomposition, roughly quadruples cost, and yields four overlapping reports with still no owner for synthesis.",
+      "Correct. The decomposition was too narrow: four independent lanes and nobody responsible for cross-domain synthesis."
+    ],
+    "concept": "missing synthesis step in a fan-out",
+    "sources": [
+      "lesson 2.pdf p11",
+      "lesson 2.pdf p12",
+      "lesson 2.pdf p3",
+      "fde-enablement-hub-complete.md:7261"
+    ],
+    "plainExample": "Four reporters each cover one beat for a newspaper, and every story is excellent. But no editor reads all four, so nobody notices that the council vote in one story explains the protest in another. The fix is an editor, not bigger notebooks for the reporters.",
+    "technicalExample": "lanes = [analysts, filings, calls, sentiment]      # independent: parallel\nfindings = await gather(*[run(lane) for lane in lanes])\n# Stage missing from the original design:\nreport = run(synthesizer, prompt=work_order(question, findings,\n             task=\"identify cross-source causal links, citing both sides\"))"
+  },
+  {
+    "id": "D1-008",
+    "domain": 1,
+    "task": "1.2",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "An on-call assistant reads an arbitrary production alert, decides which of about forty diagnostics to run, and picks each next diagnostic based on what the previous one returned. A platform lead proposes replacing it with a fixed pipeline that runs a standard set of diagnostics in a set order, citing predictability and cost. The surrounding steps of opening a ticket, attaching output, and paging the owner never vary. Which design is most appropriate?",
+    "options": [
+      "Replace the whole assistant with the fixed pipeline, running every diagnostic in the same order for every alert.",
+      "Make the fixed steps a deterministic pipeline and keep a bounded agent loop only for the diagnosis stage.",
+      "Build a coordinator that runs all forty diagnostics as parallel subagents and summarizes what they return.",
+      "Keep one agent loop for the entire workflow, including ticketing and paging, with a higher turn cap."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "The deciding test is whether the next step depends on the content of the previous result. Diagnosis does, so it needs an agent; ticketing, attaching, and paging do not, so they belong in code where they are predictable and cannot be skipped. A narrow, bounded agent inside one stage of a deterministic pipeline gets both properties.",
+    "whyWrong": [
+      "A fixed order cannot follow an arbitrary alert where each result decides the next step, so it runs irrelevant checks and misses the right one.",
+      "Correct. An agent where judgment is required, a pipeline where the steps and their order are known in advance.",
+      "Running all forty in parallel pays for every branch whether needed or not, and ignores that each step depends on the last result.",
+      "Handing fixed steps to the model pays latency and nondeterminism to rediscover a flowchart you already own, and risks a skipped page."
+    ],
+    "concept": "agent vs deterministic pipeline boundary",
+    "sources": [
+      "fde-enablement-hub-complete.md:1814",
+      "fde-enablement-hub-complete.md:1824",
+      "fde-enablement-hub-complete.md:2319",
+      "claude-certified-architect-principles.md:69",
+      "lesson 5.pdf p9"
+    ],
+    "plainExample": "A hospital does not let doctors improvise the admission paperwork, and it does not force them to follow a fixed script when diagnosing. The forms follow a checklist every time; the diagnosis follows the clues. Each part gets the kind of control it needs.",
+    "technicalExample": "def handle(alert):\n    diagnosis = run_agent(alert, tools=DIAGNOSTICS,\n                          max_turns=15, max_budget_usd=2)   # judgment\n    ticket = open_ticket(alert)                          # fixed code\n    attach(ticket, diagnosis)\n    page_owner(ticket)                                   # cannot be skipped"
+  },
+  {
+    "id": "D1-009",
+    "domain": 1,
+    "task": "1.2",
+    "scenario": "code-generation",
+    "type": "single",
+    "stem": "A code-modernization coordinator analyzes three independent modules before planning, and each analysis takes about four minutes. The analysis phase takes about twelve minutes end to end, and transcripts show the coordinator issuing one subagent call, waiting for its result, then issuing the next. No module analysis uses another module's findings. Which change most directly cuts the latency?",
+    "options": [
+      "Have the coordinator emit all three subagent calls in a single response so the analyses run concurrently.",
+      "Switch the module-analysis subagents to a smaller model so each of the three analyses finishes faster.",
+      "Raise the concurrent-subagent limit, because its default is keeping more than one subagent from running.",
+      "Merge the three analyses into one subagent so the coordinator only has to wait on a single delegation."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "When no branch needs another branch's findings, the branches are independent and total time should be the slowest branch, not the sum. Issuing one delegation per coordinator turn serializes them; emitting multiple delegation calls in one response lets them run in parallel. A roughly threefold latency is the signature of this sequential anti-pattern.",
+    "whyWrong": [
+      "Correct. Independent branches, several delegation calls in one response: latency becomes the longest branch rather than the sum.",
+      "A smaller model may trim each branch but keeps the serial structure, and may lower analysis quality for no structural gain.",
+      "The documented default allows far more than three concurrent subagents, so the limit is not what serializes the calls.",
+      "One subagent doing all three is still sequential, and it pulls all three modules' detail into a single window."
+    ],
+    "concept": "parallel spawning of independent subagents",
+    "sources": [
+      "lesson 2.pdf p7",
+      "fde-enablement-hub-complete.md:1949",
+      "fde-enablement-hub-complete.md:1953",
+      "fde-enablement-hub-complete.md:1887"
+    ],
+    "plainExample": "You need quotes from three different builders. Calling the first, waiting a week for an answer, then calling the second triples the wait for no reason. Since no quote depends on another, you ask all three on the same day.",
+    "technicalExample": "# Sequential anti-pattern: one delegation per coordinator turn\n#   total = S1 + S2 + S3   (~12 min)\n# Parallel: one assistant response containing three Agent tool_use blocks\n#   [Agent(module-a), Agent(module-b), Agent(module-c)]\n#   total = max(S1, S2, S3)   (~4 min)"
+  },
+  {
+    "id": "D1-010",
+    "domain": 1,
+    "task": "1.2",
+    "scenario": "multi-agent-research",
+    "type": "multi",
+    "stem": "A research coordinator on an Opus-class model delegates readily, and a recent run grew into a tree three layers deep that cost several times its estimate. The architect must bound total spend for the run, including everything the subagents spend, and stop workers from spawning their own workers, while the coordinator keeps delegating. Which two settings meet these requirements? (Select TWO.)",
+    "options": [
+      "Set maxBudgetUsd on the coordinator's query, since subagent requests count toward the run's total cost.",
+      "Set maxTurns on each subagent definition, which caps the dollar spend of every branch in the tree.",
+      "Remove Agent from the coordinator's allowedTools so that no delegation can happen anywhere in the run.",
+      "Set CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH to 1 so that workers cannot delegate below the first layer.",
+      "Add a sentence to the coordinator's prompt saying subagents must never create subagents of their own."
+    ],
+    "correct": [
+      0,
+      3
+    ],
+    "explanation": "maxBudgetUsd bounds the whole tree because subagent requests count toward total_cost_usd, and at the cap the query refuses new subagents. A spawn depth of 1 lets the main agent delegate while its workers cannot delegate further, which removes the nested layers. Per-agent turn caps and prompt sentences bound neither money nor structure.",
+    "whyWrong": [
+      "Correct. The budget cap covers the coordinator and every subagent, because they all spend from the same total.",
+      "maxTurns bounds round trips per agent, not dollars; one turn reading a huge file can cost more than many cheap turns.",
+      "This blocks the coordinator's own delegation, which the requirements say must keep working.",
+      "Correct. Depth 1 keeps a single layer of workers under the coordinator and stops workers from spawning workers.",
+      "A prompt sentence is a request nothing enforces, and the coordinator's prompt does not even cross into the subagents."
+    ],
+    "concept": "bounding the agent tree: budget and depth",
+    "sources": [
+      "fde-enablement-hub-complete.md:1887",
+      "fde-enablement-hub-complete.md:2126",
+      "fde-enablement-hub-complete.md:7471",
+      "claude-certified-architect-principles.md:63",
+      "claude-certified-architect-principles.md:64"
+    ],
+    "plainExample": "A project manager gives the team one company card whose limit covers everyone, and rules that contractors may not hire subcontractors. Limiting how many phone calls each contractor makes would not stop one expensive purchase, and a polite request not to subcontract is easy to ignore.",
+    "technicalExample": "options = ClaudeAgentOptions(\n    allowed_tools=[\"Read\", \"Grep\", \"Glob\", \"Agent\"],\n    agents=AGENTS,\n    max_budget_usd=4.0,                                   # whole tree, subagents included\n    env={\"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH\": \"1\"},    # workers cannot spawn workers\n)"
+  },
+  {
+    "id": "D1-011",
+    "domain": 1,
+    "task": "1.2",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "In a research system, the coordinator routes every web-search subagent's findings to a report-writer subagent. To shave latency, an engineer proposes letting the search subagents send their findings straight to the report writer. The compliance team requires a complete record of what each worker received and produced, and one place where failures are detected and handled. What should the architect decide?",
+    "options": [
+      "Approve direct routing, and have each subagent log its own messages so the record can be rebuilt later.",
+      "Approve direct routing only for search subagents that return high-confidence findings, and route the rest centrally.",
+      "Keep all communication routed through the coordinator, which gives central observability and error handling.",
+      "Merge the search and report-writing roles into one subagent so there is no handoff left to observe."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "In the hub-and-spoke pattern subagents never talk to each other directly; everything passes through the coordinator, which is what makes the system observable and gives failures one place to be detected and routed. The compliance constraint makes that non-negotiable, and the latency saved by bypassing the hub is small next to what is lost.",
+    "whyWrong": [
+      "Scattered self-logging reconstructs the record after the fact and removes the single point where failures are caught.",
+      "A partial bypass still breaks the single record and central error handling for exactly the traffic that skips the hub.",
+      "Correct. The coordinator is the one place that sees every handoff and every failure, which is what compliance asked for.",
+      "Merging mixes verbose search output into the writer's window and removes a useful boundary without meeting the audit requirement."
+    ],
+    "concept": "hub-and-spoke routing",
+    "sources": [
+      "lesson 2.pdf p3",
+      "lesson 2.pdf p4",
+      "lesson 2.pdf p13",
+      "fde-enablement-hub-complete.md:1810"
+    ],
+    "plainExample": "Pilots talk to the control tower, not to each other. Two pilots chatting directly might be quicker, but then nobody holds the full picture or a record of who was told what. The tower is slower on paper and safer in practice.",
+    "technicalExample": "# Hub-and-spoke: every handoff passes through the coordinator\nfindings = [run(search_agent, prompt=sub_q) for sub_q in subquestions]  # -> coordinator\nlog_handoff(findings)                                                  # one record\nfailed = [f for f in findings if f[\"status\"] != \"ok\"]                  # one error path\nreport = run(writer, prompt=work_order(findings))                      # coordinator -> writer\n# Not: search_agent -> writer directly"
+  },
+  {
+    "id": "D1-012",
+    "domain": 1,
+    "task": "1.2",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "A due-diligence coordinator runs three researcher subagents under a max_budget_usd cap. On a run that hits the cap, the coordinator publishes a report built from the two researchers that finished and labels it complete; the third researcher had been stopped mid-work. Analysts later act on the report without knowing a third of the sources were never covered. What should the architect change first?",
+    "options": [
+      "Raise max_budget_usd so that all three researchers reliably finish before the cap is ever reached.",
+      "Remove the budget cap and rely on each researcher's maxTurns setting to bound the run instead.",
+      "Tell the coordinator in its prompt to mention any missing sources in the report's introduction.",
+      "Check the result subtype, treat error_max_budget_usd as incomplete, and name the uncovered source."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "At the cap the query stops background subagents and ends with the error_max_budget_usd subtype, so a budget stop is an incomplete result, not a partial success. The wrapper must check the subtype before trusting the result and carry the coverage gap, two of three sources with the third named, into the human-facing output. Raising the cap only makes the failure rarer.",
+    "whyWrong": [
+      "A larger cap makes the event rarer without fixing how it is reported, so the next capped run is mislabeled the same way.",
+      "Removing the spend guard swaps one problem for runaway cost risk, and maxTurns does not bound money.",
+      "A prompt instruction is advisory and the coordinator may not know which worker was stopped; the reliable signal is the result subtype.",
+      "Correct. Read the subtype before trusting the result, and report two of three sources with the gap named."
+    ],
+    "concept": "budget stop is an incomplete result; report coverage",
+    "sources": [
+      "fde-enablement-hub-complete.md:7479",
+      "fde-enablement-hub-complete.md:1796",
+      "claude-certified-architect-principles.md:64",
+      "claude-certified-architect-principles.md:33",
+      "fde-enablement-hub-complete.md:5845"
+    ],
+    "plainExample": "A survey team runs out of money after visiting two of three towns and publishes \"the region's results\". Readers assume all three towns were counted. The honest report says \"two of three towns surveyed; the third was not reached\".",
+    "technicalExample": "if msg.subtype == \"success\":\n    publish(msg.result, coverage=\"3 of 3\")\nelif msg.subtype == \"error_max_budget_usd\":\n    publish(findings_so_far, status=\"incomplete\",\n            coverage=\"2 of 3\", missing=[\"regulatory-researcher\"])"
+  },
+  {
+    "id": "D1-013",
+    "domain": 1,
+    "task": "1.3",
+    "scenario": "customer-support",
+    "type": "single",
+    "stem": "A support coordinator has three subagents: billing-disputes, shipping-status, and account-security. Each has a detailed prompt and the right tools, but all three descriptions read \"Helps customers resolve their issues.\" In testing, about a third of shipping questions are delegated to billing-disputes. What is the best fix?",
+    "options": [
+      "Add routing rules to the coordinator's system prompt, such as \"send tracking questions to shipping-status\".",
+      "Rewrite each subagent's description as a routing rule stating when to use it and what it does not handle.",
+      "Give all three subagents the full set of tools so that a misrouted question can still be answered.",
+      "Move the coordinator to a larger model so it can infer each subagent's purpose from its name alone."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "A subagent's description is the selection signal Claude matches tasks against, so three identical descriptions leave the coordinator guessing. Writing each description as a routing rule, with when to use it and what is out of scope, fixes the defect where it lives. Patching around it in the coordinator's prompt leaves the defect in place and competes with everything else in the window.",
+    "whyWrong": [
+      "This prompt-patches a description defect: it holds until the rule loses the competition for attention, and every new subagent needs another patch.",
+      "Correct. description is a routing rule, not documentation, and it is read at the moment of selection.",
+      "Widening every subagent's tools breaks least privilege and hides misrouting instead of fixing it.",
+      "A bigger model still has nothing to tell three identical descriptions apart; this is a global remedy without a diagnosis."
+    ],
+    "concept": "subagent description as routing rule",
+    "sources": [
+      "fde-enablement-hub-complete.md:1939",
+      "fde-enablement-hub-complete.md:1941",
+      "claude-certified-architect-principles.md:100",
+      "claude-certified-architect-principles.md:614"
+    ],
+    "plainExample": "A hospital switchboard lists three departments as \"helps patients\", and callers keep landing in the wrong ward. Relabel them \"broken bones\", \"heart problems\", and \"children under 12\", and the operator routes correctly without a longer training manual.",
+    "technicalExample": "\"shipping-status\": AgentDefinition(\n    description=(\"Answers where-is-my-order and delivery-date questions from tracking data. \"\n                 \"Use for shipping and delivery. Does not handle refunds, charges, or logins.\"),\n    prompt=\"...\",\n    tools=[\"track_shipment\"],\n)"
+  },
+  {
+    "id": "D1-014",
+    "domain": 1,
+    "task": "1.3",
+    "scenario": "code-generation",
+    "type": "single",
+    "stem": "In a Claude Code session, the main agent spends twenty minutes running a slow integration suite and isolates one failing test, its assertion error, and the cause: a timezone default in a date helper. It then delegates with the prompt \"Fix the failing test we found; use the fix we agreed on.\" The subagent reruns the full suite, changes the test's expected value instead of the helper, and takes eighteen turns. Which change fixes the root cause?",
+    "options": [
+      "Rewrite the delegation as a work order with the test, repro, error text, locked decision, and return shape.",
+      "Raise the subagent's maxTurns and switch it to a larger model so it can reason its way to the intended fix.",
+      "Add the timezone decision to the project CLAUDE.md so that every future agent in the repository applies it.",
+      "Give the subagent the Agent tool so it can delegate the slow suite run and stay focused on the fix itself."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "A subagent's context starts fresh, and the only thing that crosses from parent to child is the delegation prompt string, so \"we\" and \"the fix we agreed on\" refer to nothing it can see. Rerunning the suite and editing the test are direct consequences of missing inputs. A self-contained work order carries the paths, failure text, locked decision, scope, and expected return.",
+    "whyWrong": [
+      "Correct. The prompt must carry every path, error, and settled decision the child needs, plus its scope and return shape.",
+      "More turns and a bigger model cannot recover information the subagent was never given.",
+      "CLAUDE.md does reach subagents, but a one-off fix decision is the wrong lifetime for a durable project file, and it still omits the test and error.",
+      "Adding delegation depth pushes the same missing context one layer further down and adds cost."
+    ],
+    "concept": "self-contained delegation prompt",
+    "sources": [
+      "fde-enablement-hub-complete.md:1901",
+      "fde-enablement-hub-complete.md:1903",
+      "fde-enablement-hub-complete.md:1923",
+      "fde-enablement-hub-complete.md:1937",
+      "lesson 3.pdf p2"
+    ],
+    "plainExample": "A doctor hands over mid-shift with a sticky note saying \"finish what we discussed\". The colleague was not in the room, so they repeat every test and may treat the wrong thing. A proper handover names the patient, the finding, and the decision already made.",
+    "technicalExample": "Fix one failing test.\nFile: src/util/dates.py    Test: tests/test_dates.py::test_invoice_due_date\nRepro: pytest tests/test_dates.py -k due_date\nObserved: AssertionError: expected 2026-03-01, got 2026-02-28\nLocked decision: change the helper's timezone default to UTC; do not edit the test.\nReturn: the diff and the passing test output only."
+  },
+  {
+    "id": "D1-015",
+    "domain": 1,
+    "task": "1.3",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "A regulatory research system has search subagents that each summarize ten sources into a paragraph of prose before handing it to a synthesis subagent. The final briefings read well, but auditors must be able to trace every claim to its source and retrieval date, and currently almost none can be traced. Which change best meets the audit requirement?",
+    "options": [
+      "Instruct the synthesis subagent to cite its sources carefully and include retrieval dates in its briefings.",
+      "Pass the full text of every retrieved source to the synthesis subagent so it can cite from the originals.",
+      "Return findings as structured objects with source metadata and claim-source IDs the synthesis schema keeps.",
+      "Have the search subagents write longer summaries so that more of the source detail survives into synthesis."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "Summarizing into prose silently drops attribution: once ten sources become one paragraph, no downstream agent can recover which claim came from where. Structured finding objects keep content separate from metadata such as source URL, retrieval time, and confidence, and the claim-to-source mapping via shared IDs must survive into the synthesis output, or the provenance chain breaks there.",
+    "whyWrong": [
+      "The synthesizer cannot cite what the prose handoff already threw away; an instruction cannot restore lost metadata.",
+      "Shipping raw sources floods the synthesizer's window and still leaves the output without enforced claim-to-source links.",
+      "Correct. Separate content from metadata, and require the synthesis output schema to carry the claim-source mapping through.",
+      "Longer prose is still prose; attribution is lost in summarization regardless of length."
+    ],
+    "concept": "structured finding objects and claim-source mapping",
+    "sources": [
+      "lesson 3.pdf p3",
+      "lesson 3.pdf p4",
+      "lesson 3.pdf p5",
+      "lesson 3.pdf p14",
+      "exam-coach-agent/research/exam-concept-briefing.md:36"
+    ],
+    "plainExample": "A researcher photocopies ten articles, writes a one-page summary, and throws the copies away. When an editor asks where a figure came from, nobody can say. A labelled index card per fact, with its source and date, is what makes the summary checkable.",
+    "technicalExample": "{\n  \"claims\":  [{\"claim_id\": \"c7\", \"text\": \"Rule takes effect 1 March\", \"source_ids\": [\"s3\"]}],\n  \"sources\": [{\"source_id\": \"s3\", \"source_url\": \"https://...\", \"retrieved_at\": \"2026-09-01T10:00:00Z\",\n               \"confidence\": \"high\"}]\n}\n// The synthesis output schema must keep both arrays intact."
+  },
+  {
+    "id": "D1-016",
+    "domain": 1,
+    "task": "1.3",
+    "scenario": "multi-agent-research",
+    "type": "single",
+    "stem": "Two researcher subagents in a pricing study report different list prices for the same competitor product: one from a vendor datasheet dated March, one from a reseller page retrieved last week. The synthesis subagent currently keeps the newer figure and drops the other without comment. The client has said pricing conflicts must be visible to a human reviewer. What should the synthesis stage do?",
+    "options": [
+      "Keep the figure from whichever source has the higher confidence rating and note that rating in the report.",
+      "Average the two figures and flag the result as an estimate so the reviewer knows it is only approximate.",
+      "Re-run both researchers until their figures agree, then report the agreed figure as the final finding.",
+      "Record a conflict object with both claims and sources, mark it unresolved, and escalate to the coordinator."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "A subagent must never silently pick one of two conflicting claims, because that destroys provenance and hides a decision the client wants a human to make. The correct output annotates both claims with their sources, marks the conflict unresolved, and routes it to the coordinator, which surfaces it to the reviewer.",
+    "whyWrong": [
+      "Choosing by confidence is still a silent resolution; the reviewer never sees the conflict, and stated confidence is not evidence.",
+      "Averaging manufactures a figure neither source reported and hides the disagreement behind a label.",
+      "Re-running until agreement spends budget and can converge on the wrong figure, because the sources genuinely differ.",
+      "Correct. Annotate both, mark the conflict \"unresolved\", and escalate, so the human decision the client asked for stays visible."
+    ],
+    "concept": "conflict annotation and escalation",
+    "sources": [
+      "lesson 3.pdf p6",
+      "lesson 3.pdf p13",
+      "lesson 3.pdf p15",
+      "fde-enablement-hub-complete.md:5887",
+      "fde-enablement-hub-complete.md:7374"
+    ],
+    "plainExample": "Two witnesses give different times for an accident. A good clerk writes down both statements and flags the difference for the judge, instead of quietly keeping whichever witness sounded more certain. The judge, not the clerk, decides.",
+    "technicalExample": "{\n  \"conflict_id\": \"k2\", \"field\": \"competitor_list_price\",\n  \"claims\": [{\"value\": 1200, \"source_id\": \"s4\", \"dated\": \"2026-03\"},\n             {\"value\": 1150, \"source_id\": \"s9\", \"retrieved_at\": \"2026-09-22\"}],\n  \"resolution\": \"unresolved\", \"escalate_to\": \"coordinator\"\n}"
+  },
+  {
+    "id": "D1-017",
+    "domain": 1,
+    "task": "1.3",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "A platform team puts its code-review standards in the coordinator's system prompt. The coordinator follows them, but the three reviewer subagents it spawns ignore them. The standards apply to every subagent on every run, and the team does not want compliance to depend on the coordinator remembering to restate them. Project setting sources are enabled. Where should the standards live?",
+    "options": [
+      "In the coordinator's system prompt, moved to the top and repeated at the end for added emphasis.",
+      "In the project CLAUDE.md, which subagents load, or in each reviewer's own definition prompt.",
+      "In the coordinator's conversation history, which subagents read through the parent tool-use link.",
+      "In every delegation prompt, with the coordinator told to paste the standards in each time it delegates."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "Subagents do not receive the parent's system prompt or conversation history. They do receive their own system prompt and the project CLAUDE.md through setting sources, so durable, universal standards belong there. That removes the dependency on the coordinator reproducing them on every call.",
+    "whyWrong": [
+      "The parent's system prompt never crosses the boundary, so no amount of emphasis there reaches a subagent.",
+      "Correct. CLAUDE.md and the subagent's own prompt both reach it on every run without the coordinator's help.",
+      "Subagents do not receive the parent's conversation; parent_tool_use_id correlates messages, it does not share context.",
+      "This works only when the coordinator remembers, which is the dependency the team wants removed, and it costs tokens on every call."
+    ],
+    "concept": "what crosses the subagent boundary",
+    "sources": [
+      "fde-enablement-hub-complete.md:1905",
+      "fde-enablement-hub-complete.md:1939",
+      "fde-enablement-hub-complete.md:5836",
+      "claude-certified-architect-principles.md:93"
+    ],
+    "plainExample": "A new contractor is not given the manager's personal notebook, but every contractor receives the site safety handbook on day one. If a rule has to reach every contractor, it goes in the handbook, not in the manager's notes.",
+    "technicalExample": "Crosses to the subagent:               Does not cross:\n  its own AgentDefinition.prompt         the parent's system prompt\n  the Agent tool's prompt string         the parent's conversation history\n  project CLAUDE.md (setting sources)    the parent's tool results\n  its tool definitions                   the parent's output style"
+  },
+  {
+    "id": "D1-018",
+    "domain": 1,
+    "task": "1.3",
+    "scenario": "customer-support",
+    "type": "single",
+    "stem": "A support system's policy-lookup subagent is meant only to read refund policy and order records. It currently inherits every tool, and last week it issued a refund on its own. The security lead wants it to be impossible for this subagent to call refunds_issue, while the main agent keeps that tool. Which change meets the requirement?",
+    "options": [
+      "Set the subagent's tools list to only the read tools it needs, so refunds_issue is not in its session.",
+      "List refunds_issue under allowed-tools in a skill's frontmatter, with a note marking it as forbidden.",
+      "Mark the lookup tools with readOnlyHint so the subagent is limited to read-only operations.",
+      "Add a line to the subagent's prompt stating that it must never issue refunds under any circumstances."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "A subagent's tools field is an availability list: a tool left out is not in that agent's session at all, so the action cannot be taken whatever the model decides. That is structural enforcement, the first rung of the enforcement ladder, and it leaves the main agent's tools untouched.",
+    "whyWrong": [
+      "Correct. Withholding the tool is the strongest enforcement, because there is nothing left for the model to route around.",
+      "Skill allowed-tools pre-approves tools for a turn and restricts nothing; it is the wrong lever entirely.",
+      "Annotations are scheduling hints, never authorization, and hinting the read tools does nothing to remove the refund tool.",
+      "A prompt line is probabilistic, and the subagent's existing instructions have already failed once."
+    ],
+    "concept": "tools availability list vs look-alike settings",
+    "sources": [
+      "claude-certified-architect-principles.md:572",
+      "claude-certified-architect-principles.md:96",
+      "claude-certified-architect-principles.md:22",
+      "fde-enablement-hub-complete.md:1887",
+      "fde-enablement-hub-complete.md:1971"
+    ],
+    "plainExample": "If a trainee must never open the safe, you do not hand them the key along with a note saying \"please don't\". You simply do not give them the key. The manager keeps theirs.",
+    "technicalExample": "\"policy-lookup\": AgentDefinition(\n    description=\"Reads refund policy and order records. Never changes anything.\",\n    prompt=\"...\",\n    tools=[\"orders_get\", \"policy_read\"],   # refunds_issue absent: not in this session\n)\n# Contrast: skill allowed-tools pre-approves; it restricts nothing"
+  },
+  {
+    "id": "D1-019",
+    "domain": 1,
+    "task": "1.4",
+    "scenario": "customer-support",
+    "type": "single",
+    "stem": "An account-security agent can call verify_identity and reset_password. Despite clear system-prompt instructions, audit logs show roughly one reset in two hundred happening before identity was verified. Compliance requires zero exceptions, and when a reset is blocked the agent should explain why and escalate rather than retry. Which design meets both requirements?",
+    "options": [
+      "A PostToolUse hook on reset_password that flags any reset made without verification for human review.",
+      "Moving the ordering rule into project CLAUDE.md so it is re-injected every request and survives compaction.",
+      "A PreToolUse hook that denies reset_password, with a reason, unless verify_identity has succeeded.",
+      "Several few-shot examples in the system prompt showing verification always happening before a reset."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "A prerequisite gate is a PreToolUse hook that tracks session state and blocks the downstream tool until the upstream tool has succeeded. It runs in code before the call executes, so the model cannot bypass it, and a denial carrying a permissionDecisionReason gives the model the context to escalate instead of retrying with different parameters.",
+    "whyWrong": [
+      "PostToolUse runs after the tool has executed, so the unverified reset has already happened; this detects rather than prevents.",
+      "CLAUDE.md helps a rule persist but is still advisory, and \"most of the time\" is not zero exceptions.",
+      "Correct. A programmatic prerequisite gate is deterministic, and the denial reason steers the agent toward escalation.",
+      "Few-shot examples improve consistency, not compliance; the failure mode stays probabilistic."
+    ],
+    "concept": "prerequisite gate via PreToolUse",
+    "sources": [
+      "lesson 5.pdf p7",
+      "lesson 5.pdf p6",
+      "lesson 5.pdf p2",
+      "fde-enablement-hub-complete.md:1971",
+      "claude-certified-architect-principles.md:122"
+    ],
+    "plainExample": "A bank teller's cash drawer stays locked until the ID scanner turns green. The teller cannot hand over money first and check ID later, however long the queue is. If the scanner refuses, a message tells the teller to call a supervisor.",
+    "technicalExample": "async def gate(input_data, tool_use_id, context):\n    if input_data[\"tool_name\"] == \"reset_password\" and not state[\"identity_verified\"]:\n        return {\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\",\n                \"permissionDecision\": \"deny\",\n                \"permissionDecisionReason\": \"Identity not verified. Do not retry. Escalate.\"}}\n    return {}"
+  },
+  {
+    "id": "D1-020",
+    "domain": 1,
+    "task": "1.4",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "A two-stage pipeline extracts claims data to a staging file and then loads it into a warehouse. The load stage starts whenever a handoff file exists in the run folder. After a crash and rerun, the loader picked up a handoff left by the earlier aborted run and loaded a stale, half-validated dataset. What is the most robust fix at the stage boundary?",
+    "options": [
+      "Have the extraction stage write a more detailed prose summary of what it validated for the loader to read.",
+      "Include the extracted dataset inline in the handoff so the loader never reads a stale file from storage.",
+      "Have the load agent message the extraction agent to confirm the run is current before it starts loading.",
+      "Have the loader validate run id, expected next stage, a code-evaluated gate status, and the checksum first."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "A handoff record makes a stage boundary real only if the next stage validates it before acting. Refusing on a run or stage mismatch, a gate status other than pass, or a checksum that does not match the artifact turns stale or out-of-order work into a loud failure at the boundary. That refusal is the enforcement.",
+    "whyWrong": [
+      "Prose asserts a result without evidence, and a clearer claim from the old run is still a claim from the old run.",
+      "Handoffs should carry addresses, not payloads; inlining bloats every downstream context and still does not identify the run.",
+      "Agent-to-agent confirmation is another probabilistic claim, and in a hub-and-spoke design workers do not talk directly.",
+      "Correct. The next stage's first act is to validate the record and refuse on any mismatch."
+    ],
+    "concept": "handoff record validated by the next stage",
+    "sources": [
+      "fde-enablement-hub-complete.md:1975",
+      "fde-enablement-hub-complete.md:2011",
+      "fde-enablement-hub-complete.md:2013",
+      "claude-certified-architect-principles.md:113"
+    ],
+    "plainExample": "A warehouse accepts a delivery only if the paperwork matches today's order number and the seal on the box is unbroken. A box left on the dock from last week's cancelled order is refused, even though it looks like a delivery.",
+    "technicalExample": "rec = json.load(open(handoff_path))\nassert rec[\"run_id\"] == current_run_id\nassert rec[\"stage\"][\"next_expected\"] == \"warehouse_load\"\nassert rec[\"gate\"][\"status\"] == \"pass\" and rec[\"gate\"][\"evaluated_by\"] == \"code\"\nassert sha256_of(rec[\"produced\"][\"dataset_uri\"]) == rec[\"produced\"][\"sha256\"]\n# any failure: refuse to load and report which check failed"
+  },
+  {
+    "id": "D1-021",
+    "domain": 1,
+    "task": "1.4",
+    "scenario": "ci-cd",
+    "type": "multi",
+    "stem": "A long-running Claude Code job in CI migrates a large codebase. The opening prompt says never to edit files under db/migrations/applied/. The conversation compacts twice, and afterward the agent edits an applied migration. The team wants the rule enforced every time and still visible to the model after compaction, so it plans around the rule. Which two changes should they make? (Select TWO.)",
+    "options": [
+      "Repeat the rule three times in the opening prompt so that at least one copy survives each compaction.",
+      "Add a PreToolUse hook that denies Edit and Write on paths under db/migrations/applied/ with a reason.",
+      "Raise the compaction trigger so that the opening prompt is summarized away later in the run.",
+      "Move the rule into the project CLAUDE.md, which is re-injected into context on every request.",
+      "Mark the applied migration files with readOnlyHint so the agent's tools treat them as read-only."
+    ],
+    "correct": [
+      1,
+      3
+    ],
+    "explanation": "Instructions in an opening prompt can be dropped when a long conversation compacts. A PreToolUse deny enforces the rule deterministically whatever the model remembers, and CLAUDE.md, re-injected on every request, keeps the rule in view so the model plans around it instead of repeatedly colliding with the hook. Enforcement and visibility are separate jobs.",
+    "whyWrong": [
+      "Repetition changes the odds, not the guarantee; compaction can still summarize every copy away.",
+      "Correct. The hook runs in code and cannot be argued out of the denial, and the reason prevents blind retries.",
+      "Delaying compaction makes the failure rarer on long runs without enforcing anything.",
+      "Correct. CLAUDE.md is where persistent rules live because it survives compaction; the hook is the guarantee behind it.",
+      "readOnlyHint is a tool scheduling hint, not a file permission or an authorization control."
+    ],
+    "concept": "enforcement vs persistence under compaction",
+    "sources": [
+      "fde-enablement-hub-complete.md:1969",
+      "fde-enablement-hub-complete.md:1971",
+      "fde-enablement-hub-complete.md:2229",
+      "claude-certified-architect-principles.md:107",
+      "claude-certified-architect-principles.md:22"
+    ],
+    "plainExample": "A door has a \"staff only\" sign and a lock. The sign tells people where not to go so they plan their route; the lock makes the rule hold on the day someone forgets. A sign that falls off the wall halfway through the day protects nothing.",
+    "technicalExample": "# PreToolUse hook, matcher \"Edit|Write\"\nif tool_input[\"file_path\"].startswith(\"db/migrations/applied/\"):\n    return deny(\"Applied migrations are immutable. Create a new migration instead.\")\n# CLAUDE.md\n- Never edit files under db/migrations/applied/; add a new migration instead."
+  },
+  {
+    "id": "D1-022",
+    "domain": 1,
+    "task": "1.4",
+    "scenario": "customer-support",
+    "type": "single",
+    "stem": "When the refund agent escalates, it writes a friendly paragraph to the human queue. Human agents report opening the full conversation transcript for almost every ticket to find the order, what was tried, and why it failed, which doubles handling time. Which change best reduces handling time?",
+    "options": [
+      "Attach the full conversation transcript to each ticket so the human agent has everything in one place.",
+      "Emit a structured handoff: customer id, issue, root cause, attempts, escalation reason, amount, next step.",
+      "Instruct the agent to write a longer, more detailed escalation paragraph that covers the whole conversation.",
+      "Let human agents resume the agent's session so they can question it about the case directly."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "A handoff to a human should be self-contained: the person acting on it should never need the transcript. Structured fields for the verified customer, the problem, what was attempted and why it failed, the specific policy that required escalation, and a recommended action put exactly the decision inputs in front of the reviewer.",
+    "whyWrong": [
+      "Attaching the transcript formalizes the problem; the human still has to read it to dig out the facts.",
+      "Correct. A structured, self-contained handoff means a human never needs the transcript to act on the ticket.",
+      "Longer prose is slower to scan and still buries the specific fields the human needs.",
+      "Session resume restores a conversation for an agent, not a decision summary for a person, and adds another round trip."
+    ],
+    "concept": "structured human handoff summary",
+    "sources": [
+      "lesson 5.pdf p8",
+      "lesson 5.pdf p13",
+      "fde-enablement-hub-complete.md:6653"
+    ],
+    "plainExample": "A nurse ending a shift does not hand over a recording of the whole day. They give a short chart: patient, problem, what was tried, what to watch, what to do next. The next nurse can act in two minutes instead of forty.",
+    "technicalExample": "{\n  \"customer_id\": \"C-10442\", \"issue_type\": \"refund\",\n  \"root_cause\": \"Item arrived damaged; order shipped 94 days ago\",\n  \"attempted_resolution\": \"refunds_issue rejected: refund_window_exceeded\",\n  \"escalation_reason\": \"90-day refund window policy\",\n  \"refund_amount\": 89.99, \"recommended_action\": \"Decide on goodwill credit per policy\"\n}"
+  },
+  {
+    "id": "D1-023",
+    "domain": 1,
+    "task": "1.4",
+    "scenario": "structured-extraction",
+    "type": "single",
+    "stem": "A multi-stage financial extraction pipeline hands work between subagents. Stage one agreed with the client to store all amounts in minor units and all dates in UTC. Stage three, running later from its own work order, stored amounts in major units, and reconciled totals were off by a factor of one hundred. The handoff between stages carries only artifact paths. What should the architect add?",
+    "options": [
+      "A decisions_locked field in the handoff record that the next stage reads and must not relitigate.",
+      "Stage one's full conversation history, passed to stage three so it can see how the decision was made.",
+      "A line in stage three's prompt telling it to stay consistent with whatever earlier stages decided.",
+      "A larger model for stage three so that it infers the unit convention from the data it receives."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "Settled decisions have to travel with the work, or the next stage rediscovers them differently, which is the most expensive form of subagent drift. A decisions_locked list in the handoff record makes the convention explicit, and because the next stage validates the record before acting, the decision is carried by contract rather than hope.",
+    "whyWrong": [
+      "Correct. decisions_locked stops downstream stages from relitigating choices that were already made.",
+      "Shipping whole histories defeats context isolation and bloats the window, and the decision still has to be dug out of prose.",
+      "\"Whatever earlier stages decided\" points at information stage three was never given; the subagent has no earlier context to consult.",
+      "No model can reliably infer a convention the data does not state; this treats missing input as a reasoning problem."
+    ],
+    "concept": "decisions_locked in handoff records",
+    "sources": [
+      "fde-enablement-hub-complete.md:2001",
+      "fde-enablement-hub-complete.md:2011",
+      "claude-certified-architect-principles.md:111",
+      "fde-enablement-hub-complete.md:1937"
+    ],
+    "plainExample": "A wedding planner agrees with the couple that every price is quoted in euros. The caterer, briefed separately, quotes in pounds, and the budget sheet falls apart. Writing \"all prices in euros, already agreed\" on every supplier brief would have prevented it.",
+    "technicalExample": "{\n  \"run_id\": \"run-2026-09-29-7c1\",\n  \"stage\": {\"completed\": \"normalize\", \"next_expected\": \"reconcile\"},\n  \"produced\": {\"dataset_uri\": \"s3://staging/run-2026-09-29-7c1/normalized.parquet\", \"sha256\": \"...\"},\n  \"decisions_locked\": [\"currency_minor_units=true\", \"timezone=UTC\"]\n}"
+  },
+  {
+    "id": "D1-024",
+    "domain": 1,
+    "task": "1.5",
+    "scenario": "customer-support",
+    "type": "single",
+    "stem": "A support agent's order tool returns raw fields: ordered_at as an epoch integer, status as a numeric code, amount_cents, and tier codes such as P1. The agent sometimes quotes the wrong order date or calls a delivered order \"processing\". The tool is owned by another team and cannot be changed. Which fix removes these misreadings most reliably?",
+    "options": [
+      "Document every status code, tier code, and the epoch format in the system prompt so the model can decode them.",
+      "Add a PreToolUse hook on the order tool that rewrites the order id into the format the API expects.",
+      "Add a PostToolUse hook that converts the raw fields into plain values before the model sees them.",
+      "Add a separate decode_order tool that the agent can call to translate raw fields whenever it is unsure."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "PostToolUse runs after the tool returns and before the model sees the result, which makes it the normalization window. Converting raw fields there, and even embedding business meaning such as what a tier entitles the customer to, removes interpretation surface: the model cannot misread what it never sees raw. It needs no change to the other team's tool and no extra tool call.",
+    "whyWrong": [
+      "Decoding tables in the prompt keep the misreading possible and compete with everything else in the window.",
+      "PreToolUse acts on the arguments going in; the misreadings come from the result coming back.",
+      "Correct. Normalize on the return path, deterministically, before the model reasons over the data.",
+      "An optional decode tool adds turns and relies on the model knowing when it is unsure, which is exactly when it does not."
+    ],
+    "concept": "PostToolUse result normalization",
+    "sources": [
+      "lesson 5.pdf p5",
+      "lesson 5.pdf p4",
+      "lesson 5.pdf p3",
+      "fde-enablement-hub-complete.md:2095"
+    ],
+    "plainExample": "A translator sits between a foreign supplier and a shop assistant. Instead of teaching the assistant a new language, the translator turns every invoice into plain English before it reaches the counter. The assistant cannot misread words it never sees.",
+    "technicalExample": "raw  = {\"ordered_at\": 1759104000, \"status\": 3, \"amount_cents\": 4999, \"tier\": \"P1\"}\n# PostToolUse hook replaces the output (updatedToolOutput) before Claude sees it:\nnorm = {\"order_date\": \"2025-09-29\", \"status\": \"Delivered\",\n        \"amount\": \"49.99 USD\", \"tier\": \"Premium (expedited shipping eligible)\"}"
+  },
+  {
+    "id": "D1-025",
+    "domain": 1,
+    "task": "1.5",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A CI agent has two PreToolUse hooks matched to Bash. A normalization hook rewrites commands to use absolute paths and returns allow with updatedInput. A security hook returns deny for any command touching production credentials. An engineer worries that if the normalization hook runs last, its allow will override the security hook's deny. What change, if any, is needed to guarantee the deny always wins?",
+    "options": [
+      "Register the security hook after the normalization hook so that its decision is the final one applied.",
+      "Merge both hooks into a single callback so there is one decision and no ordering question to resolve.",
+      "Make the normalization hook async so that it cannot interfere with the security hook's decision.",
+      "No change is needed for precedence, because deny beats defer, ask, and allow when several hooks apply."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "When several hooks or rules apply to one call, the decision precedence is deny, then defer, then ask, then allow. The security hook's deny therefore wins regardless of registration order. Reordering or merging adds maintenance cost without changing the outcome, and making the normalization hook async would silently break it.",
+    "whyWrong": [
+      "Registration order does not decide the outcome; precedence does, so this change buys nothing.",
+      "Merging couples two concerns with different owners and is unnecessary, since precedence already resolves the conflict.",
+      "An async hook cannot modify input, so the path normalization would quietly stop working.",
+      "Correct. deny beats defer beats ask beats allow, so the guarantee already holds."
+    ],
+    "concept": "hook decision precedence",
+    "sources": [
+      "fde-enablement-hub-complete.md:2095",
+      "fde-enablement-hub-complete.md:2099",
+      "claude-certified-architect-principles.md:121",
+      "claude-certified-architect-principles.md:599"
+    ],
+    "plainExample": "Two managers review a purchase: one approves, one vetoes. Company policy says any veto stops the purchase, whoever signed first. Nobody needs to reorder the signatures for the veto to count.",
+    "technicalExample": "Hook A (normalize): {\"permissionDecision\": \"allow\", \"updatedInput\": {...}}\nHook B (security):  {\"permissionDecision\": \"deny\",\n                     \"permissionDecisionReason\": \"Command touches production credentials.\"}\nResolved: deny    # precedence deny > defer > ask > allow, independent of order"
+  },
+  {
+    "id": "D1-026",
+    "domain": 1,
+    "task": "1.5",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "A debugging assistant's log_search tool returns about 40,000 tokens per call, and after four or five searches the context compacts and the assistant loses track of which request ids it was chasing. It only needs matching lines with timestamps and request ids, but engineers occasionally need the full output afterwards. Which change is best?",
+    "options": [
+      "Add an async PostToolUse hook that trims the output in the background so the agent is never slowed down.",
+      "Add a PostToolUse hook returning updatedToolOutput with just matching lines, plus a path to the raw output.",
+      "Add a PreCompact hook that archives the transcript so the raw log output survives when compaction runs.",
+      "Add a system prompt instruction telling the assistant to ignore irrelevant lines in log search results."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "PostToolUse can replace a tool's output with updatedToolOutput before Claude ever sees it, which is where a 40,000-token payload becomes the few lines the agent needs. Saving the raw output and returning its path keeps the trimming reversible. The hook runs synchronously in your process, costs no tokens, and prevents the context pressure instead of recording it.",
+    "whyWrong": [
+      "An async hook cannot modify anything; the agent has already moved on with the full 40,000-token output.",
+      "Correct. Trim on the return path and keep a path back to the raw output, so trimming is not destruction.",
+      "PreCompact preserves a transcript before summarization but does nothing to stop the window filling up.",
+      "The tokens are consumed the moment the result lands in context, whether or not the model is told to ignore them."
+    ],
+    "concept": "PostToolUse trimming with updatedToolOutput",
+    "sources": [
+      "fde-enablement-hub-complete.md:2095",
+      "fde-enablement-hub-complete.md:2099",
+      "claude-certified-architect-principles.md:124",
+      "claude-certified-architect-principles.md:28",
+      "claude-certified-architect-principles.md:125"
+    ],
+    "plainExample": "A good assistant opens the post and hands you only the three letters that matter, with a note saying the rest is in the tray if you want it. You never wade through junk mail to find the bill, and nothing gets thrown away.",
+    "technicalExample": "def trim_logs(input_data, tool_use_id, context):\n    raw = tool_output_of(input_data)\n    raw_path = save_raw(tool_use_id, raw)              # keep a path back\n    keep = matching_lines(raw, pattern=REQUEST_ID)[:50]\n    return {\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\",\n            \"updatedToolOutput\": render(keep, raw_output=raw_path)}}"
+  },
+  {
+    "id": "D1-027",
+    "domain": 1,
+    "task": "1.6",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "An engineering organization wants two new agent workloads. The first reviews every merged pull request nightly against a fixed twelve-item compliance checklist, and auditors require the same steps in the same order each time. The second investigates intermittent production data corruption whose origin is unknown and may lie in any of several services. Which decomposition strategy fits each workload?",
+    "options": [
+      "Prompt chaining for the compliance review, and dynamic decomposition for the corruption investigation.",
+      "Dynamic decomposition for the compliance review, and prompt chaining for the corruption investigation.",
+      "Prompt chaining for both, with the investigation's steps defined up front from the list of known services.",
+      "Dynamic decomposition for both, so that each workload can adapt its steps as it discovers new findings."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "The deciding question is whether you know all the steps before you start. The compliance review does, and auditors need reproducibility, so a fixed chain of prompts is right. The investigation cannot define its steps up front because each finding decides where to look next, so it needs dynamic decomposition.",
+    "whyWrong": [
+      "Correct. Known, fixed, auditable steps call for prompt chaining; unknown scope with steps emerging from findings calls for dynamic decomposition.",
+      "This inverts both: it gives up reproducibility where auditors demand it and scripts steps where they cannot be known.",
+      "Predefined steps for an open-ended investigation become wrong the moment findings diverge from the initial assumptions.",
+      "Letting the model navigate a fixed checklist gives up the reproducibility auditors require, for no benefit."
+    ],
+    "concept": "prompt chaining vs dynamic decomposition",
+    "sources": [
+      "lesson 5.pdf p9",
+      "lesson 5.pdf p10",
+      "lesson 5.pdf p11",
+      "fde-enablement-hub-complete.md:1824"
+    ],
+    "plainExample": "A pilot's pre-flight checklist is the same every time, in the same order, and that is the point. A detective investigating a burglary cannot write the steps in advance, because each clue decides where to look next. Use the checklist for the first job and the detective for the second.",
+    "technicalExample": "# Nightly review: fixed chain, output of step N feeds step N+1\nfor pr in merged_prs:\n    report(step3_summary(step2_checklist(step1_file_analysis(pr))))\n# Investigation: steps emerge from findings\nrun_agent(goal=\"find the source of the corruption\",\n          tools=[query_db, read_logs, diff_deploys], max_turns=30, max_budget_usd=5)"
+  },
+  {
+    "id": "D1-028",
+    "domain": 1,
+    "task": "1.6",
+    "scenario": "code-generation",
+    "type": "single",
+    "stem": "A privacy review asks which code paths write customer personal data to application logs. The coordinator splits the repository across eight subagents by team-owned directory, and each reports only paths that begin and end inside its own directory. The combined answer misses most real leaks, because personal data is typically read in one team's module and logged by a shared logging module owned by another team. Which redesign best addresses this?",
+    "options": [
+      "Split the repository into sixteen smaller directories so each subagent can trace its territory more closely.",
+      "Keep the eight directory subagents and add a synthesis subagent that merges their reports into one answer.",
+      "Decompose by question, such as one subagent tracing each log sink back to its inputs, not by directory.",
+      "Run the eight directory subagents sequentially so that each one can read the previous subagent's report."
+    ],
+    "correct": [
+      2
+    ],
+    "explanation": "The analysis is cross-cutting, so splitting it by territory produces partial answers and nobody positioned to see a flow that crosses a boundary. Decomposing by question lets a subagent follow the data wherever it goes. A synthesizer over the directory reports cannot recover flows that no subagent was ever asked to trace.",
+    "whyWrong": [
+      "Smaller territories create more boundaries, so even more cross-directory flows fall between subagents.",
+      "Synthesis helps when independent lanes each did their job; here the flows that matter were never traced, so there is nothing to merge.",
+      "Correct. Decompose by question, not by territory, when the analysis crosses the boundaries you would split on.",
+      "Sequencing adds latency, but each subagent still traces only its own directory, so cross-boundary flows are still missed."
+    ],
+    "concept": "decompose by question, not territory",
+    "sources": [
+      "fde-enablement-hub-complete.md:2124",
+      "claude-certified-architect-principles.md:87",
+      "fde-enablement-hub-complete.md:2227",
+      "lesson 2.pdf p12"
+    ],
+    "plainExample": "To learn how a rumour spread through a school, you do not assign one investigator per classroom and ask what happened inside each room. The rumour travelled between rooms. You assign someone to follow the rumour wherever it goes.",
+    "technicalExample": "# Wrong: by territory\nfor d in team_dirs:\n    delegate(f\"Find PII logged within {d} only\")\n# Right: by question\ndelegate(\"Trace every call into logging/ back to its inputs; report any carrying customer PII, with file:line\")\ndelegate(\"List every field classified as customer PII and every place it is read\")"
+  },
+  {
+    "id": "D1-029",
+    "domain": 1,
+    "task": "1.6",
+    "scenario": "developer-productivity",
+    "type": "single",
+    "stem": "A documentation tool uses a writer subagent and a reviewer subagent that pass an API guide back and forth until the reviewer approves. Each round trip includes the full draft and the reviewer's notes, costs have tripled over the past month as guides grew, and quality scores stop improving after the second round. Which change best addresses cost without hurting quality?",
+    "options": [
+      "Add a third arbiter subagent that decides when the writer and reviewer have converged on a final draft.",
+      "Cap the exchange at three round trips so the writer and reviewer stop before costs grow any further.",
+      "Move the reviewer to a larger model so its notes are sharper and fewer rounds are needed in total.",
+      "Keep revision in one conversation, and delegate only independently checkable parts such as link checks."
+    ],
+    "correct": [
+      3
+    ],
+    "explanation": "Refine-and-recheck work should not be split across subagents, because every round trip rebuilds context the other side had a moment ago, so cost climbs while quality plateaus. Keeping refinement in one conversation removes that rebuild cost, and only the one-pass, independently verifiable pieces around it are worth delegating.",
+    "whyWrong": [
+      "A third agent adds a third context to rebuild each round and leaves the structural cost in place.",
+      "A round cap bounds cost but still pays the rebuild every round, and may stop before the draft is good.",
+      "A larger reviewer raises the per-round price while the context-rebuild overhead stays exactly the same.",
+      "Correct. Do not decompose an iterative refinement loop; delegate only pieces with their own pass or fail check."
+    ],
+    "concept": "do not decompose iterative refinement",
+    "sources": [
+      "fde-enablement-hub-complete.md:2124",
+      "fde-enablement-hub-complete.md:2237",
+      "fde-enablement-hub-complete.md:2115",
+      "claude-certified-architect-principles.md:86"
+    ],
+    "plainExample": "An author and an editor in different cities post the whole manuscript back and forth for every change, paying more postage each round and re-reading the same pages. Sitting at one desk for the revisions is cheaper and faster. The spell-check can still be sent out.",
+    "technicalExample": "# Wrong: writer <-> reviewer subagents, full draft re-sent every round\n# Right:\ndraft = session.refine(guide_spec, until=review_checks_pass)   # one conversation\nbroken = delegate(\"Validate every URL in the guide; return broken links only\")"
+  },
+  {
+    "id": "D1-030",
+    "domain": 1,
+    "task": "1.7",
+    "scenario": "code-generation",
+    "type": "single",
+    "stem": "A developer spent ninety minutes in a named Claude Code session building an analysis of a large service for a refactoring plan. Two days later they return to continue the same plan. In the meantime only two files changed, auth.py and stripe_handler.py, both edited by a colleague. Which approach keeps the prior work and avoids acting on stale results?",
+    "options": [
+      "Resume the session and continue directly, since the agent will notice the changed files when it next reads them.",
+      "Resume the session and state which two files changed, telling it not to rely on earlier results for them.",
+      "Fork the session so that the updated files are handled in a separate branch from the original analysis.",
+      "Start a fresh session and redo the full analysis so that no stale tool results can influence the plan."
+    ],
+    "correct": [
+      1
+    ],
+    "explanation": "A resumed session restores what the agent knew, not what is now true, and the agent cannot detect external file changes on its own. When the context is still largely valid and the changes are few and known, resuming and explicitly declaring what changed triggers targeted re-analysis and keeps the expensive baseline. A fresh start is for when prior results are fundamentally stale.",
+    "whyWrong": [
+      "The agent trusts its transcript and may act on the old contents of those files; resuming without informing is the named anti-pattern.",
+      "Correct. Resume plus explicit notice of the specific changes keeps the baseline and prevents stale reasoning.",
+      "Forking is for exploring alternative approaches from a shared baseline, not for handling targeted file updates over time.",
+      "Throwing away ninety minutes of still-valid analysis over two changed files wastes the baseline."
+    ],
+    "concept": "resume with explicit change notice",
+    "sources": [
+      "lesson 3.pdf p8",
+      "lesson 3.pdf p11",
+      "lesson 3.pdf p14",
+      "fde-enablement-hub-complete.md:2146"
+    ],
+    "plainExample": "You return from a week's leave to a half-finished kitchen renovation. A colleague says only the sink and the tap were changed while you were away, so you re-check those two and carry on. You would not rip out the whole kitchen, and you would not assume nothing changed.",
+    "technicalExample": "claude --resume billing-refactor\n> Since our last session a colleague edited auth.py and stripe_handler.py.\n> Do not rely on earlier tool results for those two files; re-read them\n> before continuing the refactoring plan."
+  },
+  {
+    "id": "D1-031",
+    "domain": 1,
+    "task": "1.7",
+    "scenario": "developer-productivity",
+    "type": "multi",
+    "stem": "An architect has a session holding a costly two-hour exploration of a monolith and wants to compare two migration strategies, one serverless and one containerized, from that shared baseline. Both strategies will involve trial edits to files. They want the original session left intact and neither strategy's edits contaminating the other. Which two actions should they take? (Select TWO.)",
+    "options": [
+      "Fork the baseline session once per strategy, so each gets a new session id with a copy of the history.",
+      "Resume the baseline session for the first strategy, then resume it again for the second strategy afterwards.",
+      "Give each fork its own working copy of the code, since forks branch the conversation but not the filesystem.",
+      "Start two fresh sessions and repeat the two-hour exploration in each so their histories are fully independent.",
+      "Rely on the fork itself to isolate file edits, since each forked session keeps a private copy of the repository."
+    ],
+    "correct": [
+      0,
+      2
+    ],
+    "explanation": "Forking copies the history into a new session id and leaves the original untouched, which is the pattern for exploring alternatives from a shared, expensive baseline. But a fork branches the conversation, not the filesystem: edits made by one fork are real and visible to any session in the same directory, so the two strategies need separate working copies to avoid overwriting each other.",
+    "whyWrong": [
+      "Correct. Fork to explore; the baseline session stays unchanged and each strategy diverges independently.",
+      "Resuming appends to the baseline, welding the first strategy into the history the second one would start from.",
+      "Correct. Separate working copies stop two forks from overwriting each other's edits in a single checkout.",
+      "Repeating the exploration pays twice for work a fork shares at almost no cost.",
+      "This is the trap: forks do not copy the filesystem, so both strategies would be editing the same files."
+    ],
+    "concept": "fork for parallel exploration; filesystem is not forked",
+    "sources": [
+      "lesson 3.pdf p9",
+      "fde-enablement-hub-complete.md:2142",
+      "fde-enablement-hub-complete.md:2146",
+      "claude-certified-architect-principles.md:91",
+      "fde-enablement-hub-complete.md:7519"
+    ],
+    "plainExample": "Two architects photocopy the same site survey to sketch competing designs, which is cheap and keeps the original clean. But if both then start knocking down walls in the one real building, their plans collide. Copies of the notes still need separate models of the building to work on.",
+    "technicalExample": "base = \"<baseline session id>\"\n# Strategy A, run from checkout /work/copy-a\nquery(\"Plan the serverless migration\", options=Opts(resume=base, fork_session=True))\n# Strategy B, run from checkout /work/copy-b\nquery(\"Plan the container migration\", options=Opts(resume=base, fork_session=True))\n# base history unchanged; A and B get new session ids and separate files"
+  },
+  {
+    "id": "D1-032",
+    "domain": 1,
+    "task": "1.7",
+    "scenario": "ci-cd",
+    "type": "single",
+    "stem": "A weekly security audit in CI resumes last week's Claude Code session to avoid the cost of re-reading the repository. This week a large restructuring moved or deleted hundreds of files, and the resumed agent confidently reports vulnerabilities at line numbers in files that no longer exist. The team still wants to benefit from last week's findings. What should the pipeline do?",
+    "options": [
+      "Start a fresh session and inject last week's findings as a structured summary framed as hypotheses.",
+      "Keep resuming last week's session, but prepend a note saying the repository has changed significantly.",
+      "Fork last week's session each week so the stale history is isolated from the new audit's findings.",
+      "Resume the session with a larger context window so the agent can re-read the whole repository on top of it."
+    ],
+    "correct": [
+      0
+    ],
+    "explanation": "When tool results are fundamentally stale because the codebase changed heavily, resuming is counterproductive: the agent acts on its transcript with full confidence. A fresh session with prior findings compressed into a structured summary, explicitly framed as hypotheses to validate rather than facts, keeps the value of last week's work without inheriting its outdated view of the files.",
+    "whyWrong": [
+      "Correct. High volatility calls for a fresh start with injected findings, framed as hypotheses so the model re-verifies each one.",
+      "A vague note cannot correct hundreds of stale file and line references that the transcript still asserts as true.",
+      "A fork copies the same stale history into a new session id; it isolates nothing from the outdated facts.",
+      "A bigger window keeps the stale transcript and adds cost; it does not tell the agent which of its beliefs are wrong."
+    ],
+    "concept": "fresh start with injected hypotheses",
+    "sources": [
+      "lesson 3.pdf p10",
+      "lesson 3.pdf p11",
+      "lesson 3.pdf p12",
+      "fde-enablement-hub-complete.md:2148",
+      "exam-coach-agent/research/exam-concept-briefing.md:57"
+    ],
+    "plainExample": "An inspector returns to a building that was gutted and rebuilt since last year. Reading last year's report aloud as if it still applied would be dangerous. Instead they carry last year's list as \"things to check\", walk the new building, and confirm or strike each item.",
+    "technicalExample": "New session prompt:\n  Audit the repository for vulnerabilities.\n  Prior findings (HYPOTHESES TO VALIDATE, not facts; files may have moved or been deleted):\n  <last week's findings as structured JSON>\n  For each finding: confirm, relocate, or mark obsolete, citing the current file:line."
+  }
+]

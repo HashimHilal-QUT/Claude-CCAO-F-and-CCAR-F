@@ -1,0 +1,47 @@
+[
+  {
+    "part": "Cold open",
+    "questions": [],
+    "concepts": ["failure story: forgotten refund amount", "domain weight fifteen percent", "look-alike failures", "global remedy trap", "cost as deciding axis"]
+  },
+  {
+    "part": "Part one: Keeping critical information alive in long conversations",
+    "questions": ["D5-001", "D5-002", "D5-003"],
+    "concepts": ["stateless API, context window as budget", "context rot", "bigger window is not a strategy", "output tokens separate from input", "case-facts block of tool-verified facts", "trim tool output at PostToolUse hook with raw-output path", "compaction vs context editing, loss modes", "do not raise trigger or disable compaction", "persist identifiers at discovery, PreCompact, instructions parameter", "placement: bulk first, question last, lost in the middle", "hard constraint validated outside model", "four preservation strategies", "fresh session with handoff brief", "compact vs fresh start contrast"]
+  },
+  {
+    "part": "Part two: Escalation and ambiguity resolution",
+    "questions": ["D5-004", "D5-005", "D5-006"],
+    "concepts": ["checkable escalation criteria", "ordered rules, first match, record rule id", "tiered sample rule set", "sentiment source disagreement", "money-moving hard tier vs covered refunds tension", "explicit human request as separate axis", "no escalation quota, no self-rated confidence", "bounded clarification: one question then escalate", "request ambiguity vs policy ambiguity", "policy_gap abstention, no holding reply, weekly review", "over-escalation and rubber-stamping", "proceed vs ask vs escalate contrast"]
+  },
+  {
+    "part": "Part three: Error propagation across multi-agent systems",
+    "questions": ["D5-007", "D5-008", "D5-009"],
+    "concepts": ["prose errors become rumours", "empty result is not success", "is_error at tool layer vs agent-layer contract", "structured partial result with coverage and claim_scope", "shared error_class taxonomy with error_code detail", "never retry non-retryable, retry_would_help_if", "coordinator laundering of coverage gaps", "confidence downgrade is not naming the gap", "subagent vs coordinator defect contrast"]
+  },
+  {
+    "part": "Part four: Managing context in large codebase exploration",
+    "questions": ["D5-010", "D5-011", "D5-012"],
+    "concepts": ["exploration as retrieval", "search then read matched ranges", "why whole-file reads fail", "just-in-time retrieval: identifiers not content", "recency preload, concatenation, batching traps", "subagent or forked skill discards exploration cost", "return contract before delegating", "coordinator re-reading anti-pattern", "search directly vs delegate contrast"]
+  },
+  {
+    "part": "Part five: Human review workflows and confidence calibration",
+    "questions": ["D5-013", "D5-014", "D5-015"],
+    "concepts": ["stated confidence is a claim until measured", "calibration by bucketing a labelled sample", "monotonic but compressed mapping", "segmentation by document type with volumes", "stratified sampling and per-type thresholds to stated target", "wrong substitutes: average confidence, self-justification, extended thinking, higher global threshold", "three review designs and residual risks", "review everything when regulated, new, unlabelled", "multi-run agreement is not correctness", "stratified audit of auto-accepted items for drift", "feedback loop"]
+  },
+  {
+    "part": "Part six: Provenance and uncertainty in multi-source synthesis",
+    "questions": ["D5-016", "D5-017", "D5-018"],
+    "concepts": ["claim-to-source mapping via shared source_id", "four parts of provenance", "merge step that outputs prose breaks the chain", "bibliography vs claim mapping", "conflict annotation and conflicted_unresolved", "recency, majority vote, averaging as silent resolution", "coverage gaps as part of the answer", "Citations for documents, own records for tool results", "Citations source caveat", "confidence vs sources contrast"]
+  },
+  {
+    "part": "Trap round",
+    "questions": ["D5-001", "D5-002", "D5-003", "D5-004", "D5-005", "D5-006", "D5-007", "D5-008", "D5-009", "D5-010", "D5-011", "D5-012", "D5-013", "D5-014", "D5-015", "D5-016", "D5-017", "D5-018"],
+    "concepts": ["rapid-fire distractor recognition across all six task statements"]
+  },
+  {
+    "part": "Closing recap: ten things to remember",
+    "questions": [],
+    "concepts": ["ten plain-then-technical recap points"]
+  }
+]

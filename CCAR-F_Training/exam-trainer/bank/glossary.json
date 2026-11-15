@@ -1,0 +1,3407 @@
+[
+ {
+  "term": "abort",
+  "aliases": [
+   "aborted",
+   "aborts",
+   "aborting"
+  ],
+  "plain": "To stop an operation abruptly before it finishes, usually because of an error."
+ },
+ {
+  "term": "abstention",
+  "aliases": [
+   "abstain"
+  ],
+  "plain": "A deliberate 'cannot tell' answer the model may give alongside yes and no. It sends unclear cases to a person instead of forcing a confident guess."
+ },
+ {
+  "term": "acceptEdits",
+  "aliases": [],
+  "plain": "A Claude Code permission mode that approves file edits automatically, so changes happen without anyone reviewing them first."
+ },
+ {
+  "term": "additionalProperties",
+  "aliases": [],
+  "plain": "A data-rule setting controlling whether a record may carry fields beyond those listed. Set to false, it forbids extras."
+ },
+ {
+  "term": "advisory",
+  "aliases": [],
+  "plain": "Guidance the model may or may not follow. It carries no enforcement, so it can be ignored or forgotten."
+ },
+ {
+  "term": "agent",
+  "aliases": [
+   "agents"
+  ],
+  "plain": "An AI model working in a loop with tools: it picks a step, a tool carries it out, it reads the result and carries on until the job is done."
+ },
+ {
+  "term": "agent loop",
+  "aliases": [],
+  "plain": "The repeating cycle behind an agent: the model picks an action, your code carries it out, the result goes back, and it goes round again until something decides to stop."
+ },
+ {
+  "term": "Agent tool",
+  "aliases": [],
+  "plain": "Claude Code's built-in tool for launching a subagent. An agent without it cannot delegate further."
+ },
+ {
+  "term": "agentic",
+  "aliases": [],
+  "plain": "Working like an agent: choosing its own next steps and tools in a loop, rather than giving a single one-shot answer."
+ },
+ {
+  "term": "alarm",
+  "aliases": [
+   "alarms"
+  ],
+  "plain": "An automatic alert raised when a measured value, such as a failure rate, crosses a set limit."
+ },
+ {
+  "term": "alert",
+  "aliases": [],
+  "plain": "An automatic notification that something in a live system needs attention."
+ },
+ {
+  "term": "alias",
+  "aliases": [
+   "aliases"
+  ],
+  "plain": "A short custom name that stands in for a longer command in the shell."
+ },
+ {
+  "term": "allowed-tools",
+  "aliases": [],
+  "plain": "A setting in a reusable instruction pack that pre-approves listed tools while the pack runs. It only saves approval prompts; it does not stop any other tool being used."
+ },
+ {
+  "term": "allowedTools",
+  "aliases": [],
+  "plain": "A setting for an automated run listing the tools that may be used without asking. Anything unlisted needs approval, which in an unattended run means it is refused."
+ },
+ {
+  "term": "--allowedTools",
+  "aliases": [],
+  "plain": "The command-line form of the pre-approval list: tools named here run without asking permission for that run."
+ },
+ {
+  "term": "allowlist",
+  "aliases": [],
+  "plain": "A list of the only things permitted, with everything else excluded by default. Safer than a list of what is forbidden, because anything added later is automatically left out."
+ },
+ {
+  "term": "annotation",
+  "aliases": [
+   "annotations"
+  ],
+  "plain": "Descriptive labels a tool publishes about itself, such as 'read-only'. They are hints from its author, not enforced rules."
+ },
+ {
+  "term": "anti-pattern",
+  "aliases": [],
+  "plain": "A common approach that looks sensible but reliably causes trouble. Having a name for it helps you spot and reject it quickly."
+ },
+ {
+  "term": "API",
+  "aliases": [],
+  "plain": "Application programming interface: a defined way for one program to ask another for something, like a service counter with a fixed menu of requests and replies."
+ },
+ {
+  "term": "append",
+  "aliases": [
+   "appends",
+   "appending"
+  ],
+  "plain": "To add something to the end of an existing list or conversation."
+ },
+ {
+  "term": "application-driven",
+  "aliases": [],
+  "plain": "Describes MCP resources: the host application decides when to supply this content, rather than the model or a person."
+ },
+ {
+  "term": "argument",
+  "aliases": [
+   "arguments"
+  ],
+  "plain": "The actual value handed to a tool or command when it is called, such as the specific order number."
+ },
+ {
+  "term": "argument-hint",
+  "aliases": [],
+  "plain": "A setting on a saved command that shows sample input as you type, such as the kind of value expected. It is a reminder only and checks nothing."
+ },
+ {
+  "term": "$ARGUMENTS",
+  "aliases": [],
+  "plain": "A placeholder inside a saved command's instructions that is replaced with whatever the person typed after the command name, so one command can work on different inputs."
+ },
+ {
+  "term": "array",
+  "aliases": [
+   "arrays"
+  ],
+  "plain": "An ordered list of values held together as one item, such as the list of order lines inside one invoice record."
+ },
+ {
+  "term": "artifact",
+  "aliases": [],
+  "plain": "A finished output a process produces and hands on, such as a report, file or extracted record."
+ },
+ {
+  "term": "assert",
+  "aliases": [
+   "asserts",
+   "assertion",
+   "asserting"
+  ],
+  "plain": "To state firmly that something is true. In testing, an assertion is a check that fails loudly when the expected result does not appear."
+ },
+ {
+  "term": "assistant message",
+  "aliases": [],
+  "plain": "The model's own earlier reply as stored in the conversation record. It must be sent back, in order, so the model can see what it already said."
+ },
+ {
+  "term": "asterisk",
+  "aliases": [],
+  "plain": "The * character, often used as a wildcard meaning 'anything'."
+ },
+ {
+  "term": "async",
+  "aliases": [],
+  "plain": "Short for asynchronous: running in the background while everything else carries on without waiting. Because nothing waits for it, it cannot block or change what happens."
+ },
+ {
+  "term": "attribution",
+  "aliases": [],
+  "plain": "Recording which source each claim came from. Once lost, for example by blending sources into one paragraph, it cannot be rebuilt."
+ },
+ {
+  "term": "audit",
+  "aliases": [
+   "audits",
+   "auditing"
+  ],
+  "plain": "A systematic after-the-fact check that work or records were done correctly."
+ },
+ {
+  "term": "audit log",
+  "aliases": [],
+  "plain": "A record of who did what and when, kept for accountability and investigations."
+ },
+ {
+  "term": "authentication",
+  "aliases": [
+   "auth"
+  ],
+  "plain": "Proving who you are to a system, such as with a password or token, before it lets you in."
+ },
+ {
+  "term": "authorization",
+  "aliases": [],
+  "plain": "Permission to perform an action, as distinct from proving who you are. Tool labels and prompt wording never grant it."
+ },
+ {
+  "term": "auto-discovered",
+  "aliases": [],
+  "plain": "Found and loaded automatically from whatever is on the machine, such as hooks and plugins. Convenient for people, unpredictable in automated runs."
+ },
+ {
+  "term": "autocomplete",
+  "aliases": [],
+  "plain": "Suggestions that appear as you type, completing words or commands for you."
+ },
+ {
+  "term": "backend",
+  "aliases": [],
+  "plain": "The behind-the-scenes part of software, such as servers, databases and business logic, that users never see directly."
+ },
+ {
+  "term": "backfill",
+  "aliases": [],
+  "plain": "Processing a backlog of older records in one go, such as re-tagging past tickets, rather than as they arrive."
+ },
+ {
+  "term": "background",
+  "aliases": [],
+  "plain": "Running out of sight while other work carries on, instead of making the person wait. A skill or subagent setting can switch this on or off."
+ },
+ {
+  "term": "backoff",
+  "aliases": [],
+  "plain": "Waiting a little longer after each failed attempt before trying again, so a struggling service gets breathing room instead of being hammered."
+ },
+ {
+  "term": "--bare",
+  "aliases": [],
+  "plain": "A Claude Code option that skips automatically loading local hooks, skills, plugins, MCP servers and CLAUDE.md, giving a clean, predictable run."
+ },
+ {
+  "term": "baseline",
+  "aliases": [],
+  "plain": "A reference point used for comparison or to build on, such as an analysis already completed."
+ },
+ {
+  "term": "Bash",
+  "aliases": [],
+  "plain": "The command window Claude Code can use to run any system command. Powerful but blunt: purpose-built search and file tools are safer and give tidier results."
+ },
+ {
+  "term": "batch",
+  "aliases": [
+   "batches"
+  ],
+  "plain": "A bundle of many requests handed over at once and processed later, rather than one at a time while you wait. Cheaper, but results can take hours."
+ },
+ {
+  "term": "Bearer",
+  "aliases": [],
+  "plain": "The standard way to present an access token to a web service: the word Bearer followed by the token, sent in a request header."
+ },
+ {
+  "term": "bias",
+  "aliases": [
+   "biased"
+  ],
+  "plain": "A systematic lean in one direction, such as a reviewer favouring its own earlier work."
+ },
+ {
+  "term": "binding",
+  "aliases": [
+   "bind",
+   "binds"
+  ],
+  "plain": "Attaching a supplied value to a named placeholder so it fills in automatically, such as a ticket number dropped into a command's instructions."
+ },
+ {
+  "term": "blast radius",
+  "aliases": [
+   "blast-radius"
+  ],
+  "plain": "How much damage a mistake could do, and to whom, if something goes wrong."
+ },
+ {
+  "term": "block",
+  "aliases": [
+   "blocks",
+   "blocked"
+  ],
+  "plain": "To stop an action from happening, as a hook or permission rule can. In model replies, also one chunk of content, such as text or a tool request."
+ },
+ {
+  "term": "blocking",
+  "aliases": [],
+  "plain": "Describes a step that must finish before anything else can proceed, like a sign-off that holds up a release. Slow background processing is a poor fit for blocking work."
+ },
+ {
+  "term": "boolean",
+  "aliases": [],
+  "plain": "A value that can only be true or false, like a yes/no switch."
+ },
+ {
+  "term": "bot",
+  "aliases": [],
+  "plain": "An automated account or program that acts on its own, such as one posting review comments."
+ },
+ {
+  "term": "boundary",
+  "aliases": [
+   "boundaries"
+  ],
+  "plain": "A dividing line: between pipeline stages, between agents' separate contexts, or between categories where cases are hardest to classify."
+ },
+ {
+  "term": "brace",
+  "aliases": [],
+  "plain": "A curly bracket, { or }. In JSON it marks the start and end of an object; in file patterns it lists alternatives."
+ },
+ {
+  "term": "branch",
+  "aliases": [
+   "branches"
+  ],
+  "plain": "A line of work that splits off from a shared starting point. In code, a separate copy where changes are made without touching the main version until merged."
+ },
+ {
+  "term": "budget",
+  "aliases": [],
+  "plain": "An allowance a run must stay within, such as dollars spent or context space used."
+ },
+ {
+  "term": "bug",
+  "aliases": [
+   "bugs"
+  ],
+  "plain": "A fault in software that makes it behave wrongly."
+ },
+ {
+  "term": "build",
+  "aliases": [],
+  "plain": "The automated process that turns source code into a working product, often running tests along the way."
+ },
+ {
+  "term": "built-in",
+  "aliases": [],
+  "plain": "Supplied as standard with the product rather than added by you, such as Claude Code's own search tool."
+ },
+ {
+  "term": "bundle",
+  "aliases": [
+   "bundles",
+   "bundled"
+  ],
+  "plain": "A group of documents or items packaged and processed together."
+ },
+ {
+  "term": "bypass permissions",
+  "aliases": [],
+  "plain": "A Claude Code mode that skips permission checks entirely. Safeguards that rely on approval prompts, including plan mode's, stop protecting anything."
+ },
+ {
+  "term": "calibrated",
+  "aliases": [
+   "calibration"
+  ],
+  "plain": "Confidence that matches reality: of all answers marked 90 percent sure, about 90 percent are right. You check it by comparing stated confidence against a hand-checked sample."
+ },
+ {
+  "term": "call site",
+  "aliases": [
+   "call sites"
+  ],
+  "plain": "A place in the code where a particular function is used. Changing that function means finding every one of these."
+ },
+ {
+  "term": "callback",
+  "aliases": [],
+  "plain": "A piece of code handed to a system to run automatically when an event happens, such as a hook."
+ },
+ {
+  "term": "caller",
+  "aliases": [
+   "callers"
+  ],
+  "plain": "The code or agent that calls a function or tool and receives its result."
+ },
+ {
+  "term": "canceled",
+  "aliases": [],
+  "plain": "A batch result for a request that was called off before it ran."
+ },
+ {
+  "term": "cap",
+  "aliases": [
+   "caps",
+   "capped"
+  ],
+  "plain": "A hard upper limit, such as on turns, spending or retries, after which the system stops."
+ },
+ {
+  "term": "categorical",
+  "aliases": [],
+  "plain": "Stated as clear named categories rather than degrees, such as 'always report exposed passwords, never report formatting'. Clear categories make judgments consistent."
+ },
+ {
+  "term": "cd",
+  "aliases": [],
+  "plain": "The shell command that changes the current working folder."
+ },
+ {
+  "term": "checkout",
+  "aliases": [],
+  "plain": "A working copy of a code repository on disk. Two agents editing the same one can overwrite each other's changes."
+ },
+ {
+  "term": "checksum",
+  "aliases": [],
+  "plain": "A short code calculated from a file's contents. If the file changes at all, the code changes, proving whether data is exactly what was expected."
+ },
+ {
+  "term": "CI",
+  "aliases": [],
+  "plain": "Continuous integration: an automated system that runs checks such as tests and reviews every time someone proposes a code change, with no person at the keyboard."
+ },
+ {
+  "term": "circuit breaker",
+  "aliases": [],
+  "plain": "A safety mechanism that stops calling something after repeated failures, like a household fuse, so failures do not pile up."
+ },
+ {
+  "term": "citations",
+  "aliases": [
+   "citation"
+  ],
+  "plain": "A built-in feature that attaches the exact source passage to each statement in Claude's answer, so a reader can trace every claim back to its document."
+ },
+ {
+  "term": "cite",
+  "aliases": [
+   "cites",
+   "cited",
+   "citing"
+  ],
+  "plain": "To point to the specific source behind a statement, so a reader can check it."
+ },
+ {
+  "term": "claim_scope",
+  "aliases": [],
+  "plain": "A field in a helper's report stating the limits of what its findings cover, such as 'four scanned files were not examined', so silence is not mistaken for a clean result."
+ },
+ {
+  "term": "classification",
+  "aliases": [
+   "classify",
+   "classifies",
+   "classified",
+   "classifying"
+  ],
+  "plain": "Sorting items into set categories, such as labelling tickets as bug, feature request or tech debt."
+ },
+ {
+  "term": "classifier",
+  "aliases": [],
+  "plain": "A component, often a model, whose only job is to sort each input into one of a few labelled buckets, such as internal versus external questions."
+ },
+ {
+  "term": "~/.claude",
+  "aliases": [],
+  "plain": "Your personal Claude Code settings area in your home folder. What lives there applies to all your projects but is never shared with teammates, so team rules do not belong there."
+ },
+ {
+  "term": "claude -p",
+  "aliases": [
+   "-p"
+  ],
+  "plain": "Runs Claude Code non-interactively: one prompt in, one answer out, then it exits with a success or failure code. The standard way to use it in pipelines."
+ },
+ {
+  "term": "Claude Code",
+  "aliases": [],
+  "plain": "Anthropic's AI coding assistant. It works inside a software project, reading files, running commands and editing code, either with a person watching or unattended in automated jobs."
+ },
+ {
+  "term": "CLAUDE.local.md",
+  "aliases": [],
+  "plain": "A personal instructions file for one project that stays on your machine and is never shared, suited to things like your own test account details."
+ },
+ {
+  "term": "CLAUDE.md",
+  "aliases": [],
+  "plain": "A plain instructions file Claude Code reads at the start of every session and keeps reloading, so its rules persist. The project copy is shared with the team; a personal copy is not."
+ },
+ {
+  "term": ".claude/commands",
+  "aliases": [],
+  "plain": "The project folder where Claude Code's older-style custom slash commands are kept, one text file per command."
+ },
+ {
+  "term": ".claude/rules",
+  "aliases": [],
+  "plain": "A project folder of instruction files for Claude Code. Each file can name the file locations it applies to, so its guidance loads only when Claude works on matching files."
+ },
+ {
+  "term": ".claude/settings.json",
+  "aliases": [],
+  "plain": "The shared project settings file for Claude Code, committed to the repository, holding permissions, hooks and similar configuration for the whole team."
+ },
+ {
+  "term": "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH",
+  "aliases": [],
+  "plain": "A Claude Code setting limiting how many layers deep agents may delegate. Set to 1, workers cannot launch workers of their own."
+ },
+ {
+  "term": "clearing",
+  "aliases": [
+   "cleared"
+  ],
+  "plain": "Removing old material, such as past tool results, from the context entirely instead of summarising it. Anything that lived only there is gone."
+ },
+ {
+  "term": "CLI",
+  "aliases": [],
+  "plain": "Command-line interface: a program you drive by typing text commands in a terminal window rather than clicking buttons."
+ },
+ {
+  "term": "client-side",
+  "aliases": [],
+  "plain": "Done by the calling program on its own side, after the fact, rather than enforced by the service."
+ },
+ {
+  "term": "clone",
+  "aliases": [
+   "cloned"
+  ],
+  "plain": "To make your own full copy of a shared code repository. Only what was committed to it comes along."
+ },
+ {
+  "term": "code fences",
+  "aliases": [],
+  "plain": "Rows of three backtick characters placed around a block to mark it as code. Stray ones wrapped around data break programs expecting pure data."
+ },
+ {
+  "term": "code-review",
+  "aliases": [],
+  "plain": "Checking code changes for problems before they are accepted, by a colleague or an automated reviewer."
+ },
+ {
+  "term": "codebase",
+  "aliases": [],
+  "plain": "All the source code of a software product taken together."
+ },
+ {
+  "term": "command",
+  "aliases": [
+   "commands"
+  ],
+  "plain": "An instruction issued to a program to run, such as one line typed into the shell."
+ },
+ {
+  "term": "commit",
+  "aliases": [
+   "commits",
+   "committed",
+   "committing"
+  ],
+  "plain": "A saved snapshot of changes recorded in the shared project history. Anything committed reaches everyone who pulls the project, which is why passwords must never be committed."
+ },
+ {
+  "term": "compact",
+  "aliases": [],
+  "plain": "In context management, to shrink a long conversation by summarising older parts, freeing room at the cost of some detail."
+ },
+ {
+  "term": "compaction",
+  "aliases": [
+   "compacts"
+  ],
+  "plain": "Automatically replacing an overlong conversation with a summary so work can continue. Exact details and early instructions can be lost in the summary."
+ },
+ {
+  "term": "compaction trigger",
+  "aliases": [],
+  "plain": "The fill level at which the context is automatically summarised to free space. Moving it only changes when detail is lost, not whether."
+ },
+ {
+  "term": "components",
+  "aliases": [],
+  "plain": "Reusable building blocks of a user interface, such as a button or a form, each written as a separate piece of code."
+ },
+ {
+  "term": "concatenated",
+  "aliases": [],
+  "plain": "Joined end to end into one continuous text, rather than one part replacing another."
+ },
+ {
+  "term": "concurrent",
+  "aliases": [
+   "concurrently"
+  ],
+  "plain": "Happening at the same time as other work. Concurrent tasks must not get in each other's way, such as two agents editing one file."
+ },
+ {
+  "term": "confidence score",
+  "aliases": [],
+  "plain": "A number a model gives for how sure it is. Only meaningful once checked against real outcomes; a model's own ratings are often poorly matched to accuracy."
+ },
+ {
+  "term": "configuration",
+  "aliases": [
+   "config"
+  ],
+  "plain": "The settings that control how software behaves, kept separate from the code itself."
+ },
+ {
+  "term": "containers",
+  "aliases": [
+   "containerized"
+  ],
+  "plain": "A sealed, portable package holding a program and everything it needs, run in isolation. Usually created fresh for a job and thrown away afterwards."
+ },
+ {
+  "term": "content block",
+  "aliases": [],
+  "plain": "One piece of a reply from Claude. A single reply can hold several, such as some text followed by a tool request, so code must not stop at the first text piece."
+ },
+ {
+  "term": "context",
+  "aliases": [],
+  "plain": "Everything the model can see on a given request: instructions, the conversation so far, tool results and files. Anything outside it does not exist for the model."
+ },
+ {
+  "term": "context window",
+  "aliases": [],
+  "plain": "The most text the model can consider at once: instructions, conversation history, results from tools, and its own reply. When it fills, older material must be cut or summarised."
+ },
+ {
+  "term": "continuation",
+  "aliases": [],
+  "plain": "A point where the model has paused partway and expects to be resumed. Treating it as the finished answer loses the rest."
+ },
+ {
+  "term": "Conventional Commits",
+  "aliases": [],
+  "plain": "A widely used convention for change descriptions: a type, an optional area, then a summary, such as 'fix(auth): handle expired logins'."
+ },
+ {
+  "term": "conventions",
+  "aliases": [
+   "convention"
+  ],
+  "plain": "A team's agreed way of doing things, such as naming, testing or commit style, usually written down for Claude in CLAUDE.md or rules files."
+ },
+ {
+  "term": "converge",
+  "aliases": [
+   "converges",
+   "converged",
+   "convergent"
+  ],
+  "plain": "To settle steadily toward a stable answer over repeated attempts."
+ },
+ {
+  "term": "conversation history",
+  "aliases": [],
+  "plain": "The record of every earlier message in a conversation. The model remembers nothing between requests, so this record must be resent each time."
+ },
+ {
+  "term": "coordinator",
+  "aliases": [],
+  "plain": "The lead agent that splits a job, hands pieces to helper agents, and assembles their results. It owns the plan and budget; the helpers own the detailed work."
+ },
+ {
+  "term": "corpus",
+  "aliases": [],
+  "plain": "The whole collection of documents a search or AI system works over, such as every internal policy."
+ },
+ {
+  "term": "corruption",
+  "aliases": [],
+  "plain": "Data damaged or changed incorrectly, so it can no longer be trusted."
+ },
+ {
+  "term": "counter",
+  "aliases": [],
+  "plain": "A number the code increases each time round a loop, used to stop after a set count."
+ },
+ {
+  "term": "coverage gap",
+  "aliases": [
+   "coverage gaps"
+  ],
+  "plain": "A part of the job that was not attempted or not found, reported openly. Stating it stops silence being read as 'nothing there'."
+ },
+ {
+  "term": "crash",
+  "aliases": [
+   "crashes"
+  ],
+  "plain": "A program stopping abruptly because of an error."
+ },
+ {
+  "term": "credentials",
+  "aliases": [
+   "credential"
+  ],
+  "plain": "Secret proof of identity, such as passwords, tokens or keys. They should never be written into shared files."
+ },
+ {
+  "term": "cross-cutting",
+  "aliases": [],
+  "plain": "Touching many parts of a system at once rather than one area, such as logging or security."
+ },
+ {
+  "term": "curl",
+  "aliases": [],
+  "plain": "A command-line tool for sending web requests and fetching data from web addresses."
+ },
+ {
+  "term": "custom_id",
+  "aliases": [],
+  "plain": "Your own label on each request in a batch, used to match results back to requests, because results can come back in any order."
+ },
+ {
+  "term": "database",
+  "aliases": [],
+  "plain": "An organised store of records that software reads and writes, such as every customer order."
+ },
+ {
+  "term": "dataset",
+  "aliases": [],
+  "plain": "A collection of data records handled together, such as a batch of extracted invoices."
+ },
+ {
+  "term": "debugging",
+  "aliases": [],
+  "plain": "Finding and fixing the cause of a fault in software."
+ },
+ {
+  "term": "decode",
+  "aliases": [
+   "decoding"
+  ],
+  "plain": "To translate coded values, such as status 3 or a raw timestamp, into their real meaning."
+ },
+ {
+  "term": "decomposition",
+  "aliases": [],
+  "plain": "Breaking a big job into smaller pieces handled separately. Worth it for fresh focus or separation; costly when each piece must relearn what the others already knew."
+ },
+ {
+  "term": "deduplication",
+  "aliases": [],
+  "plain": "Removing repeats so each item appears only once, such as not posting the same comment twice."
+ },
+ {
+  "term": "default",
+  "aliases": [
+   "defaults"
+  ],
+  "plain": "The value used when nobody specifies one. Surprises often come from defaults nobody noticed."
+ },
+ {
+  "term": "delegation",
+  "aliases": [
+   "delegate",
+   "delegates"
+  ],
+  "plain": "Handing a piece of work to a helper agent. The helper sees only the brief you write, not your conversation, so the brief must stand on its own."
+ },
+ {
+  "term": "delimiters",
+  "aliases": [],
+  "plain": "Marker tags or characters that fence off one part of a prompt from another, such as examples from instructions, so the model does not blur them together."
+ },
+ {
+  "term": "deny",
+  "aliases": [
+   "denies",
+   "denied",
+   "denial",
+   "denials"
+  ],
+  "plain": "A permission or hook decision that refuses an action outright. A deny outranks any allow."
+ },
+ {
+  "term": "denylist",
+  "aliases": [],
+  "plain": "A list of specifically forbidden things, with everything else allowed. It fails when something new appears that nobody listed."
+ },
+ {
+  "term": "dependency",
+  "aliases": [
+   "dependencies"
+  ],
+  "plain": "Something a piece of work relies on, such as another step's output or another part of the code. If it changes or goes missing, the part relying on it breaks."
+ },
+ {
+  "term": "deployment",
+  "aliases": [],
+  "plain": "Releasing software or changes into an environment where they run, such as production."
+ },
+ {
+  "term": "deprecated",
+  "aliases": [],
+  "plain": "Marked as outdated and due for removal. It still works for now but should be replaced."
+ },
+ {
+  "term": "description",
+  "aliases": [
+   "descriptions"
+  ],
+  "plain": "The short text a tool, skill or subagent publishes saying what it does and when to use it. The model relies on it to choose, so vague ones cause wrong picks."
+ },
+ {
+  "term": "destructive",
+  "aliases": [],
+  "plain": "Able to delete, overwrite or otherwise cause changes that are hard to undo."
+ },
+ {
+  "term": "destructiveHint",
+  "aliases": [],
+  "plain": "A label a tool server can attach to a tool claiming it makes irreversible changes. It is only the server's own claim, so it must never be relied on as a safety control."
+ },
+ {
+  "term": "determinism",
+  "aliases": [
+   "deterministically"
+  ],
+  "plain": "Getting exactly the same result every time from the same input, as ordinary code does. It guarantees consistency, not correctness."
+ },
+ {
+  "term": "deterministic",
+  "aliases": [],
+  "plain": "Always giving the same result for the same input, with no chance involved. A rule enforced by code is deterministic; an instruction the model may or may not follow is not."
+ },
+ {
+  "term": "diagnostics",
+  "aliases": [
+   "diagnostic"
+  ],
+  "plain": "Checks run to find out what is wrong with a system, such as reading logs or testing connections."
+ },
+ {
+  "term": "diff",
+  "aliases": [
+   "diffs"
+  ],
+  "plain": "A listing of exactly what changed between two versions of files, line by line: what was removed and what was added."
+ },
+ {
+  "term": "directory",
+  "aliases": [
+   "directories"
+  ],
+  "plain": "Another word for a folder on a computer."
+ },
+ {
+  "term": "disable-model-invocation",
+  "aliases": [],
+  "plain": "A setting on a saved procedure that stops Claude starting it on its own, so only a person can trigger it. Right for anything with real-world side effects, like a release."
+ },
+ {
+  "term": "disabledMcpjsonServers",
+  "aliases": [],
+  "plain": "A Claude Code setting listing project MCP servers to switch off, useful where nobody can approve them, such as automated pipelines."
+ },
+ {
+  "term": "disallowedTools",
+  "aliases": [],
+  "plain": "A list of tools an agent is forbidden to use. It is applied before the list of allowed tools, so a tool named in both ends up removed."
+ },
+ {
+  "term": "distractors",
+  "aliases": [],
+  "plain": "The wrong options in a multiple-choice question, written to look plausible."
+ },
+ {
+  "term": "downstream",
+  "aliases": [],
+  "plain": "Later in a chain of steps or systems, depending on what earlier steps produce."
+ },
+ {
+  "term": "drift",
+  "aliases": [
+   "drifts",
+   "drifting"
+  ],
+  "plain": "Gradual, unnoticed movement away from what was intended, such as a helper quietly reopening settled decisions, or copies of a setup slowly ceasing to match."
+ },
+ {
+  "term": "durable",
+  "aliases": [],
+  "plain": "Stored so it survives restarts and later sessions, such as a file or database record, rather than a passing conversation."
+ },
+ {
+  "term": "edge case",
+  "aliases": [
+   "edge cases"
+  ],
+  "plain": "An unusual or extreme situation at the edge of normal use, where software is most likely to break."
+ },
+ {
+  "term": "emit",
+  "aliases": [
+   "emits",
+   "emitted",
+   "emitting"
+  ],
+  "plain": "To produce and send out, such as a model generating output or a tool publishing an event."
+ },
+ {
+  "term": "empty result",
+  "aliases": [],
+  "plain": "A search that worked but found nothing. It must look different from a search that failed, or 'no data' and 'broken' become indistinguishable."
+ },
+ {
+  "term": "end_turn",
+  "aliases": [],
+  "plain": "The stop label meaning the model finished its reply of its own accord. It only means the model thinks it is done; your own check should confirm the job really is."
+ },
+ {
+  "term": "endpoints",
+  "aliases": [],
+  "plain": "The web addresses where a service accepts requests."
+ },
+ {
+  "term": "enforcement",
+  "aliases": [
+   "enforce",
+   "enforced",
+   "enforces",
+   "enforcing"
+  ],
+  "plain": "Making a rule actually hold, through code or system design, rather than asking the model to follow it."
+ },
+ {
+  "term": "enforcement ladder",
+  "aliases": [],
+  "plain": "The preferred order for making something always happen: first withhold the capability, then block it in code, then check a record afterwards. Instructions alone are weakest."
+ },
+ {
+  "term": "enum",
+  "aliases": [],
+  "plain": "Short for enumeration: a field limited to a fixed list of allowed values, like a drop-down menu offering low, medium or high."
+ },
+ {
+  "term": ".env.example",
+  "aliases": [],
+  "plain": "A conventional sample file listing the environment variables a project needs, with dummy values instead of real secrets."
+ },
+ {
+  "term": "environment",
+  "aliases": [
+   "environments"
+  ],
+  "plain": "A distinct place software runs, such as a developer's laptop, a test system or production, each with its own settings."
+ },
+ {
+  "term": "environment variable",
+  "aliases": [
+   "environment variables"
+  ],
+  "plain": "A named setting held by the running computer session rather than written in a file, which programs read when they start. Often used to keep passwords out of shared files."
+ },
+ {
+  "term": "ephemeral",
+  "aliases": [],
+  "plain": "Short-lived and discarded after use, such as a container created for one job, so nothing carries over between runs."
+ },
+ {
+  "term": "epoch",
+  "aliases": [],
+  "plain": "A way computers store time as a count of seconds since 1 January 1970. Precise for machines, meaningless to people until converted."
+ },
+ {
+  "term": "error handling",
+  "aliases": [],
+  "plain": "The code deciding what happens when something goes wrong, such as retrying, reporting or stopping."
+ },
+ {
+  "term": "error_class",
+  "aliases": [],
+  "plain": "A field in a failure report giving its category: temporary, business rule, or permission. Programs act on the category: retry, change approach, or stop and escalate."
+ },
+ {
+  "term": "error_code",
+  "aliases": [],
+  "plain": "A field in a failure report naming exactly what went wrong, such as an upstream timeout. It records detail for people; the error category decides the next action."
+ },
+ {
+  "term": "error_max_budget_usd",
+  "aliases": [],
+  "plain": "The result type an automated Claude run ends with when it hits its spending cap. It marks an incomplete stop, not a success."
+ },
+ {
+  "term": "errored",
+  "aliases": [],
+  "plain": "A batch result meaning that request failed with an error. It may be worth resubmitting."
+ },
+ {
+  "term": "escalation",
+  "aliases": [
+   "escalate",
+   "escalated",
+   "escalates",
+   "escalating",
+   "escalations"
+  ],
+  "plain": "Handing a case to a person or higher level when an agent should not decide it alone. Needs clear triggers and a useful handover."
+ },
+ {
+  "term": "escape hatch",
+  "aliases": [],
+  "plain": "A deliberate way out, such as allowing 'unknown' or empty, so a system is not forced into a wrong answer when the right one is unavailable."
+ },
+ {
+  "term": "evaluation",
+  "aliases": [],
+  "plain": "Measuring how well an AI system performs against a standard, such as accuracy on examples with known answers."
+ },
+ {
+  "term": "event",
+  "aliases": [
+   "events"
+  ],
+  "plain": "Something that happens that software can react to, such as a tool call starting or finishing."
+ },
+ {
+  "term": "exact-match",
+  "aliases": [],
+  "plain": "Finding only text identical to what was searched for, as opposed to search by meaning."
+ },
+ {
+  "term": "exception",
+  "aliases": [],
+  "plain": "An error raised while code runs that interrupts the normal flow. If nothing handles it, the program stops."
+ },
+ {
+  "term": "execute",
+  "aliases": [
+   "executes",
+   "executed",
+   "executing",
+   "execution"
+  ],
+  "plain": "To run a program, command or tool call."
+ },
+ {
+  "term": "execution error",
+  "aliases": [],
+  "plain": "A failure while a tool was actually doing its work, such as a timeout, as opposed to a malformed request. It is reported back to the model so it can adjust."
+ },
+ {
+  "term": "exit",
+  "aliases": [
+   "exits",
+   "exited"
+  ],
+  "plain": "To finish and stop running. A program reports how it ended through its exit code."
+ },
+ {
+  "term": "exit code",
+  "aliases": [],
+  "plain": "A number a program hands back when it finishes: zero means success, anything else means failure. Scripts check it to decide what happens next."
+ },
+ {
+  "term": "expansion",
+  "aliases": [
+   "expansions"
+  ],
+  "plain": "Automatic substitution of a placeholder, such as ${TOKEN}, with its real value when a file or command is read."
+ },
+ {
+  "term": "expired",
+  "aliases": [],
+  "plain": "A batch result meaning the request was never processed within the batch's time window, so it needs resubmitting."
+ },
+ {
+  "term": "Explore subagent",
+  "aliases": [],
+  "plain": "A built-in Claude Code helper agent that searches and reads a codebase with read-only tools and returns a summary, keeping the main session uncluttered."
+ },
+ {
+  "term": "extraction",
+  "aliases": [
+   "extract",
+   "extracted",
+   "extracts",
+   "extracting",
+   "extractions",
+   "extractor"
+  ],
+  "plain": "Pulling specific facts out of documents into fixed fields, such as invoice number and total, so software can use them."
+ },
+ {
+  "term": "fabrication",
+  "aliases": [],
+  "plain": "The model making up a value, fact or source that is not in its material, instead of admitting it does not have it."
+ },
+ {
+  "term": "failing test",
+  "aliases": [
+   "failing tests"
+  ],
+  "plain": "An automated check that is currently not passing. It gives a clear, repeatable signal of what is broken and when it is fixed."
+ },
+ {
+  "term": "fallback",
+  "aliases": [],
+  "plain": "A backup used when the first choice fails, such as a second model or a simpler route, like a spare tyre."
+ },
+ {
+  "term": "false negative",
+  "aliases": [
+   "false negatives"
+  ],
+  "plain": "A real problem that a check failed to catch: a miss."
+ },
+ {
+  "term": "false positive",
+  "aliases": [
+   "false positives"
+  ],
+  "plain": "Something flagged as a problem that is not really one: a false alarm. Too many, and people stop reading the flags at all."
+ },
+ {
+  "term": "fan-out",
+  "aliases": [
+   "fan out",
+   "Fanning"
+  ],
+  "plain": "Splitting work across several agents or runs at once, each handling one piece in parallel."
+ },
+ {
+  "term": "fetch",
+  "aliases": [
+   "fetched"
+  ],
+  "plain": "To retrieve something from elsewhere, such as downloading a web page."
+ },
+ {
+  "term": "few-shot",
+  "aliases": [],
+  "plain": "Teaching by example: putting a handful of worked examples in the prompt so the model copies the pattern. Which examples you choose matters far more than how many."
+ },
+ {
+  "term": "field",
+  "aliases": [
+   "fields"
+  ],
+  "plain": "One named slot in a record or form, such as 'order date' or 'total'."
+ },
+ {
+  "term": "fields_not_found",
+  "aliases": [],
+  "plain": "A list in an extraction result naming every field left empty, so a missing value becomes a deliberate, checkable statement rather than a silent gap."
+ },
+ {
+  "term": "filesystem",
+  "aliases": [],
+  "plain": "The files and folders on a machine's disk. Branching a conversation does not copy or protect them."
+ },
+ {
+  "term": "fire",
+  "aliases": [
+   "fires",
+   "fired",
+   "firing"
+  ],
+  "plain": "Of a hook, rule or limit: to activate when its condition is met."
+ },
+ {
+  "term": "flag",
+  "aliases": [
+   "flags",
+   "flagged"
+  ],
+  "plain": "A command-line option that switches behaviour on or off, such as --bare. Also, to mark a record for someone's attention."
+ },
+ {
+  "term": "flaky",
+  "aliases": [],
+  "plain": "Sometimes passing and sometimes failing with no change made, which makes results hard to trust."
+ },
+ {
+  "term": "fork",
+  "aliases": [
+   "forked",
+   "forks",
+   "forking"
+  ],
+  "plain": "To start a separate copy that begins with the original's history and then goes its own way, leaving the original untouched. Forked instructions run as a separate helper agent."
+ },
+ {
+  "term": "fresh session",
+  "aliases": [],
+  "plain": "A brand-new conversation with no earlier history. Anything it needs must be handed to it explicitly."
+ },
+ {
+  "term": "frontend",
+  "aliases": [],
+  "plain": "The part of software people see and use, such as web pages and screens."
+ },
+ {
+  "term": "frontmatter",
+  "aliases": [],
+  "plain": "A short settings block at the very top of an instructions file, above the main text, holding things like its name, when it applies, and which tools it may use."
+ },
+ {
+  "term": "function",
+  "aliases": [
+   "functions"
+  ],
+  "plain": "A named, reusable block of code that performs one task, such as calculating a total."
+ },
+ {
+  "term": "gate",
+  "aliases": [
+   "gates"
+  ],
+  "plain": "A checkpoint that must be passed before work continues, ideally checked by code rather than by trusting what the model says about itself."
+ },
+ {
+  "term": "gh",
+  "aliases": [],
+  "plain": "GitHub's official command-line tool, used for tasks such as reading pull-request comments from a script."
+ },
+ {
+  "term": "git",
+  "aliases": [],
+  "plain": "The most widely used system for tracking changes to code. It records every saved change and who made it, and lets a team share and combine work."
+ },
+ {
+  "term": "GitHub",
+  "aliases": [],
+  "plain": "A widely used website for hosting code repositories, pull requests and automated pipelines."
+ },
+ {
+  "term": ".gitignore",
+  "aliases": [
+   "gitignored"
+  ],
+  "plain": "A list telling the version-tracking system which files never to save or share, such as personal settings or passwords. A gitignored file stays on your own machine."
+ },
+ {
+  "term": "glob",
+  "aliases": [
+   "globs"
+  ],
+  "plain": "A file-name pattern with wildcards, such as 'every file ending in .test.ts in any folder'. It selects files by name or location, not by what is inside them."
+ },
+ {
+  "term": "go-live",
+  "aliases": [],
+  "plain": "The moment a new system or feature starts being used for real."
+ },
+ {
+  "term": "grep",
+  "aliases": [],
+  "plain": "A classic text search that finds every line containing a word or pattern across many files, returning just the matching lines rather than whole files."
+ },
+ {
+  "term": "guard",
+  "aliases": [],
+  "plain": "A check in code that stops a run or blocks an action when a condition is met, such as too many identical repeats."
+ },
+ {
+  "term": "hallucination",
+  "aliases": [],
+  "plain": "When a model states something false with confidence, such as an invented fact or figure. A guess dressed up as knowledge."
+ },
+ {
+  "term": "handler",
+  "aliases": [
+   "handlers"
+  ],
+  "plain": "The piece of code that deals with one kind of event or request, such as payments."
+ },
+ {
+  "term": "handoff",
+  "aliases": [
+   "handoffs"
+  ],
+  "plain": "The moment work passes from one agent or stage to the next. Only what is written into the handoff arrives on the other side; everything else is lost."
+ },
+ {
+  "term": "hangs",
+  "aliases": [],
+  "plain": "Stops responding while still running, such as a job waiting forever for an answer nobody will give."
+ },
+ {
+  "term": "hard-coded",
+  "aliases": [
+   "hard-code"
+  ],
+  "plain": "Written directly into code or a file rather than supplied from settings, so it cannot vary and leaks if the file is shared."
+ },
+ {
+  "term": "hash",
+  "aliases": [],
+  "plain": "To turn any input into a short fixed fingerprint. Identical inputs always give identical fingerprints, which makes repeats easy to spot."
+ },
+ {
+  "term": "headers",
+  "aliases": [],
+  "plain": "Labelled extra information sent with a web request, such as an access token, separate from the main content."
+ },
+ {
+  "term": "headless",
+  "aliases": [],
+  "plain": "Running with nobody watching or typing, as in an automated job. Nothing can answer a question, so the program must never stop to ask one."
+ },
+ {
+  "term": "helper",
+  "aliases": [
+   "helpers"
+  ],
+  "plain": "A small supporting function or file used by other code, such as one that formats dates."
+ },
+ {
+  "term": "heuristic",
+  "aliases": [],
+  "plain": "A rule of thumb that is usually right but not guaranteed, such as 'the newest source wins'."
+ },
+ {
+  "term": "home directory",
+  "aliases": [],
+  "plain": "Each user's personal folder on a computer, holding their private settings. Nothing here is shared through the project."
+ },
+ {
+  "term": "hook",
+  "aliases": [
+   "hooks"
+  ],
+  "plain": "Your own code that runs automatically at set moments, such as just before or after a tool runs. It runs outside the model, so it enforces a rule every time and cannot be argued with."
+ },
+ {
+  "term": "host",
+  "aliases": [],
+  "plain": "The application that runs and connects to MCP servers, such as Claude Code, and decides how to treat their tools."
+ },
+ {
+  "term": "hotfix",
+  "aliases": [],
+  "plain": "An urgent small fix shipped quickly to repair a problem in live software, outside the normal release rhythm."
+ },
+ {
+  "term": "hub-and-spoke",
+  "aliases": [],
+  "plain": "A layout where one central lead agent talks to every helper and helpers never talk to each other, keeping routing, error handling and visibility in one place."
+ },
+ {
+  "term": "ID",
+  "aliases": [
+   "IDs"
+  ],
+  "plain": "Short for identifier: a unique code for one specific record, such as an order or a session."
+ },
+ {
+  "term": "identifier",
+  "aliases": [
+   "identifiers"
+  ],
+  "plain": "A unique name or code that picks out one exact thing, such as an order ID, file path or line number. Lose it and the thing may not be found again."
+ },
+ {
+  "term": "@import",
+  "aliases": [
+   "imports"
+  ],
+  "plain": "A line in an instructions file that pulls another file's text in at startup. It keeps instructions tidy in separate files but saves no space, because everything imported still loads."
+ },
+ {
+  "term": "incident",
+  "aliases": [],
+  "plain": "An unplanned failure or outage in a live system that needs an urgent response."
+ },
+ {
+  "term": "incremental",
+  "aliases": [],
+  "plain": "Done in small steps, each building on the last, rather than all at once."
+ },
+ {
+  "term": "infrastructure",
+  "aliases": [
+   "infra"
+  ],
+  "plain": "The servers, networks and cloud resources software runs on, increasingly described in code files."
+ },
+ {
+  "term": "ingestion",
+  "aliases": [],
+  "plain": "The step that takes incoming data or documents into a system for processing."
+ },
+ {
+  "term": "inject",
+  "aliases": [
+   "injected"
+  ],
+  "plain": "To insert material into a model's context from outside, such as adding last week's findings to a fresh session."
+ },
+ {
+  "term": "inline",
+  "aliases": [],
+  "plain": "Included directly in place rather than referenced elsewhere, such as pasting data into a message instead of pointing to a file."
+ },
+ {
+  "term": "input",
+  "aliases": [
+   "inputs"
+  ],
+  "plain": "The data or instructions fed into a tool, model or step."
+ },
+ {
+  "term": "input_schema",
+  "aliases": [],
+  "plain": "The part of a tool definition describing what inputs the tool accepts: their names, types, and which are required."
+ },
+ {
+  "term": "instance",
+  "aliases": [
+   "instances"
+  ],
+  "plain": "One separate run of the model with its own fresh conversation. Separate runs cannot see each other's reasoning, which makes them useful as independent reviewers."
+ },
+ {
+  "term": "instruction",
+  "aliases": [
+   "instructions"
+  ],
+  "plain": "A directive written into a prompt or CLAUDE.md file. The model usually follows it, but it is advice, not enforcement."
+ },
+ {
+  "term": "integer",
+  "aliases": [],
+  "plain": "A whole number with no fractions, as a type of data."
+ },
+ {
+  "term": "integration",
+  "aliases": [],
+  "plain": "Checking or connecting several parts of a system working together, rather than one piece alone. Integration tests are slower than unit tests."
+ },
+ {
+  "term": "interactive",
+  "aliases": [],
+  "plain": "Needing a person present to respond, such as approving a prompt. Automated pipelines have nobody to answer."
+ },
+ {
+  "term": "intermittent",
+  "aliases": [],
+  "plain": "Happening only now and then, which makes a problem hard to reproduce and diagnose."
+ },
+ {
+  "term": "interview pattern",
+  "aliases": [],
+  "plain": "Asking Claude to question you about requirements and tricky cases before any code is written, then having it write a specification for a fresh session to build from."
+ },
+ {
+  "term": "invoke",
+  "aliases": [
+   "invokes",
+   "invoked",
+   "invoking",
+   "invocation"
+  ],
+  "plain": "To call or start a tool, skill or command."
+ },
+ {
+  "term": "isError",
+  "aliases": [
+   "is_error"
+  ],
+  "plain": "A yes-or-no flag on a tool's result marking it as a failure, so the model knows the call went wrong rather than mistaking it for a genuine empty answer."
+ },
+ {
+  "term": "ISO",
+  "aliases": [],
+  "plain": "Here, the international date standard ISO 8601, written year-month-day such as 2026-09-29, which removes ambiguity between date styles."
+ },
+ {
+  "term": "isolation",
+  "aliases": [],
+  "plain": "Keeping each agent's or task's context separate, so they neither see nor clutter each other's material."
+ },
+ {
+  "term": "issue-tracker",
+  "aliases": [],
+  "plain": "A system for recording and following up bugs and tasks, such as Jira."
+ },
+ {
+  "term": "iteration",
+  "aliases": [
+   "iterations",
+   "iterative"
+  ],
+  "plain": "One pass through a repeating cycle. Iterative work improves a result over several passes."
+ },
+ {
+  "term": "Jira",
+  "aliases": [],
+  "plain": "A widely used tool for tracking tickets, bugs and project tasks."
+ },
+ {
+  "term": "jq",
+  "aliases": [],
+  "plain": "A command-line tool for reading and filtering JSON data, often used to check one field in an automated script."
+ },
+ {
+  "term": "JSON",
+  "aliases": [],
+  "plain": "A widely used plain-text format for structured data, written as named fields and lists inside curly and square brackets, which programs can read easily."
+ },
+ {
+  "term": "JSON-RPC",
+  "aliases": [],
+  "plain": "The message format tool servers use for requests and replies. Its error channel is for broken requests; using it for ordinary failures hides the helpful explanation from the model."
+ },
+ {
+  "term": "--json-schema",
+  "aliases": [],
+  "plain": "An option for running Claude Code unattended that makes its answer follow a fixed layout you define, so a script can read named fields instead of guessing from prose."
+ },
+ {
+  "term": "just-in-time",
+  "aliases": [],
+  "plain": "Fetched only at the moment it is needed rather than loaded up front, which keeps the context small."
+ },
+ {
+  "term": "key",
+  "aliases": [
+   "keys"
+  ],
+  "plain": "The name half of a name-and-value pair in structured data, such as 'total' in 'total: 42'. Programs look values up by these exact names."
+ },
+ {
+  "term": "keyword",
+  "aliases": [],
+  "plain": "An exact word used for matching, as opposed to understanding meaning."
+ },
+ {
+  "term": "kill",
+  "aliases": [
+   "kills"
+  ],
+  "plain": "To forcibly stop a running program or job, usually because it ran out of time."
+ },
+ {
+  "term": "kubectl",
+  "aliases": [],
+  "plain": "The command-line tool for inspecting and controlling Kubernetes, a system that runs and manages containers."
+ },
+ {
+  "term": "labels",
+  "aliases": [
+   "labelled",
+   "labeled",
+   "label"
+  ],
+  "plain": "Known correct answers attached to examples, such as 'bug' or 'feature', used to check or tune a classifier. A labelled sample is the yardstick for accuracy."
+ },
+ {
+  "term": "latency",
+  "aliases": [],
+  "plain": "How long you wait between asking for something and getting it back. Low latency means a snappy reply; high latency means a noticeable pause."
+ },
+ {
+  "term": "least privilege",
+  "aliases": [
+   "least-privilege"
+  ],
+  "plain": "Giving each agent or person only the access their job needs and nothing more, so mistakes and misuse can do less damage."
+ },
+ {
+  "term": "legacy",
+  "aliases": [],
+  "plain": "Older technology still in use, often poorly documented and hard to change."
+ },
+ {
+  "term": "linter",
+  "aliases": [
+   "linter-approved"
+  ],
+  "plain": "A tool that automatically checks code for style problems and common mistakes, like a spellchecker for code."
+ },
+ {
+  "term": "literal",
+  "aliases": [],
+  "plain": "Taken exactly as written, character for character, rather than interpreted or substituted."
+ },
+ {
+  "term": "load",
+  "aliases": [
+   "loads",
+   "loaded",
+   "loading"
+  ],
+  "plain": "To read something into memory or context so it can be used, such as a CLAUDE.md file at the start of a session."
+ },
+ {
+  "term": "load-bearing",
+  "aliases": [],
+  "plain": "Essential to how something works, so removing or changing it breaks things, like a load-bearing wall."
+ },
+ {
+  "term": "local scope",
+  "aliases": [],
+  "plain": "The Claude Code setting level that applies only to you in one project, stored privately and never shared with teammates."
+ },
+ {
+  "term": "locators",
+  "aliases": [
+   "locator"
+  ],
+  "plain": "Precise pointers to where something sits in a source, such as page and paragraph, so a claim can be checked quickly."
+ },
+ {
+  "term": "log",
+  "aliases": [
+   "logs",
+   "logged",
+   "logging"
+  ],
+  "plain": "A running record a program writes of what it did and what went wrong, used later to diagnose problems."
+ },
+ {
+  "term": "long-running",
+  "aliases": [],
+  "plain": "Taking a long time, such as hours, so context limits, interruptions and restarts become real concerns."
+ },
+ {
+  "term": "lookup",
+  "aliases": [
+   "lookups"
+  ],
+  "plain": "A quick query that fetches one specific record, such as an order by its number."
+ },
+ {
+  "term": "loop",
+  "aliases": [],
+  "plain": "A cycle that repeats: act, look at the result, decide again, until a stop condition is met. Agents are built on one."
+ },
+ {
+  "term": "lossy",
+  "aliases": [],
+  "plain": "Losing some information in the process, like a photocopy of a photocopy."
+ },
+ {
+  "term": "lost-in-the-middle",
+  "aliases": [],
+  "plain": "Models' tendency to pay less attention to material buried in the middle of a long context than to what sits at the start or end."
+ },
+ {
+  "term": "machine-readable",
+  "aliases": [],
+  "plain": "In a fixed structure software can reliably act on, such as defined fields, rather than free prose."
+ },
+ {
+  "term": "main session",
+  "aliases": [],
+  "plain": "The primary conversation a person works in, as opposed to side conversations run by helper agents. Its space is precious, so bulky work goes elsewhere."
+ },
+ {
+  "term": "malformed",
+  "aliases": [],
+  "plain": "Broken in structure, so a program cannot read it, like a form with entries in the wrong boxes."
+ },
+ {
+  "term": "Markdown",
+  "aliases": [],
+  "plain": "A simple text-formatting style that uses symbols such as asterisks and hashes for bold and headings. Models often add it unless told not to."
+ },
+ {
+  "term": "--max-turns",
+  "aliases": [],
+  "plain": "A Claude Code option capping how many turns an automated run may take before it stops."
+ },
+ {
+  "term": "max_tokens",
+  "aliases": [],
+  "plain": "The cap you set on how long one reply may be. If a reply hits it, the stop label says so and the output is cut off part-way."
+ },
+ {
+  "term": "maxBudgetUsd",
+  "aliases": [
+   "max_budget_usd"
+  ],
+  "plain": "A spending limit in dollars for an automated agent run. When it is reached the run stops, and the result must be treated as incomplete."
+ },
+ {
+  "term": "maxLength",
+  "aliases": [],
+  "plain": "A data-rule keyword that caps how long a text value may be. Enforced output formats do not guarantee it, so it must be checked in code."
+ },
+ {
+  "term": "maxTurns",
+  "aliases": [],
+  "plain": "A limit on how many rounds of tool use an automated agent run may take before it is stopped. A safety cap, not a sign the work is done."
+ },
+ {
+  "term": "MCP",
+  "aliases": [],
+  "plain": "Model Context Protocol: a standard way to plug outside tools and data sources into Claude, much like a universal adapter plug."
+ },
+ {
+  "term": "MCP prompt",
+  "aliases": [],
+  "plain": "A reusable instruction template a tool server offers, which a person picks deliberately, usually by typing a slash and its name, rather than the model choosing it."
+ },
+ {
+  "term": "MCP resource",
+  "aliases": [],
+  "plain": "Reference content a tool server offers, such as documents, which the host application decides when to include, rather than the model fetching it on its own."
+ },
+ {
+  "term": "MCP server",
+  "aliases": [
+   "MCP servers"
+  ],
+  "plain": "A small program that offers tools or data to Claude through the standard plug-in connection, for example one that looks up orders in a company system."
+ },
+ {
+  "term": "MCP tool",
+  "aliases": [
+   "MCP tools"
+  ],
+  "plain": "An action a tool server offers that the model itself decides when to use, such as searching orders or opening a ticket."
+ },
+ {
+  "term": ".mcp.json",
+  "aliases": [],
+  "plain": "The shared settings file, saved with the project, that tells Claude Code which tool servers the whole team connects to. Passwords go in as placeholders filled from each person's machine."
+ },
+ {
+  "term": "mcp__server__tool",
+  "aliases": [],
+  "plain": "The naming pattern for tools from an MCP server: mcp__, the server name, two underscores, the tool name. Permission rules and hooks use this exact string."
+ },
+ {
+  "term": "mcpServers",
+  "aliases": [],
+  "plain": "The settings key listing MCP server connections: each entry names a server and how to start or reach it."
+ },
+ {
+  "term": "/memory",
+  "aliases": [],
+  "plain": "A built-in Claude Code command that shows which CLAUDE.md memory files are loaded and opens them for editing."
+ },
+ {
+  "term": "merge",
+  "aliases": [
+   "merges",
+   "merged",
+   "merging"
+  ],
+  "plain": "Combining two lines of work or two results into one. In code, folding a branch's changes back into the main version."
+ },
+ {
+  "term": "merge conflicts",
+  "aliases": [],
+  "plain": "What happens when two people separately change the same lines of a shared file, so the system cannot combine them automatically and a person has to choose."
+ },
+ {
+  "term": "Message Batches API",
+  "aliases": [
+   "Batches API",
+   "Message Batches"
+  ],
+  "plain": "Anthropic's service for sending many requests in one bundle, processed within 24 hours at half price. Good for overnight work nobody waits on; wrong for anything urgent."
+ },
+ {
+  "term": "Messages API",
+  "aliases": [],
+  "plain": "The basic service for talking to Claude: send the conversation so far, get the next reply. It remembers nothing between calls, so each request carries the full history."
+ },
+ {
+  "term": "metadata",
+  "aliases": [],
+  "plain": "Data describing other data, such as a document's source, author and retrieval date, rather than its content."
+ },
+ {
+  "term": "migration",
+  "aliases": [
+   "migrations"
+  ],
+  "plain": "A planned move from an old setup to a new one. In a database, a numbered script that changes its structure once; scripts already applied must never be edited."
+ },
+ {
+  "term": "model",
+  "aliases": [],
+  "plain": "The AI engine that reads the text it is given and writes a reply. Bigger models are more capable but slower and dearer."
+ },
+ {
+  "term": "model-controlled",
+  "aliases": [],
+  "plain": "Describes MCP tools: the model itself decides when to call them, on its own judgment."
+ },
+ {
+  "term": "model_context_window_exceeded",
+  "aliases": [],
+  "plain": "The stop label meaning a reply was cut off because the model's working memory was completely full. Allowing longer replies will not help; the input must shrink."
+ },
+ {
+  "term": "module",
+  "aliases": [
+   "modules"
+  ],
+  "plain": "A self-contained section of a program, usually a file or folder, with one responsibility."
+ },
+ {
+  "term": "monolith",
+  "aliases": [],
+  "plain": "A large application built as one single, tightly connected unit rather than as separate smaller services."
+ },
+ {
+  "term": "monorepo",
+  "aliases": [],
+  "plain": "One shared code store holding many separate projects or packages together, instead of one store per project."
+ },
+ {
+  "term": "multi-agent",
+  "aliases": [],
+  "plain": "Built from several cooperating agents, typically a coordinator plus specialists, rather than one agent doing everything."
+ },
+ {
+  "term": "Multi-pass",
+  "aliases": [],
+  "plain": "Reviewing in several separate passes, each looking at one slice or aspect, rather than one pass over everything at once."
+ },
+ {
+  "term": "multi-turn",
+  "aliases": [],
+  "plain": "Spanning several back-and-forth exchanges rather than one question and one answer, such as an agent repeatedly calling tools and reading results."
+ },
+ {
+  "term": "namespace",
+  "aliases": [],
+  "plain": "A named partition keeping one group of resources apart from another, such as one team's services from another's."
+ },
+ {
+  "term": "near miss",
+  "aliases": [
+   "near misses",
+   "near-miss"
+  ],
+  "plain": "An example that closely resembles the right case but differs in one telling detail, useful for showing exactly where a boundary lies."
+ },
+ {
+  "term": "needs_human_review",
+  "aliases": [],
+  "plain": "An explicit outcome, separate from yes and no, that sends an item to a person's queue, so uncertainty becomes visible routed work instead of a hidden guess."
+ },
+ {
+  "term": "nested",
+  "aliases": [],
+  "plain": "Placed inside another of the same kind, such as agents launching further agents in layers."
+ },
+ {
+  "term": "no-progress",
+  "aliases": [],
+  "plain": "Describes a check that spots a loop that is busy but stuck, typically calling the same tool with the same inputs again and again, and stops it early."
+ },
+ {
+  "term": "non-blocking",
+  "aliases": [],
+  "plain": "Work that holds nothing else up while it runs; people or pipelines carry on without waiting for it."
+ },
+ {
+  "term": "non-converging",
+  "aliases": [],
+  "plain": "Going round and round without getting closer to an answer, so extra attempts do not help."
+ },
+ {
+  "term": "non-interactive",
+  "aliases": [
+   "non-interactively"
+  ],
+  "plain": "Running with nobody at the keyboard: it takes its instructions up front and must finish without asking questions."
+ },
+ {
+  "term": "non-nullable",
+  "aliases": [],
+  "plain": "A field that must always hold a real value and can never be left empty. Forcing this can push a model to invent a value."
+ },
+ {
+  "term": "non-retryable",
+  "aliases": [],
+  "plain": "A failure that trying again will not fix, such as a permission refusal. Retrying just burns budget."
+ },
+ {
+  "term": "non-zero",
+  "aliases": [],
+  "plain": "Any exit code other than 0. By convention it means the program failed, so scripts can detect failure automatically."
+ },
+ {
+  "term": "nondeterminism",
+  "aliases": [],
+  "plain": "The same input giving different outputs on different runs. Normal for AI models; costly when a fixed procedure should behave the same way every time."
+ },
+ {
+  "term": "normalization",
+  "aliases": [
+   "normalize",
+   "normalizes"
+  ],
+  "plain": "Converting data into one consistent standard form, such as every date in the same format, before it is used."
+ },
+ {
+  "term": "notification fatigue",
+  "aliases": [],
+  "plain": "When people receive so many alerts or comments that they start ignoring all of them, including the important ones."
+ },
+ {
+  "term": "null",
+  "aliases": [
+   "nulls"
+  ],
+  "plain": "A deliberate 'no value' marker meaning the information is absent, which is different from zero or an empty piece of text."
+ },
+ {
+  "term": "nullable",
+  "aliases": [],
+  "plain": "Allowed to be empty. Making a field nullable gives the model an honest way to say 'not in the document' instead of inventing a value."
+ },
+ {
+  "term": "object",
+  "aliases": [
+   "objects"
+  ],
+  "plain": "A structured bundle of named values kept together as one item, such as an order with its ID, date and amount."
+ },
+ {
+  "term": "observability",
+  "aliases": [],
+  "plain": "How easily you can see what a system is doing and why, from its logs and records, so problems can be found and traced."
+ },
+ {
+  "term": "off-by-one",
+  "aliases": [],
+  "plain": "A classic bug where a count or position is wrong by exactly one, such as skipping the last item in a list."
+ },
+ {
+  "term": "old_string",
+  "aliases": [],
+  "plain": "The Edit tool's input naming the exact text to replace. It must match exactly one place in the file, or the edit is refused."
+ },
+ {
+  "term": "on-call",
+  "aliases": [],
+  "plain": "The engineer currently responsible for responding to live-system problems, including out of hours."
+ },
+ {
+  "term": "optional",
+  "aliases": [],
+  "plain": "Allowed to be left out. A missing optional field or setting does not cause an error."
+ },
+ {
+  "term": "Opus-class",
+  "aliases": [],
+  "plain": "Belonging to Anthropic's largest, most capable model family, Opus. Strong at planning, and inclined to delegate readily, which can multiply cost."
+ },
+ {
+  "term": "orchestration",
+  "aliases": [
+   "orchestrator"
+  ],
+  "plain": "Coordinating several steps or agents: deciding who does what and in what order, and gathering the results together."
+ },
+ {
+  "term": "orphaned",
+  "aliases": [
+   "orphans"
+  ],
+  "plain": "Left without its partner, such as a tool result whose matching tool request was removed from the conversation, which the system rejects."
+ },
+ {
+  "term": "outage",
+  "aliases": [
+   "outages"
+  ],
+  "plain": "A period when a system is down or unreachable. It should be reported as a failure, not mistaken for 'no data'."
+ },
+ {
+  "term": "--output-format",
+  "aliases": [],
+  "plain": "An option choosing how Claude Code packages its output, such as plain text or a machine-readable wrapper. It sets the envelope, not the shape of the answer inside it."
+ },
+ {
+  "term": "overhead",
+  "aliases": [],
+  "plain": "Extra cost or time spent on setup or coordination rather than on the actual work."
+ },
+ {
+  "term": "override",
+  "aliases": [
+   "overrides",
+   "overriding"
+  ],
+  "plain": "To replace a value or rule set in one place with a different one set elsewhere."
+ },
+ {
+  "term": "oversampling",
+  "aliases": [],
+  "plain": "Deliberately checking more items from a small or risky group than its share would suggest, so problems there show up."
+ },
+ {
+  "term": "overtriggering",
+  "aliases": [],
+  "plain": "A rule or tool activating far more often than intended, usually because the instruction was worded too forcefully."
+ },
+ {
+  "term": "P1",
+  "aliases": [],
+  "plain": "Priority 1: the top urgency level for a ticket or incident."
+ },
+ {
+  "term": "package",
+  "aliases": [
+   "packages",
+   "packaging"
+  ],
+  "plain": "A bundle of code installed or shared as one unit. In a monorepo, one of the separately owned sub-projects."
+ },
+ {
+  "term": "pagination",
+  "aliases": [
+   "paginate"
+  ],
+  "plain": "Splitting a long list of results into pages returned one at a time."
+ },
+ {
+  "term": "paging",
+  "aliases": [],
+  "plain": "Alerting the responsible engineer, typically by phone notification, that something needs attention now."
+ },
+ {
+  "term": "parallel",
+  "aliases": [
+   "parallelism"
+  ],
+  "plain": "Running several tasks at the same time rather than one after another, so total time is roughly the longest task, not the sum."
+ },
+ {
+  "term": "parameter",
+  "aliases": [
+   "parameters"
+  ],
+  "plain": "An input a tool or function accepts, such as the order number a lookup needs."
+ },
+ {
+  "term": "parent_tool_use_id",
+  "aliases": [],
+  "plain": "A field in agent output that tags which delegation a message belongs to, so a helper agent's messages trace back to the call that launched it."
+ },
+ {
+  "term": "parse",
+  "aliases": [
+   "parsed",
+   "parser",
+   "parsing"
+  ],
+  "plain": "To read text and break it into structured pieces a program can use. Parsing free-flowing prose is fragile because the wording varies."
+ },
+ {
+  "term": "patch",
+  "aliases": [
+   "patches",
+   "patching"
+  ],
+  "plain": "A small fix applied on top of something, often a quick repair rather than a proper redesign."
+ },
+ {
+  "term": "@path",
+  "aliases": [],
+  "plain": "The notation for pulling another file into CLAUDE.md: an @ sign followed by that file's location."
+ },
+ {
+  "term": "path",
+  "aliases": [
+   "paths"
+  ],
+  "plain": "The address of a file or folder, such as docs/testing.md, showing where it lives."
+ },
+ {
+  "term": "path-scoped rules",
+  "aliases": [
+   "path-scoped rule"
+  ],
+  "plain": "Instruction files that load only when Claude works on files matching listed locations or name patterns, keeping unrelated guidance out of the way."
+ },
+ {
+  "term": "pause_turn",
+  "aliases": [],
+  "plain": "The stop label meaning a long-running built-in tool paused part-way. The work is not finished: send the reply back as it is so it can carry on."
+ },
+ {
+  "term": "payload",
+  "aliases": [
+   "payloads"
+  ],
+  "plain": "The actual content carried by a message or response, as opposed to the wrapping around it."
+ },
+ {
+  "term": "permission",
+  "aliases": [
+   "permissions"
+  ],
+  "plain": "Authorisation for an agent to use a tool or take an action. It can be granted automatically, asked for each time, or refused."
+ },
+ {
+  "term": "permission mode",
+  "aliases": [],
+  "plain": "Claude Code's overall stance on approvals for a session, such as asking every time, auto-approving edits, or plan mode, which blocks edits."
+ },
+ {
+  "term": "permission rule",
+  "aliases": [
+   "permission rules"
+  ],
+  "plain": "A configured line that allows, asks about, or refuses a specific tool use, such as blocking edits to one folder. Enforced by the system, not the model."
+ },
+ {
+  "term": "--permission-mode",
+  "aliases": [],
+  "plain": "A Claude Code option setting how approvals are handled for the run, such as plan mode, which blocks edits."
+ },
+ {
+  "term": "permissionDecisionReason",
+  "aliases": [],
+  "plain": "The explanation a hook returns alongside its allow or deny decision. For a denial, Claude sees it and can change course."
+ },
+ {
+  "term": "permissions.defaultMode",
+  "aliases": [],
+  "plain": "The settings entry that sets which permission mode Claude Code starts in, such as asking, auto-approving edits, or plan mode."
+ },
+ {
+  "term": "persist",
+  "aliases": [
+   "persistent"
+  ],
+  "plain": "To last beyond the current step or session, for example by being saved to a file rather than held only in the conversation."
+ },
+ {
+  "term": "pinned",
+  "aliases": [],
+  "plain": "Kept fixed in place, such as key facts held at the top of the context every turn so they are never summarised away."
+ },
+ {
+  "term": "pipe",
+  "aliases": [],
+  "plain": "To feed one command's output straight into another as its input, like connecting two hoses."
+ },
+ {
+  "term": "pipeline",
+  "aliases": [],
+  "plain": "A fixed sequence of automated steps where each step's output feeds the next, like an assembly line. A good fit when the steps are known in advance."
+ },
+ {
+  "term": "placeholder",
+  "aliases": [
+   "placeholders"
+  ],
+  "plain": "A marker in text, such as ${TOKEN}, meant to be replaced by a real value before use."
+ },
+ {
+  "term": "plan mode",
+  "aliases": [],
+  "plain": "A Claude Code mode where it investigates and proposes a plan but changes nothing until you approve. A working habit, not a security barrier."
+ },
+ {
+  "term": "plugins",
+  "aliases": [],
+  "plain": "Add-on packages that bundle skills, commands, hooks or MCP servers so they can be installed together."
+ },
+ {
+  "term": "pod",
+  "aliases": [],
+  "plain": "In Kubernetes, the smallest running unit: one or more containers running together."
+ },
+ {
+  "term": "pointer",
+  "aliases": [],
+  "plain": "A short reference saying where something is, rather than the thing itself, like a library call number."
+ },
+ {
+  "term": "polling",
+  "aliases": [],
+  "plain": "Checking again and again whether something has finished, like refreshing a parcel tracker. Checking more often does not make it finish any sooner."
+ },
+ {
+  "term": "positional",
+  "aliases": [],
+  "plain": "Identified by position rather than by name, such as 'the first argument'."
+ },
+ {
+  "term": "Postgres",
+  "aliases": [],
+  "plain": "PostgreSQL, a widely used free database system."
+ },
+ {
+  "term": "PostToolUse",
+  "aliases": [],
+  "plain": "The moment just after a tool runs when your own automatic code can check, trim or reshape the result before the model sees it."
+ },
+ {
+  "term": "pre-merge",
+  "aliases": [],
+  "plain": "Happening before a change is accepted into the main code, such as automated checks a developer waits on before merging."
+ },
+ {
+  "term": "precedence",
+  "aliases": [],
+  "plain": "Which rule wins when several apply at once."
+ },
+ {
+  "term": "precision",
+  "aliases": [],
+  "plain": "Of everything flagged, the share that were real problems. High precision means few false alarms."
+ },
+ {
+  "term": "PreCompact",
+  "aliases": [],
+  "plain": "The moment just before the conversation is summarised to save space, when your own automatic code can save a full copy first."
+ },
+ {
+  "term": "Prefill",
+  "aliases": [],
+  "plain": "Writing the first characters of the model's reply yourself, such as an opening bracket, to nudge its format. A nudge only, not a guarantee."
+ },
+ {
+  "term": "prepend",
+  "aliases": [],
+  "plain": "To add something to the beginning rather than the end."
+ },
+ {
+  "term": "PreToolUse",
+  "aliases": [],
+  "plain": "The moment just before a tool runs when your own automatic code can allow, block or alter the call. It is the reliable place to enforce a rule every single time."
+ },
+ {
+  "term": "primitive",
+  "aliases": [],
+  "plain": "One of MCP's basic building blocks: tools, resources and prompts, each suited to a different kind of capability."
+ },
+ {
+  "term": "--print",
+  "aliases": [],
+  "plain": "The option (short form -p) that runs Claude Code as a one-shot command: take a prompt, give one answer, exit. It is how you use it in automated jobs where nobody can reply."
+ },
+ {
+  "term": "probabilistic",
+  "aliases": [],
+  "plain": "Likely but not guaranteed. An instruction in a prompt is probabilistic: the model usually follows it, but not every time."
+ },
+ {
+  "term": "production",
+  "aliases": [],
+  "plain": "The live system real customers use, as opposed to test copies. Mistakes here have real consequences."
+ },
+ {
+  "term": "programmatic",
+  "aliases": [],
+  "plain": "Carried out by code, automatically and reliably, rather than requested in words and left to the model."
+ },
+ {
+  "term": "progressive summarization",
+  "aliases": [],
+  "plain": "Repeatedly summarising a long conversation as it grows, so older turns become ever-shorter summaries. Keeps context small but gradually erodes exact facts."
+ },
+ {
+  "term": "project scope",
+  "aliases": [
+   "project-scope"
+  ],
+  "plain": "Settings stored inside the project and shared with everyone through version tracking, so the whole team gets the same setup."
+ },
+ {
+  "term": "prompt",
+  "aliases": [
+   "prompts",
+   "prompting"
+  ],
+  "plain": "The written instructions and material handed to the model for a request. Everything the model knows about the task arrives through this text and its tools."
+ },
+ {
+  "term": "prompt chaining",
+  "aliases": [
+   "chaining"
+  ],
+  "plain": "Splitting a job into a fixed sequence of separate model calls, each doing one step and passing its output to the next."
+ },
+ {
+  "term": "prose",
+  "aliases": [],
+  "plain": "Free-flowing written text, as opposed to defined fields. Easy for people to read, hard for software to act on reliably."
+ },
+ {
+  "term": "protocol",
+  "aliases": [],
+  "plain": "An agreed set of rules for how two systems exchange messages. In MCP, the protocol layer carries messages between the application and the server."
+ },
+ {
+  "term": "provenance",
+  "aliases": [],
+  "plain": "The traceable origin of each claim: which source, where in it, and when it was retrieved. Without it, a reviewer must redo the research to trust the result."
+ },
+ {
+  "term": "proxy",
+  "aliases": [],
+  "plain": "A stand-in measure used because the real thing is hard to measure, such as angry tone standing in for 'needs a person'. It can mislead."
+ },
+ {
+  "term": "pull request",
+  "aliases": [
+   "pull requests",
+   "PR"
+  ],
+  "plain": "A proposed set of code changes submitted for review before being combined into the shared version. Automated checks and reviewers usually comment there."
+ },
+ {
+  "term": "push",
+  "aliases": [
+   "pushes",
+   "pushed",
+   "pushing"
+  ],
+  "plain": "Sending committed changes from your machine up to the shared repository, where colleagues and automated checks see them."
+ },
+ {
+  "term": ".py",
+  "aliases": [],
+  "plain": "The file ending for code written in the Python programming language."
+ },
+ {
+  "term": "query",
+  "aliases": [
+   "querying"
+  ],
+  "plain": "A request for information from a database, search tool or AI system."
+ },
+ {
+  "term": "queue",
+  "aliases": [
+   "queued"
+  ],
+  "plain": "A waiting line of work items handled in order, such as tickets awaiting a person."
+ },
+ {
+  "term": "race condition",
+  "aliases": [],
+  "plain": "A bug where the outcome depends on the unpredictable timing of two things happening at once, so it shows up only occasionally."
+ },
+ {
+  "term": "raw",
+  "aliases": [],
+  "plain": "Unprocessed: exactly as it came out of a system, before cleaning, decoding or summarising."
+ },
+ {
+  "term": "React",
+  "aliases": [],
+  "plain": "A popular toolkit for building the screens of web applications out of reusable components."
+ },
+ {
+  "term": "read-only",
+  "aliases": [],
+  "plain": "Allowed to look but not to change anything."
+ },
+ {
+  "term": "README",
+  "aliases": [],
+  "plain": "The introductory document at the top of a project explaining what it is and how to set it up."
+ },
+ {
+  "term": "readOnlyHint",
+  "aliases": [],
+  "plain": "A label a tool server can attach to a tool claiming it changes nothing. It is only the server's claim, so it may affect scheduling but must never count as permission."
+ },
+ {
+  "term": "reasoning",
+  "aliases": [],
+  "plain": "The model's step-by-step working-out before or alongside its answer. Useful to read, but it is the model's own account, not proof of anything."
+ },
+ {
+  "term": "recall",
+  "aliases": [],
+  "plain": "Of all the real problems present, the share that were actually caught. High recall means few misses."
+ },
+ {
+  "term": "red",
+  "aliases": [],
+  "plain": "In testing, failing: a red suite has at least one test not passing. Green means everything passes."
+ },
+ {
+  "term": "refactor",
+  "aliases": [
+   "refactoring"
+  ],
+  "plain": "Reorganising existing code so it is cleaner or easier to change, without changing what it does, like rewiring a house without moving any light switches."
+ },
+ {
+  "term": "refusal",
+  "aliases": [],
+  "plain": "The model declining a request, usually on safety grounds. The system reports it as a distinct stopping reason, so code should handle it rather than blindly retry."
+ },
+ {
+  "term": "regex",
+  "aliases": [
+   "regular expression"
+  ],
+  "plain": "A compact pattern language for matching text, such as 'the letters inv followed by digits'. Powerful, but easy to get subtly wrong."
+ },
+ {
+  "term": "regression",
+  "aliases": [
+   "regressions"
+  ],
+  "plain": "Something that used to work and has broken because of a later change."
+ },
+ {
+  "term": "regression test",
+  "aliases": [],
+  "plain": "An automated check that reproduces a past bug, so it is caught at once if the bug ever returns."
+ },
+ {
+  "term": "release",
+  "aliases": [],
+  "plain": "A published version of software made available to its users."
+ },
+ {
+  "term": "replace_all",
+  "aliases": [],
+  "plain": "An Edit tool option that replaces every match in a file instead of just one. Risky when some matches must stay unchanged."
+ },
+ {
+  "term": "repository",
+  "aliases": [
+   "repositories"
+  ],
+  "plain": "The shared store holding a project's files and their full change history, which everyone on the team works from."
+ },
+ {
+  "term": "repository root",
+  "aliases": [],
+  "plain": "The top-level folder of a code repository. Files placed here apply to the whole project."
+ },
+ {
+  "term": "repro",
+  "aliases": [
+   "reproduces",
+   "reproducing",
+   "reproducible",
+   "reproducibility"
+  ],
+  "plain": "Short for reproduction: exact steps or a test that make a problem happen again on demand, the first step to fixing it."
+ },
+ {
+  "term": "request",
+  "aliases": [
+   "requests"
+  ],
+  "plain": "One message sent to a service asking it to do something, such as a single call to the model. Each is answered, and usually billed, separately."
+ },
+ {
+  "term": "requeue",
+  "aliases": [
+   "re-queue",
+   "re-queueing",
+   "re-queues"
+  ],
+  "plain": "To put a failed item back in the waiting line so it is tried again later."
+ },
+ {
+  "term": "resampling",
+  "aliases": [],
+  "plain": "Asking the model the same thing again in the hope of a different answer. It cannot supply information the input never contained."
+ },
+ {
+  "term": "resource",
+  "aliases": [],
+  "plain": "Something a system provides or manages, such as a server, data store or document. In MCP, readable content offered at a stable address."
+ },
+ {
+  "term": "resume",
+  "aliases": [
+   "resumes",
+   "resumed",
+   "resuming"
+  ],
+  "plain": "To continue an earlier session with its full history, rather than starting clean. Anything that has changed since is not reflected."
+ },
+ {
+  "term": "retrieval",
+  "aliases": [],
+  "plain": "Fetching relevant information from a source, such as documents or the web, to use in an answer. When it was fetched matters if facts change over time."
+ },
+ {
+  "term": "retry",
+  "aliases": [
+   "retries",
+   "retrying",
+   "retried"
+  ],
+  "plain": "Trying a failed operation again. Helpful for passing glitches; wasteful for failures that will never fix themselves."
+ },
+ {
+  "term": "retry cap",
+  "aliases": [],
+  "plain": "A limit on how many times an operation is retried before giving up and reporting the failure."
+ },
+ {
+  "term": "retry hint",
+  "aliases": [],
+  "plain": "Guidance sent back with a temporary failure saying whether and when another attempt is worthwhile, for example 'wait five seconds'."
+ },
+ {
+  "term": "retryable",
+  "aliases": [],
+  "plain": "A failure where trying the same thing again could succeed, such as a timeout. A permission refusal is not: it will fail the same way every time."
+ },
+ {
+  "term": "return contract",
+  "aliases": [],
+  "plain": "An agreed specification of exactly what a helper agent or tool must hand back, such as file and line references, so the receiver can rely on it."
+ },
+ {
+  "term": "revert",
+  "aliases": [],
+  "plain": "To undo a change by restoring the earlier version, usually through version control."
+ },
+ {
+  "term": "role-based",
+  "aliases": [],
+  "plain": "Assigned by role: each agent or user gets the tools or access that match their job."
+ },
+ {
+  "term": "rollback",
+  "aliases": [],
+  "plain": "Undoing a release or change to return to the last known good state."
+ },
+ {
+  "term": "root",
+  "aliases": [],
+  "plain": "The top-level folder of a project or repository."
+ },
+ {
+  "term": "root cause",
+  "aliases": [],
+  "plain": "The underlying reason a problem happens, as opposed to its symptoms. Fix only the symptom and it comes back."
+ },
+ {
+  "term": "round trip",
+  "aliases": [
+   "round trips"
+  ],
+  "plain": "One full exchange: a request sent and its reply received. Each one adds waiting time and cost."
+ },
+ {
+  "term": "routing",
+  "aliases": [
+   "route",
+   "routed",
+   "routes"
+  ],
+  "plain": "Deciding where each item or request should go, such as which agent, tool or queue handles it."
+ },
+ {
+  "term": "rule",
+  "aliases": [
+   "rules"
+  ],
+  "plain": "A standing directive, such as a routing rule in a prompt or a convention in a rules file. Unless code enforces it, the model may still not follow it."
+ },
+ {
+  "term": "runaway",
+  "aliases": [],
+  "plain": "Out of control: a loop or run that keeps going, and keeps spending, without making progress."
+ },
+ {
+  "term": "runner",
+  "aliases": [
+   "runners"
+  ],
+  "plain": "The machine or container that actually carries out an automated job, such as a pipeline step."
+ },
+ {
+  "term": "safety valve",
+  "aliases": [],
+  "plain": "A backstop limit that stops a run if everything else fails. It prevents disaster but should not be the normal way a run finishes."
+ },
+ {
+  "term": "sample",
+  "aliases": [
+   "sampling"
+  ],
+  "plain": "A subset of items picked to check or measure, standing in for the whole group."
+ },
+ {
+  "term": "scheduler",
+  "aliases": [],
+  "plain": "The system that decides when jobs run and can stop them when time runs out."
+ },
+ {
+  "term": "schema",
+  "aliases": [
+   "schemas"
+  ],
+  "plain": "A formal description of the shape data must take: which fields exist, their types, and which are mandatory. It guarantees the shape, not that the values are true."
+ },
+ {
+  "term": "scope",
+  "aliases": [
+   "scoped",
+   "scoping"
+  ],
+  "plain": "The boundary within which something applies, such as a setting for one user, one project or one folder."
+ },
+ {
+  "term": "script",
+  "aliases": [
+   "scripts"
+  ],
+  "plain": "A file of commands run automatically in sequence instead of typed by hand."
+ },
+ {
+  "term": "SDKs",
+  "aliases": [],
+  "plain": "Software development kits: ready-made code libraries that make a service easier to use from your own programs."
+ },
+ {
+  "term": "secret",
+  "aliases": [
+   "secrets"
+  ],
+  "plain": "Any sensitive value, such as a password or access token. It belongs in protected per-person or per-pipeline settings, never in committed files."
+ },
+ {
+  "term": "sed",
+  "aliases": [],
+  "plain": "A command-line tool that finds and replaces text in files. Powerful, but easy to apply too widely."
+ },
+ {
+  "term": "self-consistency",
+  "aliases": [
+   "self-consistent"
+  ],
+  "plain": "Whether a result agrees with itself, such as line items adding up to the total. Passing it shows internal coherence, not that the right document was used."
+ },
+ {
+  "term": "self-hosted",
+  "aliases": [],
+  "plain": "Run on the organisation's own machines rather than a provider's shared ones, so it may carry leftover settings from earlier jobs."
+ },
+ {
+  "term": "self-reported",
+  "aliases": [],
+  "plain": "Stated by the model about itself, such as its own confidence score, rather than measured. Such numbers are unreliable until checked against real outcomes."
+ },
+ {
+  "term": "self-review",
+  "aliases": [],
+  "plain": "A model checking its own work in the same conversation. It tends to justify its earlier choices rather than catch its own mistakes."
+ },
+ {
+  "term": "semantic",
+  "aliases": [],
+  "plain": "About meaning rather than form. A semantic check asks whether values make sense, such as whether totals add up, not just whether the fields are present."
+ },
+ {
+  "term": "sentiment",
+  "aliases": [
+   "sentiment-driven"
+  ],
+  "plain": "The emotional tone of a message, such as angry or calm. Software can estimate it, but it is a poor guide to whether a case needs a person."
+ },
+ {
+  "term": "sequential",
+  "aliases": [
+   "sequentially"
+  ],
+  "plain": "Done in order, one step after the other, each waiting for the previous one to finish."
+ },
+ {
+  "term": "serial",
+  "aliases": [
+   "serializes"
+  ],
+  "plain": "One after another rather than at the same time. Serial steps take the sum of their times; parallel ones take roughly the longest."
+ },
+ {
+  "term": "server",
+  "aliases": [
+   "servers"
+  ],
+  "plain": "A program that provides services to others on request. In this exam, usually an MCP server supplying tools or data to Claude."
+ },
+ {
+  "term": "server-side",
+  "aliases": [],
+  "plain": "Happening on the provider's computers rather than in your own program, such as a built-in web search Anthropic runs for you."
+ },
+ {
+  "term": "server-tool",
+  "aliases": [],
+  "plain": "A tool that runs on Anthropic's side, such as web search, rather than in your own code. The platform loops it internally and may pause for you to continue."
+ },
+ {
+  "term": "serverless",
+  "aliases": [],
+  "plain": "A cloud approach where you supply only code and the provider runs it on demand, with no servers for you to manage."
+ },
+ {
+  "term": "service",
+  "aliases": [
+   "services"
+  ],
+  "plain": "A standalone piece of software providing one business function to others, such as an orders or refunds system."
+ },
+ {
+  "term": "session",
+  "aliases": [
+   "sessions"
+  ],
+  "plain": "One continuous working conversation with Claude, with its own history. A new one starts with a clean slate unless something is deliberately carried over."
+ },
+ {
+  "term": "setting",
+  "aliases": [
+   "settings"
+  ],
+  "plain": "A named option that changes how software behaves, usually stored in a settings file."
+ },
+ {
+  "term": "--setting-sources",
+  "aliases": [],
+  "plain": "A Claude Code option choosing which settings files load, such as only the project's, so personal or machine settings do not leak into automated runs."
+ },
+ {
+  "term": "shell",
+  "aliases": [],
+  "plain": "The command-line program that reads typed commands and runs them. Very powerful, so access to it is a major permission."
+ },
+ {
+  "term": "side effects",
+  "aliases": [
+   "side-effecting"
+  ],
+  "plain": "Changes a step makes to the outside world, such as sending a message or writing data, beyond just reading or calculating."
+ },
+ {
+  "term": "signal",
+  "aliases": [
+   "signals"
+  ],
+  "plain": "A piece of information that tells a system or model what to do next, such as a stop reason or a failing test."
+ },
+ {
+  "term": "signatures",
+  "aliases": [
+   "duplicate-signature"
+  ],
+  "plain": "A fingerprint of a tool call: its name plus its exact inputs. The same fingerprint appearing repeatedly shows an agent going round in circles."
+ },
+ {
+  "term": "sink",
+  "aliases": [],
+  "plain": "A destination where data ends up, such as the file or service collecting a program's logs."
+ },
+ {
+  "term": "skill",
+  "aliases": [
+   "skills"
+  ],
+  "plain": "A folder of instructions and supporting files that Claude loads only when relevant or when a person calls it by name: know-how needed sometimes, not always."
+ },
+ {
+  "term": "slash command",
+  "aliases": [
+   "slash commands"
+  ],
+  "plain": "A shortcut you trigger by typing a slash and a name, such as /release, to run a saved procedure deliberately."
+ },
+ {
+  "term": "snake_case",
+  "aliases": [],
+  "plain": "A naming style writing words in lower case joined by underscores, like order_number. Languages and teams differ in the style they prefer."
+ },
+ {
+  "term": "snapshot",
+  "aliases": [],
+  "plain": "A captured record of how something looked at one moment, such as current system health."
+ },
+ {
+  "term": "spawn",
+  "aliases": [
+   "spawns",
+   "spawning"
+  ],
+  "plain": "To start a new agent or process, such as a coordinator launching a helper agent."
+ },
+ {
+  "term": "SQL",
+  "aliases": [],
+  "plain": "The standard language for asking questions of, and changing records in, a database."
+ },
+ {
+  "term": "SQL injection",
+  "aliases": [],
+  "plain": "An attack where text typed into a form is smuggled in as a database command, letting an attacker read or change data they should not."
+ },
+ {
+  "term": "src",
+  "aliases": [],
+  "plain": "Short for 'source': the conventional folder that holds a project's main program code."
+ },
+ {
+  "term": "stack trace",
+  "aliases": [],
+  "plain": "The error report a program prints when it fails, listing the chain of steps that were running and pointing to where the fault occurred."
+ },
+ {
+  "term": "stage",
+  "aliases": [
+   "stages"
+  ],
+  "plain": "One step in a multi-step process, with its own input and output."
+ },
+ {
+  "term": "staging",
+  "aliases": [],
+  "plain": "A pre-live copy of a system, or a holding area for data, used to check things before they go live."
+ },
+ {
+  "term": "stale",
+  "aliases": [],
+  "plain": "Out of date: data or a session that no longer matches reality, such as references to code that has since changed."
+ },
+ {
+  "term": "standard input",
+  "aliases": [],
+  "plain": "The channel through which a command receives data fed into it, rather than typed in or read from a named file."
+ },
+ {
+  "term": "state",
+  "aliases": [],
+  "plain": "The facts a system is currently keeping track of, such as what has been done so far."
+ },
+ {
+  "term": "stateless",
+  "aliases": [],
+  "plain": "Remembering nothing between requests. Each request must carry everything needed, including the whole conversation so far."
+ },
+ {
+  "term": "stem",
+  "aliases": [],
+  "plain": "The question part of a multiple-choice exam item, before the answer options."
+ },
+ {
+  "term": "Stop hook",
+  "aliases": [],
+  "plain": "A hook that runs when Claude is about to end its turn. It can refuse to let the turn end, for example until the tests pass."
+ },
+ {
+  "term": "stop_details",
+  "aliases": [],
+  "plain": "Extra information the system gives about why the model stopped, notably for a refusal."
+ },
+ {
+  "term": "stop_reason",
+  "aliases": [],
+  "plain": "A label on every reply from Claude saying why it stopped: finished, hit the length limit, or waiting for a tool to run. Your loop should decide its next step from this label."
+ },
+ {
+  "term": "stratified sampling",
+  "aliases": [],
+  "plain": "Checking a random sample from each category separately, at rates you choose, so small but risky categories get enough attention to measure their accuracy."
+ },
+ {
+  "term": "stream-json",
+  "aliases": [],
+  "plain": "An output setting for automated Claude Code runs that sends progress as a series of separate data records, one per event, instead of one final document."
+ },
+ {
+  "term": "streaming",
+  "aliases": [],
+  "plain": "Receiving a reply piece by piece as it is written, rather than waiting for the whole thing to finish."
+ },
+ {
+  "term": "string",
+  "aliases": [
+   "strings"
+  ],
+  "plain": "A piece of text, as a type of data. A value stored this way is treated as characters, not as a number or date."
+ },
+ {
+  "term": "structural enforcement",
+  "aliases": [],
+  "plain": "Making a rule hold through how the system is built, such as a tool simply not being available, rather than through an instruction the model might ignore."
+ },
+ {
+  "term": "structured",
+  "aliases": [],
+  "plain": "Organised into defined, named fields that software can read reliably, rather than free text."
+ },
+ {
+  "term": "structured output",
+  "aliases": [],
+  "plain": "Output in a fixed, machine-readable layout rather than free prose, so programs can rely on the fields being there."
+ },
+ {
+  "term": "structured_output",
+  "aliases": [],
+  "plain": "The field in Claude Code's machine-readable result where the answer lands when you ask for a fixed layout, ready for a script to check."
+ },
+ {
+  "term": "structuredContent",
+  "aliases": [],
+  "plain": "The machine-readable part of a tool server's result, sent alongside the human-readable text, holding fields such as the error category and whether to retry."
+ },
+ {
+  "term": "subagent",
+  "aliases": [
+   "subagents"
+  ],
+  "plain": "A helper agent started by another agent for one piece of work. It begins with a fresh, separate memory, sees only what it is given, and reports back."
+ },
+ {
+  "term": "subtype",
+  "aliases": [],
+  "plain": "The field on an automated run's final result saying how it ended, such as success or hitting the spending limit. Check it before trusting the result."
+ },
+ {
+  "term": "summarization",
+  "aliases": [
+   "summarize",
+   "summarized",
+   "summarizes",
+   "summarizing",
+   "summarizer"
+  ],
+  "plain": "Condensing material into a shorter version. Saves space, but figures, dates, sources and exact identifiers are often lost along the way."
+ },
+ {
+  "term": "symbol",
+  "aliases": [],
+  "plain": "A named item in code, such as a function or variable name, that can be searched for across files."
+ },
+ {
+  "term": "sync",
+  "aliases": [],
+  "plain": "Kept matching: two copies in sync hold the same content, which usually takes ongoing effort."
+ },
+ {
+  "term": "synchronous",
+  "aliases": [
+   "synchronously"
+  ],
+  "plain": "Done while you wait: the caller pauses until the result comes back."
+ },
+ {
+  "term": "syntax",
+  "aliases": [],
+  "plain": "The structural rules of a language or format, such as where brackets and commas go."
+ },
+ {
+  "term": "synthesis",
+  "aliases": [
+   "synthesizer",
+   "synthesized"
+  ],
+  "plain": "Combining findings from several sources or agents into one coherent answer. Some step must own this, or the pieces never get joined up."
+ },
+ {
+  "term": "system prompt",
+  "aliases": [],
+  "plain": "Standing instructions given to the model at the start of a conversation that set its role and rules for every reply that follows."
+ },
+ {
+  "term": "taxonomy",
+  "aliases": [],
+  "plain": "An agreed, fixed set of categories used for sorting things, such as a list of error types."
+ },
+ {
+  "term": "tech debt",
+  "aliases": [],
+  "plain": "Shortcuts and ageing code that make future changes slower and riskier, like interest owed on a loan."
+ },
+ {
+  "term": "telemetry",
+  "aliases": [],
+  "plain": "Measurements a system collects automatically about how it is running, such as success rates and errors."
+ },
+ {
+  "term": "temperature",
+  "aliases": [],
+  "plain": "A setting controlling how much randomness the model uses when choosing words. Lower makes answers more repeatable, but not more correct."
+ },
+ {
+  "term": "template",
+  "aliases": [],
+  "plain": "A reusable pattern with blanks to fill in, so every instance follows the same structure."
+ },
+ {
+  "term": "terminal",
+  "aliases": [],
+  "plain": "Final: a terminal state or value is one after which nothing more happens on that path."
+ },
+ {
+  "term": "termination",
+  "aliases": [
+   "terminates"
+  ],
+  "plain": "How and when a run ends. Good design makes it end for the right reason, not because a limit happened to run out."
+ },
+ {
+  "term": "Terraform",
+  "aliases": [
+   "Terraform-style"
+  ],
+  "plain": "A widely used tool for describing cloud infrastructure in text files, so servers and networks can be created and changed from code."
+ },
+ {
+  "term": "test",
+  "aliases": [
+   "tests",
+   "testing"
+  ],
+  "plain": "An automated check that runs code and confirms it gives the expected result. A passing test is evidence; a claim that code works is not."
+ },
+ {
+  "term": "test suite",
+  "aliases": [
+   "test suites",
+   "suite",
+   "suites"
+  ],
+  "plain": "The full collection of automated tests for a project, usually run together."
+ },
+ {
+  "term": "test-runner",
+  "aliases": [],
+  "plain": "The program that runs a project's automated tests and reports which passed and which failed."
+ },
+ {
+  "term": ".test.ts",
+  "aliases": [
+   ".spec.ts"
+  ],
+  "plain": "File-name endings conventionally used for automated test files in TypeScript projects."
+ },
+ {
+  "term": ".tf",
+  "aliases": [],
+  "plain": "The file ending for Terraform infrastructure files."
+ },
+ {
+  "term": "third-party",
+  "aliases": [],
+  "plain": "Built and run by an outside company rather than your own team, so you cannot change its behaviour directly."
+ },
+ {
+  "term": "threshold",
+  "aliases": [
+   "thresholds"
+  ],
+  "plain": "A cut-off value that triggers a different action, such as sending anything below 0.8 confidence to a person."
+ },
+ {
+  "term": "ticket",
+  "aliases": [
+   "tickets",
+   "ticketing"
+  ],
+  "plain": "A tracked record of one request or problem, such as a support case or a task."
+ },
+ {
+  "term": "timeout",
+  "aliases": [
+   "timeouts"
+  ],
+  "plain": "Giving up on a request after waiting a set time with no reply. Usually temporary, so often worth another try."
+ },
+ {
+  "term": "times out",
+  "aliases": [
+   "timed out"
+  ],
+  "plain": "Gives up because a response took longer than the time allowed."
+ },
+ {
+  "term": "timestamps",
+  "aliases": [],
+  "plain": "Recorded dates and times attached to events or log lines, showing exactly when each happened."
+ },
+ {
+  "term": "timezone",
+  "aliases": [],
+  "plain": "The regional clock offset applied to a date and time. Mixing them is a classic cause of dates coming out a day wrong."
+ },
+ {
+  "term": "token",
+  "aliases": [
+   "tokens"
+  ],
+  "plain": "The small chunks of text, roughly three-quarters of a word each, that the model reads and writes. Size limits and costs are counted in them."
+ },
+ {
+  "term": "tool",
+  "aliases": [
+   "tools"
+  ],
+  "plain": "A capability your software offers the model, such as searching files or looking up an order. The model asks for it by name; your system actually runs it."
+ },
+ {
+  "term": "tool call",
+  "aliases": [
+   "tool calls"
+  ],
+  "plain": "A request from the model to run one specific tool with specific inputs. Your code carries it out and sends the result back."
+ },
+ {
+  "term": "tool definitions",
+  "aliases": [],
+  "plain": "The name, description and input rules each tool publishes so the model knows when and how to call it. Every one takes up context space."
+ },
+ {
+  "term": "tool selection",
+  "aliases": [],
+  "plain": "The model's choice of which tool to call for a request. It is driven mostly by tool names and descriptions, so vague descriptions cause wrong picks."
+ },
+ {
+  "term": "tool_choice",
+  "aliases": [],
+  "plain": "A request setting controlling whether the model may answer freely, must use some tool, or must use one named tool. Forcing a named tool guarantees a structured answer."
+ },
+ {
+  "term": "tool_result",
+  "aliases": [
+   "tool result",
+   "tool results"
+  ],
+  "plain": "The message your code sends back to the model carrying the outcome of a tool it asked for, matched to that request."
+ },
+ {
+  "term": "tool_use",
+  "aliases": [
+   "tool-use"
+  ],
+  "plain": "Both the stop label meaning the model is waiting for tools to be run, and the part of the reply naming the tool and inputs it wants."
+ },
+ {
+  "term": "topology",
+  "aliases": [],
+  "plain": "The shape of how agents or components connect, such as a central hub with spokes, or a chain."
+ },
+ {
+  "term": "total_cost_usd",
+  "aliases": [],
+  "plain": "A field in Claude Code's machine-readable result reporting what the run cost in US dollars."
+ },
+ {
+  "term": "trace",
+  "aliases": [
+   "traces",
+   "traced",
+   "tracing"
+  ],
+  "plain": "To follow something step by step back to its origin, such as a claim to its source or a fault through a system."
+ },
+ {
+  "term": "training data",
+  "aliases": [],
+  "plain": "The vast body of text a model learned from before you ever used it. Its general habits come from there, not from your organisation's standards."
+ },
+ {
+  "term": "transcript",
+  "aliases": [],
+  "plain": "A full written record of a conversation or session."
+ },
+ {
+  "term": "transient",
+  "aliases": [],
+  "plain": "Temporary. A transient failure, such as a timeout, will probably clear up if you wait and try again."
+ },
+ {
+  "term": "tree",
+  "aliases": [],
+  "plain": "A branching structure, such as folders within folders, or agents launching agents that launch more agents."
+ },
+ {
+  "term": "triage",
+  "aliases": [
+   "triages"
+  ],
+  "plain": "Sorting incoming items by urgency and type to decide what is handled first and by whom."
+ },
+ {
+  "term": "trigger",
+  "aliases": [
+   "triggers",
+   "triggered"
+  ],
+  "plain": "The condition or event that makes something happen automatically."
+ },
+ {
+  "term": "trim",
+  "aliases": [
+   "trims",
+   "trimming"
+  ],
+  "plain": "Cutting content, such as long tool output, down to the part that matters before it enters the context."
+ },
+ {
+  "term": "truncation",
+  "aliases": [
+   "truncated"
+  ],
+  "plain": "Output cut off before the end because a size limit was reached. A truncated result must never be treated as complete."
+ },
+ {
+  "term": "turn",
+  "aliases": [
+   "turns"
+  ],
+  "plain": "One exchange in a conversation: a message goes in and the model replies. An agent's run is a series of these."
+ },
+ {
+  "term": "turn cap",
+  "aliases": [],
+  "plain": "A maximum number of rounds a loop may run before it is forcibly stopped. A safety limit, not a sign that the work is finished."
+ },
+ {
+  "term": "TypeScript",
+  "aliases": [],
+  "plain": "A programming language built on JavaScript that adds checks on the kinds of data used. Widely used for web software."
+ },
+ {
+  "term": "unattended",
+  "aliases": [],
+  "plain": "Running with nobody watching, such as an overnight automated job."
+ },
+ {
+  "term": "unbounded",
+  "aliases": [],
+  "plain": "Having no limit set, so it could run or cost indefinitely."
+ },
+ {
+  "term": "uncaught",
+  "aliases": [],
+  "plain": "Not handled by any part of the code, so the program stops abruptly."
+ },
+ {
+  "term": "union",
+  "aliases": [],
+  "plain": "In a data definition, a field allowed to hold one of several kinds of value, such as 'text or empty'."
+ },
+ {
+  "term": "unit tests",
+  "aliases": [],
+  "plain": "Small automated checks that each test one piece of code on its own, quickly confirming it still behaves as expected."
+ },
+ {
+  "term": "unset",
+  "aliases": [],
+  "plain": "Not defined at all. An unset environment variable is missing, not merely blank."
+ },
+ {
+  "term": "unterminated",
+  "aliases": [],
+  "plain": "Opened but never closed, such as a bracket with no matching end, usually because the output was cut off."
+ },
+ {
+  "term": "untrusted",
+  "aliases": [],
+  "plain": "Not verified, so it must not be relied on for security decisions."
+ },
+ {
+  "term": "updatedInput",
+  "aliases": [],
+  "plain": "A field a hook can return before a tool runs to rewrite the tool's inputs, such as correcting or normalising a value."
+ },
+ {
+  "term": "updatedToolOutput",
+  "aliases": [],
+  "plain": "A field a hook can return after a tool runs to replace what the model sees as that tool's result."
+ },
+ {
+  "term": "upstream",
+  "aliases": [],
+  "plain": "Earlier in a chain of steps or systems. Problems there flow down to everything after."
+ },
+ {
+  "term": "URIs",
+  "aliases": [],
+  "plain": "Standard addresses that name a resource. Web addresses are one kind."
+ },
+ {
+  "term": "URL",
+  "aliases": [],
+  "plain": "A web address, such as https://example.com."
+ },
+ {
+  "term": "user scope",
+  "aliases": [
+   "user-scope"
+  ],
+  "plain": "Settings that apply to you personally across all your projects, stored on your machine and never shared with teammates."
+ },
+ {
+  "term": "user-controlled",
+  "aliases": [],
+  "plain": "Describes MCP prompts: a person deliberately chooses when to use them, typically as a slash command."
+ },
+ {
+  "term": "user-invocable",
+  "aliases": [],
+  "plain": "A skill setting. Set to false, it hides the skill from people's slash-command menu so only Claude can start it; it does not stop Claude using it."
+ },
+ {
+  "term": "UTC",
+  "aliases": [],
+  "plain": "Coordinated Universal Time: the single worldwide reference clock systems use to avoid timezone confusion."
+ },
+ {
+  "term": "validation",
+  "aliases": [
+   "validate",
+   "validated",
+   "validates"
+  ],
+  "plain": "Checking that data meets required rules, such as correct format and required fields, before it is used."
+ },
+ {
+  "term": "validator",
+  "aliases": [],
+  "plain": "Code that checks output against rules, such as required fields being present and totals adding up, and rejects anything that fails."
+ },
+ {
+  "term": "variable",
+  "aliases": [
+   "variables"
+  ],
+  "plain": "A named slot holding a value that can change, such as a setting that differs from one machine to another."
+ },
+ {
+  "term": "verbose",
+  "aliases": [],
+  "plain": "Producing a lot of detailed output. Handy for diagnosis, but expensive to feed into a model's context."
+ },
+ {
+  "term": "version",
+  "aliases": [
+   "versioned"
+  ],
+  "plain": "A numbered snapshot of software, a document or a data definition at one point in time, so changes can be tracked."
+ },
+ {
+  "term": "version control",
+  "aliases": [],
+  "plain": "A system that records every change to files over time and who made it, letting a team share work and undo mistakes."
+ },
+ {
+  "term": "vulnerabilities",
+  "aliases": [],
+  "plain": "Weaknesses in software that an attacker could exploit."
+ },
+ {
+  "term": "web search",
+  "aliases": [],
+  "plain": "A tool letting the model search the public internet and read the results."
+ },
+ {
+  "term": "well-formed",
+  "aliases": [],
+  "plain": "Correct in structure, so a program can read it, even if the content itself is wrong."
+ },
+ {
+  "term": "wildcard",
+  "aliases": [],
+  "plain": "A symbol, usually an asterisk, that matches anything, such as 'every file ending .ts'. Wildcard permissions are very broad."
+ },
+ {
+  "term": "worker",
+  "aliases": [
+   "workers"
+  ],
+  "plain": "An agent or process that carries out tasks handed to it by a coordinator, rather than deciding the overall plan."
+ },
+ {
+  "term": "workflow",
+  "aliases": [
+   "workflows"
+  ],
+  "plain": "A defined sequence of steps for getting a task done, whether by people, code or agents."
+ },
+ {
+  "term": "working directory",
+  "aliases": [],
+  "plain": "The folder a program or command is currently operating in. Relative file references are resolved from here."
+ },
+ {
+  "term": "wrapper",
+  "aliases": [],
+  "plain": "An outer layer around something else, such as the envelope a command-line tool puts around the model's answer."
+ }
+]

@@ -1,0 +1,198 @@
+[
+ {
+  "part": "Part one: CLAUDE.md hierarchy, scoping and modular organization",
+  "questions": [
+   "D3-001",
+   "D3-002",
+   "D3-003",
+   "D3-004",
+   "D3-005"
+  ],
+  "concepts": [
+   "four scopes: managed policy, user, project, local",
+   "three levels versus four scopes source disagreement",
+   "root-down concatenation, subdirectory files on demand",
+   "user scope never shared: check config location first",
+   "CLAUDE.local.md is personal and gitignored",
+   "scopes are additive, not overriding",
+   "delete contradictions rather than out-rank them",
+   "@import organizes, does not economize",
+   "import depth four hops, relative to importing file, external import approval",
+   "directory CLAUDE.md for package owners",
+   "no path prefixes in CLAUDE.md",
+   "CLAUDE.md advisory, PreToolUse hook enforces",
+   "managed policy is not a gate",
+   "enforcement ladder",
+   "root file under two hundred lines",
+   "claudeMdExcludes cannot exclude policy",
+   "HTML comments stripped",
+   "root CLAUDE.md re-injected after compaction",
+   "routing: CLAUDE.md vs rule vs skill vs command vs hook vs local file"
+  ]
+ },
+ {
+  "part": "Part two: Custom slash commands and skills",
+  "questions": [
+   "D3-006",
+   "D3-007",
+   "D3-008",
+   "D3-009"
+  ],
+  "concepts": [
+   "skill anatomy and description as selection signal",
+   "project versus personal skill locations",
+   "commands merged into skills source disagreement",
+   "name collision: enterprise beats personal beats project",
+   "disable-model-invocation versus user-invocable",
+   "argument-hint hints, arguments binds, $ARGUMENTS and $0",
+   "allowed-tools pre-approves for one turn and restricts nothing",
+   "allowed-tools restriction source disagreement",
+   "space before asterisk in permission rules",
+   "session-wide grant belongs in permission settings",
+   "workspace trust for project skill grants",
+   "three allowed-tools spellings across domains",
+   "context: fork needs an explicit task",
+   "agent field and background: false",
+   "background fork outside /rewind checkpoints",
+   "bang-command preprocessing aborts on failure",
+   "open standard six fields and portability"
+  ]
+ },
+ {
+  "part": "Part three: Path-specific rules for conditional convention loading",
+  "questions": [
+   "D3-010",
+   "D3-011",
+   "D3-012",
+   "D3-013"
+  ],
+  "concepts": [
+   ".claude/rules with paths frontmatter",
+   "rule without paths loads every session",
+   "file-type conventions via globs",
+   "single star one level, double star any depth",
+   "brace expansion and 1,000-pattern budget",
+   "malformed bracket pattern matches nothing",
+   "/memory to debug what loaded",
+   "/memory lists versus opens source disagreement",
+   "diagnose first",
+   "/context and InstructionsLoaded hook",
+   "path rules not re-injected after compaction",
+   "rules fire on matching reads, not every tool call",
+   "path rule versus directory CLAUDE.md",
+   "personal rules load before project rules"
+  ]
+ },
+ {
+  "part": "Part four: Plan mode versus direct execution",
+  "questions": [
+   "D3-014",
+   "D3-015",
+   "D3-016"
+  ],
+  "concepts": [
+   "plan mode reads and proposes, edits blocked until approval",
+   "Shift+Tab, /plan, --permission-mode plan",
+   "permissions.defaultMode plan in committed settings",
+   "Ctrl+G edits the plan",
+   "one-sentence test",
+   "direct execution for single-file fixes",
+   "planning theater",
+   "plan mode for uncertain multi-file work",
+   "explore, plan, implement, commit",
+   "plan mode is not a security boundary under bypass permissions",
+   "approving a plan exits into an editing mode",
+   "plan mode versus permission rule or hook"
+  ]
+ },
+ {
+  "part": "Part five: Iterative refinement for progressive improvement",
+  "questions": [
+   "D3-017",
+   "D3-018",
+   "D3-019"
+  ],
+  "concepts": [
+   "refinement converges on a signal Claude can read",
+   "input and output examples as tests",
+   "screenshot comparison",
+   "verification by assertion",
+   "clear context after two failed corrections",
+   "raising turn cap is not a fix",
+   "test gate ladder: prompt, evaluator, Stop hook",
+   "Stop hook deterministic gate",
+   "interview pattern then fresh session",
+   "spec names files, exclusions, verification",
+   "sequential refinement then fan-out",
+   "claude -p fan-out with OK or FAIL verdicts"
+  ]
+ },
+ {
+  "part": "Part six: Integrating Claude Code into CI/CD pipelines",
+  "questions": [
+   "D3-020",
+   "D3-021",
+   "D3-022",
+   "D3-023",
+   "D3-024"
+  ],
+  "concepts": [
+   "-p or --print for non-interactive runs",
+   "fabricated flags: --ci-mode, --batch, --headless, CLAUDE_HEADLESS",
+   "stdin input and exit codes",
+   "--output-format json with --json-schema into structured_output",
+   "jq -e gate on a field",
+   "Batches API unsuitable for blocking checks",
+   "deduplication loop with prior PR comments",
+   "claude -c -p continuation fails on ephemeral runners",
+   "session isolation for review",
+   "CLAUDE.md carries standards into fresh sessions",
+   "--setting-sources project versus --bare",
+   "--bare needs ANTHROPIC_API_KEY",
+   "pipe the diff instead of granting Bash",
+   "GitHub Action interactive versus automation mode",
+   "actor checks and allowed_bots",
+   "GitLab masked variable and acceptEdits",
+   "least privilege, pull request as the gate"
+  ]
+ },
+ {
+  "part": "Trap round",
+  "questions": [
+   "D3-001",
+   "D3-002",
+   "D3-003",
+   "D3-004",
+   "D3-005",
+   "D3-006",
+   "D3-007",
+   "D3-008",
+   "D3-009",
+   "D3-010",
+   "D3-011",
+   "D3-012",
+   "D3-013",
+   "D3-014",
+   "D3-015",
+   "D3-016",
+   "D3-017",
+   "D3-018",
+   "D3-019",
+   "D3-020",
+   "D3-021",
+   "D3-022",
+   "D3-023",
+   "D3-024"
+  ],
+  "concepts": [
+   "recurring distractors across all six task statements"
+  ]
+ },
+ {
+  "part": "Closing recap: ten things to remember",
+  "questions": [],
+  "concepts": [
+   "ten plain-then-technical recap items"
+  ]
+ }
+]
