@@ -23,7 +23,7 @@ async function init() {
   $("#domain-filter").addEventListener("change", (event) => { state.domain = event.target.value; render(); });
   $("#study-mode").addEventListener("click", () => setMode("study"));
   $("#quiz-mode").addEventListener("click", () => setMode("quiz"));
-  $("#random-quiz").addEventListener("click", startQuiz);
+  $("#random-quiz").addEventListener("click", () => startQuiz(true));
   $("#hero-quiz").addEventListener("click", () => { document.querySelector("#study").scrollIntoView(); startQuiz(); });
   $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
 }
@@ -73,17 +73,29 @@ function setModeButtons() {
   $("#study-mode").classList.toggle("active", state.mode === "study");
   $("#quiz-mode").classList.toggle("active", state.mode === "quiz");
 }
-function startQuiz() {
+function startQuiz(timed = false) {
   const pool = [...filteredQuestions()].sort(() => Math.random() - 0.5);
   if (!pool.length) return;
-  state.mode = "quiz"; state.quiz = { questions: pool, index: 0, score: 0, answered: false };
+  if (state.quiz?.timerId) clearInterval(state.quiz.timerId);
+  state.mode = "quiz"; state.quiz = { questions: pool, index: 0, score: 0, answered: false, timed, secondsLeft: timed ? 60 * 60 : null, timerId: null };
+  if (timed) state.quiz.timerId = setInterval(tickQuizTimer, 1000);
   setModeButtons(); render(); renderQuiz();
   document.querySelector("#study").scrollIntoView({ behavior: "smooth" });
 }
 function renderQuiz() {
   const quiz = state.quiz; const question = quiz.questions[quiz.index]; const progress = quiz.index / quiz.questions.length * 100;
-  $("#quiz-view").innerHTML = `<div class="quiz-shell"><div class="quiz-progress"><span>QUESTION ${quiz.index + 1} OF ${quiz.questions.length}</span><span>${quiz.score} correct</span></div><div class="quiz-track"><span style="width:${progress}%"></span></div><h3>${escapeHtml(question.stem)}</h3><div class="quiz-options">${Object.entries(question.options).map(([letter, text]) => `<button class="quiz-option" data-choice="${letter}" type="button"><span class="letter">${letter}</span><span>${escapeHtml(text)}</span></button>`).join("")}</div><div id="quiz-feedback"></div></div>`;
+  const timer = quiz.timed ? `<span class="quiz-timer" id="quiz-timer">${formatTime(quiz.secondsLeft)}</span>` : "<span>Untimed</span>";
+  $("#quiz-view").innerHTML = `<div class="quiz-shell"><div class="quiz-progress"><span>QUESTION ${quiz.index + 1} OF ${quiz.questions.length}</span><span>${quiz.score} correct</span>${timer}</div><div class="quiz-track"><span style="width:${progress}%"></span></div><h3>${escapeHtml(question.stem)}</h3><div class="quiz-options">${Object.entries(question.options).map(([letter, text]) => `<button class="quiz-option" data-choice="${letter}" type="button"><span class="letter">${letter}</span><span>${escapeHtml(text)}</span></button>`).join("")}</div><div id="quiz-feedback"></div></div>`;
   document.querySelectorAll("[data-choice]").forEach((button) => button.addEventListener("click", () => answerQuiz(button.dataset.choice)));
+}
+function formatTime(seconds) { return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`; }
+function tickQuizTimer() {
+  const quiz = state.quiz;
+  if (!quiz?.timed) return;
+  quiz.secondsLeft--;
+  const timer = $("#quiz-timer");
+  if (timer) { timer.textContent = formatTime(Math.max(quiz.secondsLeft, 0)); timer.classList.toggle("low", quiz.secondsLeft <= 300); }
+  if (quiz.secondsLeft <= 0) { clearInterval(quiz.timerId); quiz.timerId = null; showQuizResult(true); }
 }
 function answerQuiz(choice) {
   const quiz = state.quiz; if (quiz.answered) return; quiz.answered = true;
@@ -92,10 +104,11 @@ function answerQuiz(choice) {
   $("#quiz-feedback").innerHTML = `<div class="quiz-feedback"><strong>${choice === question.correct_answer ? "Correct." : `Not quite — the answer is ${question.correct_answer}.`}</strong><br>${escapeHtml(question.explanation)}<br><button class="quiz-next" type="button">${quiz.index + 1 === quiz.questions.length ? "See results" : "Next question →"}</button></div>`;
   $(".quiz-next").addEventListener("click", () => { if (quiz.index + 1 === quiz.questions.length) showQuizResult(); else { quiz.index++; quiz.answered = false; renderQuiz(); } });
 }
-function showQuizResult() {
-  const quiz = state.quiz; const percent = Math.round(quiz.score / quiz.questions.length * 100);
-  $("#quiz-view").innerHTML = `<div class="quiz-shell quiz-result"><p class="eyebrow">Quiz complete</p><strong>${percent}%</strong><p>You answered ${quiz.score} of ${quiz.questions.length} correctly.</p><button class="quiz-next" type="button" id="try-again">Try another quiz</button></div>`;
-  $("#try-again").addEventListener("click", startQuiz);
+function showQuizResult(timeExpired = false) {
+  const quiz = state.quiz; if (quiz.timerId) { clearInterval(quiz.timerId); quiz.timerId = null; }
+  const percent = Math.round(quiz.score / quiz.questions.length * 100);
+  $("#quiz-view").innerHTML = `<div class="quiz-shell quiz-result"><p class="eyebrow">${timeExpired ? "Time is up" : "Quiz complete"}</p><strong>${percent}%</strong><p>You answered ${quiz.score} of ${quiz.questions.length} correctly${timeExpired ? " before the timer ended" : ""}.</p><button class="quiz-next" type="button" id="try-again">${quiz.timed ? "Start Timer again" : "Try another quiz"}</button></div>`;
+  $("#try-again").addEventListener("click", () => startQuiz(quiz.timed));
 }
 init().catch((error) => { $("#study-view").innerHTML = `<div class="empty-state"><h3>Question bank unavailable</h3><p>${escapeHtml(error.message)}</p></div>`; });
 
