@@ -48,6 +48,8 @@ function filteredQuestions() {
 function render() {
   state.questions = filteredQuestions();
   $("#results-count").textContent = `${state.questions.length} question${state.questions.length === 1 ? "" : "s"}`;
+  const duration = state.questions.length * 2;
+  $("#timer-note").textContent = `Official-guide pacing: 2 minutes per question · ${duration >= 60 ? `${Math.floor(duration / 60)}h ${duration % 60}m` : `${duration}m`} total`;
   $("#empty-state").classList.toggle("hidden", state.questions.length > 0 || state.mode === "quiz");
   $("#study-view").classList.toggle("hidden", state.mode !== "study");
   $("#quiz-view").classList.toggle("hidden", state.mode !== "quiz");
@@ -77,21 +79,27 @@ function startQuiz(timed = false) {
   const pool = [...filteredQuestions()].sort(() => Math.random() - 0.5);
   if (!pool.length) return;
   if (state.quiz?.timerId) clearInterval(state.quiz.timerId);
-  state.mode = "quiz"; state.quiz = { questions: pool, index: 0, score: 0, answered: false, timed, secondsLeft: timed ? 60 * 60 : null, timerId: null };
+  state.mode = "quiz"; state.quiz = { questions: pool, index: 0, score: 0, answered: false, timed, paused: false, secondsLeft: timed ? pool.length * 2 * 60 : null, timerId: null };
   if (timed) state.quiz.timerId = setInterval(tickQuizTimer, 1000);
   setModeButtons(); render(); renderQuiz();
   document.querySelector("#study").scrollIntoView({ behavior: "smooth" });
 }
 function renderQuiz() {
   const quiz = state.quiz; const question = quiz.questions[quiz.index]; const progress = quiz.index / quiz.questions.length * 100;
-  const timer = quiz.timed ? `<span class="quiz-timer" id="quiz-timer">${formatTime(quiz.secondsLeft)}</span>` : "<span>Untimed</span>";
+  const timer = quiz.timed ? `<span class="quiz-timer ${quiz.paused ? "paused" : ""}" id="quiz-timer">${formatTime(quiz.secondsLeft)}</span><button class="timer-control" id="quiz-timer-toggle" type="button">${quiz.paused ? "Start timer" : "Stop timer"}</button>` : "<span>Untimed</span>";
   $("#quiz-view").innerHTML = `<div class="quiz-shell"><div class="quiz-progress"><span>QUESTION ${quiz.index + 1} OF ${quiz.questions.length}</span><span>${quiz.score} correct</span>${timer}</div><div class="quiz-track"><span style="width:${progress}%"></span></div><h3>${escapeHtml(question.stem)}</h3><div class="quiz-options">${Object.entries(question.options).map(([letter, text]) => `<button class="quiz-option" data-choice="${letter}" type="button"><span class="letter">${letter}</span><span>${escapeHtml(text)}</span></button>`).join("")}</div><div id="quiz-feedback"></div></div>`;
   document.querySelectorAll("[data-choice]").forEach((button) => button.addEventListener("click", () => answerQuiz(button.dataset.choice)));
+  if (quiz.timed) $("#quiz-timer-toggle").addEventListener("click", toggleQuizTimer);
 }
-function formatTime(seconds) { return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`; }
+function formatTime(seconds) { const hours = Math.floor(seconds / 3600); const minutes = Math.floor(seconds % 3600 / 60); const remainder = seconds % 60; return hours ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}` : `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`; }
+function toggleQuizTimer() {
+  if (!state.quiz?.timed) return;
+  state.quiz.paused = !state.quiz.paused;
+  renderQuiz();
+}
 function tickQuizTimer() {
   const quiz = state.quiz;
-  if (!quiz?.timed) return;
+  if (!quiz?.timed || quiz.paused) return;
   quiz.secondsLeft--;
   const timer = $("#quiz-timer");
   if (timer) { timer.textContent = formatTime(Math.max(quiz.secondsLeft, 0)); timer.classList.toggle("low", quiz.secondsLeft <= 300); }
