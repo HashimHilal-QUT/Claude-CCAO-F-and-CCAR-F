@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract the UD-CCAO-F question bank from its authoritative DOCX source."""
+"""Extract the UD-CCAR-F question bank from its authoritative DOCX source."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from xml.etree import ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "Udemy-CCAR-F_AI_V7.docx"
-DATASET = ROOT / "site" / "ud-ccao-f.json"
-REPORT = ROOT / "site" / "ud-ccao-f-import-report.json"
+DATASET = ROOT / "site" / "ud-ccar-f.json"
+REPORT = ROOT / "site" / "ud-ccar-f-import-report.json"
 NS = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
 QUESTION_RE = re.compile(r"^Question\s+(\d+):")
 TEST_RE = re.compile(r"Practice Test\s+(\d+)")
@@ -110,12 +110,12 @@ def extract() -> tuple[dict, dict]:
                 questions.append(current)
             if scenario:
                 scenario_number += 1
-                scenario_id = f"UD-CCAO-F-S{scenario_number:02d}"
+                scenario_id = f"UD-CCAR-F-S{scenario_number:02d}"
                 scenarios[scenario_id] = {"id": scenario_id, "text": scenario}
                 pending_scenario = scenario_id
             current = {
-                "id": f"UD-CCAO-F-PT{current_test:02d}-Q{question_number:03d}",
-                "examId": "UD-CCAO-F",
+                "id": f"UD-CCAR-F-PT{current_test:02d}-Q{question_number:03d}",
+                "examId": "UD-CCAR-F",
                 "practiceTest": current_test,
                 "questionNumber": question_number,
                 "questionType": "single_select",
@@ -208,9 +208,9 @@ def extract() -> tuple[dict, dict]:
     domain_counts = Counter(q["domain"] or "Unclassified" for q in questions)
     review = [q["id"] for q in questions if not q["scorable"]]
     dataset = {
-        "id": "ud-ccao-f",
+        "id": "ud-ccar-f",
         "name": "Claude Certified Architect Foundations - Udemy Practice Exams",
-        "short_name": "UD-CCAO-F",
+        "short_name": "UD-CCAR-F",
         "description": "Claude Certified Architect Foundations – Udemy Practice Exams",
         "domains": [{"id": name, "name": name} for name in sorted(domain_counts) if name != "Unclassified"],
         "practiceTests": [{"id": n, "name": f"Practice Test {n}", "questionCount": test_counts[n]} for n in sorted(test_counts)],

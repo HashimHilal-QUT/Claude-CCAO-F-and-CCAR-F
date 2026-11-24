@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused regression checks for the UD-CCAO-F DOCX import."""
+"""Focused regression checks for the UD-CCAR-F DOCX import."""
 
 import json
 import unittest
@@ -8,11 +8,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class UdCcAoFImportTests(unittest.TestCase):
+class UdCcArFImportTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.dataset = json.loads((ROOT / "site" / "ud-ccao-f.json").read_text())
-        cls.report = json.loads((ROOT / "site" / "ud-ccao-f-import-report.json").read_text())
+        cls.dataset = json.loads((ROOT / "site" / "ud-ccar-f.json").read_text())
+        cls.report = json.loads((ROOT / "site" / "ud-ccar-f-import-report.json").read_text())
 
     def test_complete_practice_test_and_scenario_counts(self):
         self.assertEqual(len(self.dataset["questions"]), 360)
@@ -30,9 +30,9 @@ class UdCcAoFImportTests(unittest.TestCase):
         self.assertEqual(
             review_ids,
             {
-                "UD-CCAO-F-PT06-Q030",
-                "UD-CCAO-F-PT06-Q059",
-                "UD-CCAO-F-PT06-Q060",
+                "UD-CCAR-F-PT06-Q030",
+                "UD-CCAR-F-PT06-Q059",
+                "UD-CCAR-F-PT06-Q060",
             },
         )
         self.assertTrue(all(not q["scorable"] for q in self.dataset["questions"] if q["id"] in review_ids))
@@ -45,6 +45,13 @@ class UdCcAoFImportTests(unittest.TestCase):
         self.assertEqual(questions[0]["options"][0]["id"], "A")
         self.assertEqual(questions[0]["options"][1]["id"], "B")
         self.assertGreater(self.report["nativeAlphabeticalNumberedOptions"], 0)
+
+    def test_navigation_opens_the_selected_quiz_bank_directly(self):
+        destination = 'href="quiz.html?bank=ud-ccar-f"'
+        for page in ("index.html", "study.html", "quiz.html"):
+            html = (ROOT / "site" / page).read_text()
+            self.assertIn(destination, html, page)
+            self.assertIn("UD-CCAR-F 360-Question Quiz", html, page)
 
 
 if __name__ == "__main__":

@@ -25,8 +25,8 @@ jobs:
       - name: Build question dataset
         run: python3 site/build_questions.py
 
-      - name: Import UD-CCAO-F dataset
-        run: python3 scripts/import_ud_ccao_f.py
+      - name: Import UD-CCAR-F dataset
+        run: python3 scripts/import_ud_ccar_f.py
 
       - name: Upload static site to Azure Blob Storage
         uses: azure/cli@v2

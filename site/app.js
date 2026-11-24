@@ -11,7 +11,7 @@ async function init() {
       menuToggle.setAttribute("aria-expanded", String(open));
     });
   }
-  const [response, udResponse] = await Promise.all([fetch("questions.json"), fetch("ud-ccao-f.json")]);
+  const [response, udResponse] = await Promise.all([fetch("questions.json"), fetch("ud-ccar-f.json")]);
   if (!response.ok) throw new Error(`Could not load question bank (${response.status})`);
   const payload = await response.json();
   state.banks = payload.banks;
@@ -20,6 +20,11 @@ async function init() {
   const requestedBank = new URLSearchParams(window.location.search).get("bank");
   if (requestedBank && state.banks.some((bank) => bank.id === requestedBank)) state.bank = requestedBank;
   document.querySelectorAll("[data-bank]").forEach((button) => button.classList.toggle("active", button.dataset.bank === state.bank));
+  if (state.bank === "ud-ccar-f" && document.documentElement.dataset.page === "quiz") {
+    document.title = "UD-CCAR-F Quiz | Claude Foundations";
+    const heading = document.querySelector(".section-heading h2");
+    if (heading) heading.textContent = "UD-CCAR-F · 360-question practice quiz.";
+  }
 
   // Delegated answer-click listener (attached once, survives #quiz-view re-renders).
   if ($("#quiz-view")) $("#quiz-view").addEventListener("click", (event) => {

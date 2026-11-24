@@ -25,18 +25,18 @@
     "Unclassified": 103
   },
   "questionsRequiringManualReview": [
-    "UD-CCAO-F-PT06-Q030",
-    "UD-CCAO-F-PT06-Q059",
-    "UD-CCAO-F-PT06-Q060"
+    "UD-CCAR-F-PT06-Q030",
+    "UD-CCAR-F-PT06-Q059",
+    "UD-CCAR-F-PT06-Q060"
   ],
   "reviewDetails": {
-    "UD-CCAO-F-PT06-Q030": [
+    "UD-CCAR-F-PT06-Q030": [
       "unexpected answer choice count: 3"
     ],
-    "UD-CCAO-F-PT06-Q059": [
+    "UD-CCAR-F-PT06-Q059": [
       "unexpected answer choice count: 2"
     ],
-    "UD-CCAO-F-PT06-Q060": [
+    "UD-CCAR-F-PT06-Q060": [
       "unexpected answer choice count: 3"
     ]
   },

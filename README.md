@@ -27,12 +27,12 @@ Preparing for the Claude Certified Associate – Foundations (CCAO-F) and Claude
 
 Most exam prep resources hand you a document and wish you luck. This site does the opposite. It gives you **searchable study cards** so you can drill into exactly the topic you're shaky on, and **timed practice quizzes** that simulate the pressure of the real exam. Active recall and timed practice are two of the most proven ways to lock in knowledge — and both are built in.
 
-### UD-CCAO-F Udemy Practice Exams
+### UD-CCAR-F 360-Question Udemy Quiz
 
-The **UD-CCAO-F** section is imported from `Udemy-CCAR-F_AI_V7.docx`. Rebuild its dataset and validation report after replacing the source document with:
+Open the **UD-CCAR-F 360-Question Quiz** from the navigation bar or directly at `site/quiz.html?bank=ud-ccar-f`. The quiz data is imported from `Udemy-CCAR-F_AI_V7.docx`. Rebuild its dataset and validation report after replacing the source document with:
 
 ```bash
-python3 scripts/import_ud_ccao_f.py
+python3 scripts/import_ud_ccar_f.py
 ```
 
 The importer preserves Word list order and bold answer keys, records six scenarios and six practice tests, and marks questions with unexpected answer-choice counts for manual review. Reviewed questions are excluded from scored sessions until their source data is corrected.
