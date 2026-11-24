@@ -7,6 +7,8 @@ on:
       - "site/**"
       - "ccaf/jsonl/**"
       - "ccao/jsonl/**"
+      - "Udemy-CCAR-F_AI_V7.docx"
+      - "scripts/**"
       - ".github/workflows/deploy-site.yml"
   workflow_dispatch:
 
@@ -22,6 +24,9 @@ jobs:
 
       - name: Build question dataset
         run: python3 site/build_questions.py
+
+      - name: Import UD-CCAO-F dataset
+        run: python3 scripts/import_ud_ccao_f.py
 
       - name: Upload static site to Azure Blob Storage
         uses: azure/cli@v2

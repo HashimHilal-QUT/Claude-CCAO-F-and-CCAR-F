@@ -1,0 +1,45 @@
+{
+  "source": "Udemy-CCAR-F_AI_V7.docx",
+  "questionsExtracted": 360,
+  "questionsPerPracticeTest": {
+    "1": 60,
+    "2": 60,
+    "3": 60,
+    "4": 60,
+    "5": 60,
+    "6": 60
+  },
+  "totalAnswerChoices": 1436,
+  "nativeAlphabeticalNumberedOptions": 1436,
+  "singleSelectQuestions": 283,
+  "multiSelectQuestions": 77,
+  "confirmedCorrectAnswers": 360,
+  "missingOrAmbiguousAnswerKeys": [],
+  "uniqueScenarios": 6,
+  "questionsByDomain": {
+    "Agentic Architecture & Orchestration": 74,
+    "Claude Code Configuration & Workflows": 48,
+    "Context Management & Reliability": 39,
+    "Prompt Engineering & Structured Output": 49,
+    "Tool Design & MCP Integration": 47,
+    "Unclassified": 103
+  },
+  "questionsRequiringManualReview": [
+    "UD-CCAO-F-PT06-Q030",
+    "UD-CCAO-F-PT06-Q059",
+    "UD-CCAO-F-PT06-Q060"
+  ],
+  "reviewDetails": {
+    "UD-CCAO-F-PT06-Q030": [
+      "unexpected answer choice count: 3"
+    ],
+    "UD-CCAO-F-PT06-Q059": [
+      "unexpected answer choice count: 2"
+    ],
+    "UD-CCAO-F-PT06-Q060": [
+      "unexpected answer choice count: 3"
+    ]
+  },
+  "duplicateQuestionIds": [],
+  "residualCorrectSelectionLabels": []
+}

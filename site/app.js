@@ -1,4 +1,4 @@
-const state = { banks: [], training: null, bank: "ccaf", domain: "all", search: "", mode: "study", questions: [], quiz: null, trainingQuiz: null, timer: { secondsLeft: 0, running: false, interval: null } };
+const state = { banks: [], training: null, bank: "ccaf", domain: "all", practiceTest: "all", search: "", mode: "study", questions: [], quiz: null, trainingQuiz: null, timer: { secondsLeft: 0, running: false, interval: null } };
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
 
@@ -11,9 +11,15 @@ async function init() {
       menuToggle.setAttribute("aria-expanded", String(open));
     });
   }
-  const response = await fetch("questions.json");
+  const [response, udResponse] = await Promise.all([fetch("questions.json"), fetch("ud-ccao-f.json")]);
   if (!response.ok) throw new Error(`Could not load question bank (${response.status})`);
-  ({ banks: state.banks } = await response.json());
+  const payload = await response.json();
+  state.banks = payload.banks;
+  if (udResponse.ok) state.banks.push(await udResponse.json());
+  state.banks.forEach(normalizeBank);
+  const requestedBank = new URLSearchParams(window.location.search).get("bank");
+  if (requestedBank && state.banks.some((bank) => bank.id === requestedBank)) state.bank = requestedBank;
+  document.querySelectorAll("[data-bank]").forEach((button) => button.classList.toggle("active", button.dataset.bank === state.bank));
 
   // Delegated answer-click listener (attached once, survives #quiz-view re-renders).
   if ($("#quiz-view")) $("#quiz-view").addEventListener("click", (event) => {
@@ -29,6 +35,7 @@ async function init() {
   if (!$("#study-view")) return;
   updateSummary();
   renderDomainFilter();
+  renderPracticeTestFilter();
   render();
 
   // FIX: bank toggle must not force study mode, must clear stale quiz state,
@@ -37,6 +44,7 @@ async function init() {
     if (state.bank === button.dataset.bank) return; // no-op if already selected
     state.bank = button.dataset.bank;
     state.domain = "all";
+    state.practiceTest = "all";
     state.search = "";
     document.querySelectorAll("[data-bank]").forEach((item) => item.classList.toggle("active", item === button));
     // Clear stale quiz + view so no disabled buttons can swallow clicks.
@@ -45,6 +53,7 @@ async function init() {
     if ($("#score-value")) $("#score-value").textContent = "0 / 0";
     if ($("#score-percent")) $("#score-percent").textContent = "No answers yet";
     renderDomainFilter();
+    renderPracticeTestFilter();
     render();                 // rebuilds study view + timer note for the new bank
     if (state.mode === "quiz") startQuiz();  // fresh pool for the new bank
     else renderQuizPlaceholder();            // keep #quiz-view consistent while hidden
@@ -54,6 +63,10 @@ async function init() {
   if ($("#domain-filter")) $("#domain-filter").addEventListener("change", (event) => {
     state.domain = event.target.value;
     // Domain change while in quiz mode: restart with the new filtered pool.
+    if (state.mode === "quiz") startQuiz(); else render();
+  });
+  if ($("#practice-test-filter")) $("#practice-test-filter").addEventListener("change", (event) => {
+    state.practiceTest = event.target.value;
     if (state.mode === "quiz") startQuiz(); else render();
   });
   if ($("#study-mode")) $("#study-mode").addEventListener("click", () => setMode("study"));
@@ -70,6 +83,28 @@ async function init() {
 }
 
 function currentBank() { return state.banks.find((bank) => bank.id === state.bank); }
+function normalizeBank(bank) {
+  bank.questions = bank.questions.map((question) => {
+    const options = Array.isArray(question.options)
+      ? Object.fromEntries(question.options.map((option) => [option.id, option.text]))
+      : question.options;
+    const correctAnswers = question.correctAnswers || (question.correct_answer ? [question.correct_answer] : []);
+    return {
+      ...question,
+      stem: question.stem || question.question,
+      options,
+      correctAnswers,
+      correct_answer: correctAnswers[0],
+      domain_id: question.domain_id ?? question.domain ?? "Unclassified",
+      domain_name: question.domain_name || question.domain || "Unclassified",
+      explanation: question.explanation || "",
+      practiceTest: question.practiceTest ?? null,
+      scorable: question.scorable !== false,
+    };
+  });
+  bank.domains = bank.domains || [];
+  bank.practiceTests = bank.practiceTests || [];
+}
 function updateSummary() {
   const total = state.banks.reduce((sum, bank) => sum + bank.questions.length, 0);
   if ($("#total-count")) $("#total-count").textContent = total;
@@ -80,10 +115,21 @@ function renderDomainFilter() {
     currentBank().domains.map((domain) => `<option value="${domain.id}">Domain ${domain.id}: ${escapeHtml(domain.name)}</option>`).join("");
   $("#domain-filter").value = state.domain;
 }
+function renderPracticeTestFilter() {
+  const select = $("#practice-test-filter");
+  if (!select) return;
+  const tests = currentBank().practiceTests || [];
+  select.innerHTML = `<option value="all">All practice tests</option>` +
+    tests.map((test) => `<option value="${test.id}">${escapeHtml(test.name)} (${test.questionCount})</option>`).join("");
+  select.value = state.practiceTest;
+  select.parentElement.classList.toggle("hidden", !tests.length);
+}
 function filteredQuestions() {
   return currentBank().questions.filter((question) => {
     const text = `${question.stem} ${question.explanation} ${Object.values(question.options).join(" ")}`.toLowerCase();
-    return (state.domain === "all" || String(question.domain_id) === state.domain) && (!state.search || text.includes(state.search));
+    return question.scorable && (state.domain === "all" || String(question.domain_id) === state.domain) &&
+      (state.practiceTest === "all" || String(question.practiceTest) === state.practiceTest) &&
+      (!state.search || text.includes(state.search));
   });
 }
 function render() {
@@ -102,7 +148,8 @@ function renderStudy() {
   $("#study-view").innerHTML = state.questions.map((question, index) => {
     const options = Object.entries(question.options).map(([letter, text]) =>
       `<div class="option"><span class="letter">${letter}</span><span>${escapeHtml(text)}</span></div>`).join("");
-    return `<article class="question-card"><div class="question-meta"><span>Domain ${question.domain_id} · ${escapeHtml(question.domain_name)}</span><span class="question-number">#${index + 1}</span></div><h3>${escapeHtml(question.stem)}</h3><div class="options">${options}</div><button class="reveal" type="button" data-answer="${question.id}">Show answer & rationale ↓</button><div class="answer-panel hidden" id="answer-${question.id}"><strong>Correct answer: ${question.correct_answer}</strong><br>${escapeHtml(question.explanation)}</div></article>`;
+    const scenario = question.scenarioId && currentBank().scenarios?.find((item) => item.id === question.scenarioId);
+    return `<article class="question-card"><div class="question-meta"><span>${question.practiceTest ? `Practice Test ${question.practiceTest} · ` : ""}${escapeHtml(question.domain_name)}</span><span class="question-number">#${question.questionNumber || index + 1}</span></div>${scenario ? `<details class="question-scenario"><summary>Scenario</summary><p>${escapeHtml(scenario.text)}</p></details>` : ""}<h3>${escapeHtml(question.stem)}</h3><div class="options">${options}</div><button class="reveal" type="button" data-answer="${question.id}">Show answer & rationale ↓</button><div class="answer-panel hidden" id="answer-${question.id}"><strong>Correct answer: ${question.correctAnswers.join(", ")}</strong>${question.explanation ? `<br>${escapeHtml(question.explanation)}` : ""}</div></article>`;
   }).join("");
   document.querySelectorAll("[data-answer]").forEach((button) => button.addEventListener("click", () => {
     const panel = $(`#answer-${button.dataset.answer}`);
@@ -121,7 +168,7 @@ function setModeButtons() {
 function startQuiz(timed = false) {
   const pool = [...filteredQuestions()].sort(() => Math.random() - 0.5);
   if (!pool.length) { renderQuizPlaceholder(); return; }
-  state.mode = "quiz"; state.quiz = { questions: pool, index: 0, score: 0, answered: false };
+  state.mode = "quiz"; state.quiz = { questions: pool, index: 0, score: 0, answered: false, selected: new Set() };
   setModeButtons(); render(); renderQuiz();
   const quizSection = document.querySelector(".study-section");
   if (quizSection) quizSection.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -133,7 +180,9 @@ function renderQuizPlaceholder() {
 }
 function renderQuiz() {
   const quiz = state.quiz; const question = quiz.questions[quiz.index]; const progress = quiz.index / quiz.questions.length * 100;
-  $("#quiz-view").innerHTML = `<div class="quiz-shell"><div class="quiz-progress"><span>QUESTION ${quiz.index + 1} OF ${quiz.questions.length}</span><span class="quiz-progress-score">${quiz.score} correct · ${Math.round(quiz.score / Math.max(1, quiz.index + (quiz.answered ? 1 : 0)) * 100)}%</span><span>Untimed quiz</span></div><div class="quiz-track"><span style="width:${progress}%"></span></div><h3>${escapeHtml(question.stem)}</h3><div class="quiz-options">${Object.entries(question.options).map(([letter, text]) => `<button class="quiz-option" data-choice="${letter}" type="button"><span class="letter">${letter}</span><span>${escapeHtml(text)}</span></button>`).join("")}</div><div id="quiz-feedback"></div></div>`;
+  const multiple = question.correctAnswers.length > 1;
+  const scenario = question.scenarioId && currentBank().scenarios?.find((item) => item.id === question.scenarioId);
+  $("#quiz-view").innerHTML = `<div class="quiz-shell"><div class="quiz-progress"><span>QUESTION ${quiz.index + 1} OF ${quiz.questions.length}</span><span class="quiz-progress-score">${quiz.score} correct · ${Math.round(quiz.score / Math.max(1, quiz.index + (quiz.answered ? 1 : 0)) * 100)}%</span><span>${multiple ? `Select ${question.requiredSelections} answers` : "Single answer"}</span></div><div class="quiz-track"><span style="width:${progress}%"></span></div>${scenario ? `<details class="question-scenario"><summary>Scenario</summary><p>${escapeHtml(scenario.text)}</p></details>` : ""}<h3>${escapeHtml(question.stem)}</h3><div class="quiz-options">${Object.entries(question.options).map(([letter, text]) => `<button class="quiz-option" data-choice="${letter}" type="button" aria-pressed="false"><span class="letter">${letter}</span><span>${escapeHtml(text)}</span></button>`).join("")}</div>${multiple ? '<button class="quiz-next quiz-submit" type="button">Submit answer</button>' : ""}<div id="quiz-feedback"></div></div>`;
   updateScoreCard();
 }
 function renderTimerPanel() {
@@ -206,19 +255,31 @@ function answerQuiz(choice) {
   // FIX: guard against stale state so clicks are never silently swallowed.
   const quiz = state.quiz;
   if (!quiz || quiz.answered || !quiz.questions[quiz.index]) return;
-  quiz.answered = true;
   const question = quiz.questions[quiz.index];
-  if (choice === question.correct_answer) quiz.score++;
+  if (question.correctAnswers.length > 1) {
+    quiz.selected = quiz.selected || new Set();
+    if (choice !== "submit") {
+      if (quiz.selected.has(choice)) quiz.selected.delete(choice); else quiz.selected.add(choice);
+      document.querySelector(`[data-choice="${choice}"]`)?.classList.toggle("selected", quiz.selected.has(choice));
+      document.querySelector(`[data-choice="${choice}"]`)?.setAttribute("aria-pressed", String(quiz.selected.has(choice)));
+      return;
+    }
+    if (quiz.selected.size === 0) return;
+  }
+  quiz.answered = true;
+  const selected = question.correctAnswers.length > 1 ? quiz.selected : new Set([choice]);
+  const correct = question.correctAnswers.length === selected.size && question.correctAnswers.every((answer) => selected.has(answer));
+  if (correct) quiz.score++;
   updateScoreCard();
   document.querySelectorAll("[data-choice]").forEach((button) => {
     button.disabled = true;
-    if (button.dataset.choice === question.correct_answer) button.classList.add("correct");
-    else if (button.dataset.choice === choice) button.classList.add("incorrect");
+    if (question.correctAnswers.includes(button.dataset.choice)) button.classList.add("correct");
+    else if (selected.has(button.dataset.choice)) button.classList.add("incorrect");
   });
-  $("#quiz-feedback").innerHTML = `<div class="quiz-feedback"><strong>${choice === question.correct_answer ? "Correct." : `Incorrect — the correct answer is ${question.correct_answer}.`}</strong><br>${escapeHtml(question.explanation)}<br><button class="quiz-next" type="button">${quiz.index + 1 === quiz.questions.length ? "See results" : "Next question →"}</button></div>`;
+  $("#quiz-feedback").innerHTML = `<div class="quiz-feedback"><strong>${correct ? "Correct." : `Incorrect — the correct answer${question.correctAnswers.length > 1 ? "s are" : " is"} ${question.correctAnswers.join(", ")}.`}</strong>${question.explanation ? `<br>${escapeHtml(question.explanation)}` : ""}<br><button class="quiz-next" type="button">${quiz.index + 1 === quiz.questions.length ? "See results" : "Next question →"}</button></div>`;
   $(".quiz-next").addEventListener("click", () => {
     if (quiz.index + 1 === quiz.questions.length) showQuizResult();
-    else { quiz.index++; quiz.answered = false; renderQuiz(); }
+    else { quiz.index++; quiz.answered = false; quiz.selected = new Set(); renderQuiz(); }
   });
 }
 function showQuizResult(timeExpired = false) {

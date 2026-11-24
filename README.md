@@ -15,6 +15,14 @@ python3 site/build_questions.py
 
 The generated site can be opened locally with any static file server, for example `python3 -m http.server --directory site`.
 
+The **UD-CCAO-F** section is imported from `Udemy-CCAR-F_AI_V7.docx`. Rebuild its dataset and validation report after replacing the source document with:
+
+```bash
+python3 scripts/import_ud_ccao_f.py
+```
+
+The importer preserves Word list order and bold answer keys, records six scenarios and six practice tests, and marks questions with unexpected answer-choice counts for manual review. Reviewed questions are excluded from scored sessions until their source data is corrected.
+
 The **CCAR-F Training Hub** adds five chapter guides, 35 podcast episodes, the 27-page Architect's Playbook PDF, and a 120-question training quiz. The catalog is generated with `python3 site/build_training.py` when the private `CCAR-F_Training/` source folder is available. The large MP3, PDF, and Markdown assets are hosted directly in Azure under the `training/` prefix rather than stored in GitHub.
 
 ### Azure deployment
