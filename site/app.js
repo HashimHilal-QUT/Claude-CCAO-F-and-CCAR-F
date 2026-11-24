@@ -291,7 +291,7 @@ function answerQuiz(choice) {
     else if (selected.has(button.dataset.choice)) button.classList.add("incorrect");
   });
   $("#quiz-feedback").innerHTML = `<div class="quiz-feedback"><strong>${correct ? "Correct." : `Incorrect — the correct answer${question.correctAnswers.length > 1 ? "s are" : " is"} ${question.correctAnswers.join(", ")}.`}</strong>${question.explanation ? `<br>${escapeHtml(question.explanation)}` : ""}<br><button class="quiz-next" type="button">${quiz.index + 1 === quiz.questions.length ? "See results" : "Next question →"}</button></div>`;
-  $(".quiz-next").addEventListener("click", () => {
+  $("#quiz-feedback .quiz-next").addEventListener("click", () => {
     if (quiz.index + 1 === quiz.questions.length) showQuizResult();
     else { quiz.index++; quiz.answered = false; quiz.selected = new Set(); renderQuiz(); }
   });
