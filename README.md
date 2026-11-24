@@ -29,7 +29,7 @@ Most exam prep resources hand you a document and wish you luck. This site does t
 
 ### UD-CCAR-F 360-Question Udemy Quiz
 
-Open the **UD-CCAR-F 360-Question Quiz** from the navigation bar or directly at `site/quiz.html?bank=ud-ccar-f`. The quiz data is imported from `Udemy-CCAR-F_AI_V7.docx`. Rebuild its dataset and validation report after replacing the source document with:
+Open the separate **UD-CCAR-F 360-Question Quiz** page from the navigation bar or directly at [`site/ud-ccar-f-quiz.html`](site/ud-ccar-f-quiz.html). The quiz data is imported from `Udemy-CCAR-F_AI_V7.docx`. Rebuild its dataset and validation report after replacing the source document with:
 
 ```bash
 python3 scripts/import_ud_ccar_f.py

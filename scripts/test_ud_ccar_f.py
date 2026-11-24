@@ -47,11 +47,14 @@ class UdCcArFImportTests(unittest.TestCase):
         self.assertGreater(self.report["nativeAlphabeticalNumberedOptions"], 0)
 
     def test_navigation_opens_the_selected_quiz_bank_directly(self):
-        destination = 'href="quiz.html?bank=ud-ccar-f"'
-        for page in ("index.html", "study.html", "quiz.html"):
+        destination = 'href="ud-ccar-f-quiz.html"'
+        for page in ("index.html", "study.html", "quiz.html", "ud-ccar-f-quiz.html"):
             html = (ROOT / "site" / page).read_text()
             self.assertIn(destination, html, page)
             self.assertIn("UD-CCAR-F 360-Question Quiz", html, page)
+        quiz_hub = (ROOT / "site" / "quiz.html").read_text()
+        self.assertNotIn('data-bank="ud-ccar-f"', quiz_hub)
+        self.assertIn('data-page="ud-ccar-f-quiz"', (ROOT / "site" / "ud-ccar-f-quiz.html").read_text())
 
 
 if __name__ == "__main__":

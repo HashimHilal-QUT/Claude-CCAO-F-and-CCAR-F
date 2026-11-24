@@ -11,17 +11,25 @@ async function init() {
       menuToggle.setAttribute("aria-expanded", String(open));
     });
   }
-  const [response, udResponse] = await Promise.all([fetch("questions.json"), fetch("ud-ccar-f.json")]);
-  if (!response.ok) throw new Error(`Could not load question bank (${response.status})`);
-  const payload = await response.json();
-  state.banks = payload.banks;
-  if (udResponse.ok) state.banks.push(await udResponse.json());
+  const dedicatedUdQuiz = document.documentElement.dataset.page === "ud-ccar-f-quiz";
+  if (dedicatedUdQuiz) {
+    const response = await fetch("ud-ccar-f.json");
+    if (!response.ok) throw new Error(`Could not load UD-CCAR-F question bank (${response.status})`);
+    state.banks = [await response.json()];
+  } else {
+    const [response, udResponse] = await Promise.all([fetch("questions.json"), fetch("ud-ccar-f.json")]);
+    if (!response.ok) throw new Error(`Could not load question bank (${response.status})`);
+    const payload = await response.json();
+    state.banks = payload.banks;
+    if (udResponse.ok) state.banks.push(await udResponse.json());
+  }
   state.banks.forEach(normalizeBank);
   const requestedBank = new URLSearchParams(window.location.search).get("bank");
-  if (requestedBank && state.banks.some((bank) => bank.id === requestedBank)) state.bank = requestedBank;
+  if (dedicatedUdQuiz) state.bank = "ud-ccar-f";
+  else if (requestedBank && state.banks.some((bank) => bank.id === requestedBank)) state.bank = requestedBank;
   document.querySelectorAll("[data-bank]").forEach((button) => button.classList.toggle("active", button.dataset.bank === state.bank));
-  if (state.bank === "ud-ccar-f" && document.documentElement.dataset.page === "quiz") {
-    document.title = "UD-CCAR-F Quiz | Claude Foundations";
+  if (state.bank === "ud-ccar-f" && (document.documentElement.dataset.page === "quiz" || dedicatedUdQuiz)) {
+    document.title = "UD-CCAR-F 360-Question Quiz | Claude Foundations";
     const heading = document.querySelector(".section-heading h2");
     if (heading) heading.textContent = "UD-CCAR-F · 360-question practice quiz.";
   }
@@ -84,7 +92,7 @@ async function init() {
   if ($("#nav-quiz")) $("#nav-quiz").addEventListener("click", (event) => { event.preventDefault(); startQuiz(); });
 
   // data-page lives on <html>, not <body>.
-  if (document.documentElement.dataset.page === "quiz") startQuiz();
+  if (document.documentElement.dataset.page === "quiz" || dedicatedUdQuiz) startQuiz();
 }
 
 function currentBank() { return state.banks.find((bank) => bank.id === state.bank); }

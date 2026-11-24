@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" data-page="ud-ccar-f-quiz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="A dedicated 360-question UD-CCAR-F practice quiz">
+<title>UD-CCAR-F 360-Question Quiz | Claude Foundations</title>
+<link rel="stylesheet" href="styles.css">
+<script defer src="app.js?v=20261124-ud-ccar-f"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">C</span>
+      <span><strong>Claude</strong><small>Foundations prep</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav id="site-nav">
+      <a href="index.html">Home</a>
+      <a href="study.html">Study Hub</a>
+      <a href="quiz.html">Quiz Hub</a>
+      <a class="active" href="ud-ccar-f-quiz.html">UD-CCAR-F 360-Question Quiz</a>
+      <a href="training.html">CCAR-F Intensive Training</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="study-section">
+    <div class="wrap">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Dedicated practice quiz</p>
+          <h2>UD-CCAR-F · 360-question practice quiz.</h2>
+        </div>
+        <p id="results-count" class="results-count"></p>
+      </div>
+      <p class="quiz-description">Choose a practice test or domain, or practise the full scored question bank. Three source questions with incomplete choice counts are held out for review.</p>
+
+      <div class="toolbar">
+        <label class="select-label">
+          <select id="domain-filter" aria-label="Filter by domain"></select>
+        </label>
+        <label class="select-label">
+          <select id="practice-test-filter" aria-label="Choose a practice test"></select>
+        </label>
+        <div id="timer-panel" class="timer-panel">
+          <div>
+            <strong id="timer-panel-time">Not started</strong>
+            <span id="timer-panel-note">2 min/question</span>
+          </div>
+          <div class="timer-controls">
+            <button id="timer-start-stop" class="button button-primary" type="button">Start timer</button>
+            <button id="timer-reset" class="button button-secondary" type="button">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <span id="timer-note" class="timer-note" hidden></span>
+      <div id="score-card" class="score-card">
+        <span>Score</span>
+        <strong id="score-value">0 / 0</strong>
+        <small id="score-percent">No answers yet</small>
+      </div>
+      <div id="study-view" class="hidden"></div>
+      <div id="quiz-view"></div>
+      <div id="empty-state" class="empty-state hidden">
+        <h3>No scorable questions match those filters.</h3>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>UD-CCAR-F · Six practice tests</span>
+    <span>360 source questions</span>
+  </div>
+</footer>
+</body>
+</html>
