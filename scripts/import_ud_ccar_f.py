@@ -194,7 +194,7 @@ def extract() -> tuple[dict, dict]:
         question["correctAnswers"].sort()
         question["questionType"] = "multiple_select" if len(question["correctAnswers"]) > 1 else "single_select"
         question["requiredSelections"] = len(question["correctAnswers"]) or 1
-        question["scorable"] = len(question["options"]) == 4 and bool(question["correctAnswers"])
+        question["scorable"] = bool(question["correctAnswers"])
         question["reviewReasons"] = []
         if len(question["options"]) != 4:
             question["reviewReasons"].append(f"unexpected answer choice count: {len(question['options'])}")
@@ -206,7 +206,7 @@ def extract() -> tuple[dict, dict]:
 
     test_counts = Counter(q["practiceTest"] for q in questions)
     domain_counts = Counter(q["domain"] or "Unclassified" for q in questions)
-    review = [q["id"] for q in questions if not q["scorable"]]
+    review = [q["id"] for q in questions if q["reviewReasons"]]
     dataset = {
         "id": "ud-ccar-f",
         "name": "Claude Certified Architect Foundations - Udemy Practice Exams",

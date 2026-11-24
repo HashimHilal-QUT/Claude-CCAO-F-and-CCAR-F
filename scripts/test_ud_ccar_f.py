@@ -25,7 +25,7 @@ class UdCcArFImportTests(unittest.TestCase):
         self.assertTrue(any(len(q["correctAnswers"]) > 1 for q in self.dataset["questions"]))
         self.assertTrue(all(q["correctAnswers"] for q in self.dataset["questions"]))
 
-    def test_unusual_choice_counts_are_review_only(self):
+    def test_unusual_choice_counts_remain_in_scored_quiz(self):
         review_ids = set(self.report["questionsRequiringManualReview"])
         self.assertEqual(
             review_ids,
@@ -35,8 +35,10 @@ class UdCcArFImportTests(unittest.TestCase):
                 "UD-CCAR-F-PT06-Q060",
             },
         )
-        self.assertTrue(all(not q["scorable"] for q in self.dataset["questions"] if q["id"] in review_ids))
-        self.assertTrue(all(q["scorable"] for q in self.dataset["questions"] if q["id"] not in review_ids))
+        questions_by_id = {q["id"]: q for q in self.dataset["questions"]}
+        self.assertTrue(all(questions_by_id[qid]["scorable"] for qid in review_ids))
+        self.assertEqual(sum(q["scorable"] for q in self.dataset["questions"]), 360)
+        self.assertEqual(len(questions_by_id["UD-CCAR-F-PT06-Q060"]["correctAnswers"]), 2)
 
     def test_ids_and_answer_order_are_unique_and_stable(self):
         questions = self.dataset["questions"]
@@ -45,6 +47,18 @@ class UdCcArFImportTests(unittest.TestCase):
         self.assertEqual(questions[0]["options"][0]["id"], "A")
         self.assertEqual(questions[0]["options"][1]["id"], "B")
         self.assertGreater(self.report["nativeAlphabeticalNumberedOptions"], 0)
+        self.assertEqual(
+            [(q["practiceTest"], q["questionNumber"]) for q in questions],
+            [(test, number) for test in range(1, 7) for number in range(1, 61)],
+        )
+
+    def test_quiz_preserves_ud_source_order_and_submits_multiple_selections(self):
+        app = (ROOT / "site" / "app.js").read_text()
+        self.assertIn(
+            'const pool = state.bank === "ud-ccar-f" ? questions : [...questions].sort(() => Math.random() - 0.5);',
+            app,
+        )
+        self.assertIn('data-choice="submit"', app)
 
     def test_navigation_opens_the_selected_quiz_bank_directly(self):
         destination = 'href="ud-ccar-f-quiz.html"'

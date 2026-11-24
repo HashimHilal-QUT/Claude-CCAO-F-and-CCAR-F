@@ -179,7 +179,8 @@ function setModeButtons() {
   if ($("#quiz-mode")) $("#quiz-mode").classList.toggle("active", state.mode === "quiz");
 }
 function startQuiz(timed = false) {
-  const pool = [...filteredQuestions()].sort(() => Math.random() - 0.5);
+  const questions = filteredQuestions();
+  const pool = state.bank === "ud-ccar-f" ? questions : [...questions].sort(() => Math.random() - 0.5);
   if (!pool.length) { renderQuizPlaceholder(); return; }
   state.mode = "quiz"; state.quiz = { questions: pool, index: 0, score: 0, answered: false, selected: new Set() };
   setModeButtons(); render(); renderQuiz();
@@ -195,7 +196,7 @@ function renderQuiz() {
   const quiz = state.quiz; const question = quiz.questions[quiz.index]; const progress = quiz.index / quiz.questions.length * 100;
   const multiple = question.correctAnswers.length > 1;
   const scenario = question.scenarioId && currentBank().scenarios?.find((item) => item.id === question.scenarioId);
-  $("#quiz-view").innerHTML = `<div class="quiz-shell"><div class="quiz-progress"><span>QUESTION ${quiz.index + 1} OF ${quiz.questions.length}</span><span class="quiz-progress-score">${quiz.score} correct · ${Math.round(quiz.score / Math.max(1, quiz.index + (quiz.answered ? 1 : 0)) * 100)}%</span><span>${multiple ? `Select ${question.requiredSelections} answers` : "Single answer"}</span></div><div class="quiz-track"><span style="width:${progress}%"></span></div>${scenario ? `<details class="question-scenario"><summary>Scenario</summary><p>${escapeHtml(scenario.text)}</p></details>` : ""}<h3>${escapeHtml(question.stem)}</h3><div class="quiz-options">${Object.entries(question.options).map(([letter, text]) => `<button class="quiz-option" data-choice="${letter}" type="button" aria-pressed="false"><span class="letter">${letter}</span><span>${escapeHtml(text)}</span></button>`).join("")}</div>${multiple ? '<button class="quiz-next quiz-submit" type="button">Submit answer</button>' : ""}<div id="quiz-feedback"></div></div>`;
+  $("#quiz-view").innerHTML = `<div class="quiz-shell"><div class="quiz-progress"><span>QUESTION ${quiz.index + 1} OF ${quiz.questions.length}</span><span class="quiz-progress-score">${quiz.score} correct · ${Math.round(quiz.score / Math.max(1, quiz.index + (quiz.answered ? 1 : 0)) * 100)}%</span><span>${multiple ? `Select ${question.requiredSelections} answers` : "Single answer"}</span></div><div class="quiz-track"><span style="width:${progress}%"></span></div>${scenario ? `<details class="question-scenario"><summary>Scenario</summary><p>${escapeHtml(scenario.text)}</p></details>` : ""}<h3>${escapeHtml(question.stem)}</h3><div class="quiz-options">${Object.entries(question.options).map(([letter, text]) => `<button class="quiz-option" data-choice="${letter}" type="button" aria-pressed="false"><span class="letter">${letter}</span><span>${escapeHtml(text)}</span></button>`).join("")}</div>${multiple ? '<button class="quiz-next quiz-submit" data-choice="submit" type="button">Submit answer</button>' : ""}<div id="quiz-feedback"></div></div>`;
   updateScoreCard();
 }
 function renderTimerPanel() {

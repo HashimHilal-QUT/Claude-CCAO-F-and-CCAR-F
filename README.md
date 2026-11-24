@@ -35,7 +35,7 @@ Open the separate **UD-CCAR-F 360-Question Quiz** page from the navigation bar o
 python3 scripts/import_ud_ccar_f.py
 ```
 
-The importer preserves Word list order and bold answer keys, records six scenarios and six practice tests, and marks questions with unexpected answer-choice counts for manual review. Reviewed questions are excluded from scored sessions until their source data is corrected.
+The importer preserves Word question and answer-choice order and bold answer keys, recording all six practice tests with 60 questions each. Questions with unexpected answer-choice counts remain available in the scored quiz when the source provides an answer key and are marked for manual review.
 
 ### Two Exams, One Destination
 

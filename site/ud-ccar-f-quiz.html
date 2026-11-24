@@ -6,7 +6,7 @@
 <meta name="description" content="A dedicated 360-question UD-CCAR-F practice quiz">
 <title>UD-CCAR-F 360-Question Quiz | Claude Foundations</title>
 <link rel="stylesheet" href="styles.css">
-<script defer src="app.js?v=20261124-ud-ccar-f"></script>
+<script defer src="app.js?v=20261124-ud-ccar-f-ordered-multiselect"></script>
 </head>
 <body>
 <header class="site-header">
@@ -36,7 +36,7 @@
         </div>
         <p id="results-count" class="results-count"></p>
       </div>
-      <p class="quiz-description">Choose a practice test or domain, or practise the full scored question bank. Three source questions with incomplete choice counts are held out for review.</p>
+      <p class="quiz-description">Choose one of six practice tests (60 questions each) or a domain. Questions and answer choices follow the source document order.</p>
 
       <div class="toolbar">
         <label class="select-label">
@@ -66,7 +66,7 @@
       <div id="study-view" class="hidden"></div>
       <div id="quiz-view"></div>
       <div id="empty-state" class="empty-state hidden">
-        <h3>No scorable questions match those filters.</h3>
+        <h3>No questions match those filters.</h3>
       </div>
     </div>
   </section>
